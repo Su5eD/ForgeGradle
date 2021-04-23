@@ -139,7 +139,7 @@ class TaskGenBinPatches extends DefaultTask
 
     private void loadMappings() throws Exception
     {
-        Files.readLines(getSrg(), Charset.defaultCharset(), new LineProcessor<String>() {
+        Files.asCharSource(getSrg(), Charset.defaultCharset()).readLines(new LineProcessor<String>() {
 
             Splitter splitter = Splitter.on(CharMatcher.anyOf(": ")).omitEmptyStrings().trimResults();
 

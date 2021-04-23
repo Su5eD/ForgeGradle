@@ -135,16 +135,11 @@ class TaskGenPatches extends DefaultTask
         });
 
         // We want things sorted in reverse order. Do that sub folders come before parents
-        Collections.sort(directories, new Comparator<File>()
-        {
-            @Override
-            public int compare(File o1, File o2)
-            {
-                int r = o1.compareTo(o2);
-                if (r < 0) return  1;
-                if (r > 0) return -1;
-                return 0;
-            }
+        Collections.sort(directories, (o1, o2) -> {
+            int r = o1.compareTo(o2);
+            if (r < 0) return  1;
+            if (r > 0) return -1;
+            return 0;
         });
 
         for (File f : directories)
@@ -212,7 +207,7 @@ class TaskGenPatches extends DefaultTask
             String olddiff = "";
             if (patchFile.exists())
             {
-                olddiff = Files.toString(patchFile, Charsets.UTF_8);
+                olddiff = Files.asCharSource(patchFile, Charsets.UTF_8).read();
             }
 
             if (!olddiff.equals(unidiff))
@@ -220,7 +215,7 @@ class TaskGenPatches extends DefaultTask
                 getLogger().debug("Writing patch: " + patchFile);
                 patchFile.getParentFile().mkdirs();
                 Files.touch(patchFile);
-                Files.write(unidiff, patchFile, Charsets.UTF_8);
+                Files.asCharSink(patchFile, Charsets.UTF_8).write(unidiff);
             }
             else
             {

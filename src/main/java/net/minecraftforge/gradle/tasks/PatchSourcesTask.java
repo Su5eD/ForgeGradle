@@ -27,6 +27,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+import com.google.common.io.FileWriteMode;
 import net.minecraftforge.gradle.common.Constants;
 import net.minecraftforge.gradle.util.GradleConfigurationException;
 import net.minecraftforge.gradle.util.ThrowableUtil;
@@ -184,7 +185,7 @@ public class PatchSourcesTask extends AbstractEditJarTask
             }
             else if (inject.getName().endsWith(".java"))
             {
-                sourceMap.put(inject.getName(), Files.toString(inject, Constants.CHARSET));
+                sourceMap.put(inject.getName(), Files.asCharSource(inject, Constants.CHARSET).read());
             }
             else
             {
@@ -241,7 +242,7 @@ public class PatchSourcesTask extends AbstractEditJarTask
                         {
                             reject.delete();
                         }
-                        Files.append(rejectBuilder.toString(),reject, Charsets.UTF_8);
+                        Files.asCharSink(reject, Charsets.UTF_8, FileWriteMode.APPEND).write(rejectBuilder.toString());
                         getLogger().log(LogLevel.ERROR, "  Rejects written to {}", reject.getAbsolutePath());
                     }
 
@@ -451,7 +452,7 @@ public class PatchSourcesTask extends AbstractEditJarTask
         public PatchedFile(File file, ContextProvider provider, int maxFuzz) throws IOException
         {
             this.fileToPatch = file;
-            this.patch = ContextualPatch.create(Files.toString(file, Charset.defaultCharset()), provider).setAccessC14N(true).setMaxFuzz(maxFuzz);
+            this.patch = ContextualPatch.create(Files.asCharSource(file, Charset.defaultCharset()).read(), provider).setAccessC14N(true).setMaxFuzz(maxFuzz);
         }
 
         public PatchedFile(String file, ContextProvider provider, int maxFuzz)

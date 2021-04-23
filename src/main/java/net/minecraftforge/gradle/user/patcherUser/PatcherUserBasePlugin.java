@@ -189,13 +189,7 @@ public abstract class PatcherUserBasePlugin<T extends UserBaseExtension> extends
     protected void afterDecomp(final boolean isDecomp, final boolean useLocalCache, final String mcConfig)
     {
         // add MC repo to all projects
-        project.allprojects(new Action<Project>() {
-            @Override
-            public void execute(Project proj)
-            {
-                addFlatRepo(proj, "TweakerMcRepo", delayedFile(useLocalCache ? DIR_LOCAL_CACHE : DIR_API_JAR_BASE).call());
-            }
-        });
+        project.allprojects(proj -> addFlatRepo(proj, "TweakerMcRepo", delayedFile(useLocalCache ? DIR_LOCAL_CACHE : DIR_API_JAR_BASE).call()));
 
         // add the Mc dep
         T exten = getExtension();

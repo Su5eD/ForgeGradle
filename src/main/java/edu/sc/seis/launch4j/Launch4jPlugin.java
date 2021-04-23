@@ -91,30 +91,25 @@ public class Launch4jPlugin implements Plugin<Project>
         extractTask.from(input);
         extractTask.into(output);
 
-        extractTask.doLast(new Action<Task>() {
-
-            @Override
-            public void execute(Task task)
+        extractTask.doLast(task -> {
+            FileTree tree = project.fileTree(output.getPath() + "/bin");
+            tree.visit(new FileVisitor()
             {
-                FileTree tree = project.fileTree(output.getPath() + "/bin");
-                tree.visit(new FileVisitor()
+                @Override
+                public void visitDir(FileVisitDetails dirDetails)
                 {
-                    @Override
-                    public void visitDir(FileVisitDetails dirDetails)
-                    {
-                    }
+                }
 
-                    @Override
-                    public void visitFile(FileVisitDetails fileDetails)
+                @Override
+                public void visitFile(FileVisitDetails fileDetails)
+                {
+                    if (!fileDetails.getFile().canExecute())
                     {
-                        if (!fileDetails.getFile().canExecute())
-                        {
-                            boolean worked = fileDetails.getFile().setExecutable(true);
-                            project.getLogger().info("Setting file +X " + worked + " : " + fileDetails.getPath());
-                        }
+                        boolean worked = fileDetails.getFile().setExecutable(true);
+                        project.getLogger().info("Setting file +X " + worked + " : " + fileDetails.getPath());
                     }
-                });
-            }
+                }
+            });
         });
 
         return extractTask;
@@ -154,17 +149,13 @@ public class Launch4jPlugin implements Plugin<Project>
         final JavaExec task = makeTask(TASK_RUN_NAME, JavaExec.class);
         task.setDescription("Runs launch4j to generate an .exe file");
         task.setGroup(LAUNCH4J_GROUP);
-        project.afterEvaluate(new Action<Project>() {
-            @Override
-            public void execute(Project project)
-            {
-                Launch4jPluginExtension ext = ((Launch4jPluginExtension) task.getProject().getExtensions().getByName(Launch4jPlugin.LAUNCH4J_CONFIGURATION_NAME));
+        project.afterEvaluate(project -> {
+            Launch4jPluginExtension ext = ((Launch4jPluginExtension) task.getProject().getExtensions().getByName(Launch4jPlugin.LAUNCH4J_CONFIGURATION_NAME));
 
-                task.setMain("net.sf.launch4j.Main");
-                task.args(project.getBuildDir() + "/" + ext.getOutputDir() + "/" + ext.getXmlFileName());
-                task.setWorkingDir(project.file(ext.getChdir()));
-                task.setClasspath(project.fileTree(launch4JDir));
-            }
+            task.setMain("net.sf.launch4j.Main");
+            task.args(project.getBuildDir() + "/" + ext.getOutputDir() + "/" + ext.getXmlFileName());
+            task.setWorkingDir(project.file(ext.getChdir()));
+            task.setClasspath(project.fileTree(launch4JDir));
         });
         return task;
     }
@@ -184,7 +175,7 @@ public class Launch4jPlugin implements Plugin<Project>
         Jar jar = (Jar) project.getTasks().getByName(JavaPlugin.JAR_TASK_NAME);
 
         distSpec.from(jar);
-        distSpec.from(project.getConfigurations().getByName("runtime"));
+        distSpec.from(project.getConfigurations().getByName("runtimeClasspath"));
 
         return distSpec;
     }

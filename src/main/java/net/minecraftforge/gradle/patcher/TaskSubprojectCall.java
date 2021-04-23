@@ -47,11 +47,11 @@ class TaskSubprojectCall extends DefaultTask
     private Object callLine;
     private final List<URL> initResources = Lists.newArrayList();
     private final Map<String, Object> replacements = Maps.newHashMap();
-    
+
     //@formatter:off
     public TaskSubprojectCall() { super(); }
     //@formatter:on
-    
+
     @TaskAction
     public void doTask() throws IOException
     {
@@ -60,37 +60,37 @@ class TaskSubprojectCall extends DefaultTask
         {
             replacements.put(entry.getKey(), Constants.resolveString(entry.getValue()).replace('\\', '/'));
         }
-        
+
         // extract extra initscripts
         List<File> initscripts = Lists.newArrayListWithCapacity(initResources.size());
         for (int i = 0; i < initResources.size(); i++)
         {
             File file = new File(getTemporaryDir(), "initscript"+i);
             String thing = Resources.toString(initResources.get(i), Constants.CHARSET);
-            
+
             for (Entry<String, Object> entry : replacements.entrySet())
             {
                 thing = thing.replace(entry.getKey(), (String)entry.getValue());
             }
-            
-            Files.write(thing, file, Constants.CHARSET);
+
+            Files.asCharSink(file, Constants.CHARSET).write(thing);
             initscripts.add(file);
         }
-        
+
         // get current Gradle instance
         Gradle gradle = getProject().getGradle();
-        
+
         getProject().getLogger().lifecycle("------------------------ ");
         getProject().getLogger().lifecycle("--------SUB-CALL-------- ");
         getProject().getLogger().lifecycle("------------------------ ");
-        
+
         // connect to project
         ProjectConnection connection = GradleConnector.newConnector()
                 .useGradleUserHomeDir(gradle.getGradleUserHomeDir())
                 .useInstallation(gradle.getGradleHomeDir())
                 .forProjectDirectory(getProjectDir())
                 .connect();
-        
+
         //get args
         ArrayList<String> args = new ArrayList<String>(5);
         args.addAll(Splitter.on(' ').splitToList(getCallLine()));
@@ -99,7 +99,7 @@ class TaskSubprojectCall extends DefaultTask
         {
             args.add("-I" + f.getCanonicalPath());
         }
-        
+
         // build
         connection.newBuild()
                 .setStandardOutput(System.out)
@@ -108,7 +108,7 @@ class TaskSubprojectCall extends DefaultTask
                 .withArguments(args.toArray(new String[args.size()]))
                 .setColorOutput(false)
                 .run();
-        
+
         getProject().getLogger().lifecycle("------------------------ ");
         getProject().getLogger().lifecycle("------END-SUB-CALL------ ");
         getProject().getLogger().lifecycle("------------------------ ");
@@ -133,12 +133,12 @@ class TaskSubprojectCall extends DefaultTask
     {
         this.callLine = callLine;
     }
-    
+
     public void addInitScript(URL url)
     {
         initResources.add(url);
     }
-    
+
     public void addReplacement(String key, Object val)
     {
         replacements.put(key, val);

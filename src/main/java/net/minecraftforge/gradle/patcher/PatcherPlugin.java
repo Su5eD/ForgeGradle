@@ -19,15 +19,13 @@
  */
 package net.minecraftforge.gradle.patcher;
 
-import static net.minecraftforge.gradle.common.Constants.*;
-import static net.minecraftforge.gradle.patcher.PatcherConstants.*;
+import com.google.common.base.Strings;
+import com.google.common.collect.BiMap;
+import com.google.common.collect.HashBiMap;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
+import com.google.common.io.Resources;
 import groovy.lang.Closure;
-
-import java.io.File;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
-
 import net.minecraftforge.gradle.common.BasePlugin;
 import net.minecraftforge.gradle.common.Constants;
 import net.minecraftforge.gradle.tasks.*;
@@ -36,8 +34,6 @@ import net.minecraftforge.gradle.util.CopyInto;
 import net.minecraftforge.gradle.util.GradleConfigurationException;
 import net.minecraftforge.gradle.util.json.version.Library;
 import net.minecraftforge.gradle.util.json.version.Version;
-
-import org.gradle.api.Action;
 import org.gradle.api.NamedDomainObjectContainer;
 import org.gradle.api.Task;
 import org.gradle.api.file.DuplicatesStrategy;
@@ -45,12 +41,13 @@ import org.gradle.api.tasks.Delete;
 import org.gradle.api.tasks.bundling.Jar;
 import org.gradle.api.tasks.bundling.Zip;
 
-import com.google.common.base.Strings;
-import com.google.common.collect.BiMap;
-import com.google.common.collect.HashBiMap;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
-import com.google.common.io.Resources;
+import java.io.File;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
+
+import static net.minecraftforge.gradle.common.Constants.*;
+import static net.minecraftforge.gradle.patcher.PatcherConstants.*;
 
 public class PatcherPlugin extends BasePlugin<PatcherExtension>
 {
@@ -61,22 +58,8 @@ public class PatcherPlugin extends BasePlugin<PatcherExtension>
 
         NamedDomainObjectContainer<PatcherProject> container = project.container(PatcherProject.class, new PatcherProjectFactory(this));
         getExtension().setProjectContainer(container);
-        container.whenObjectAdded(new Action<PatcherProject>() {
-            @Override
-            public void execute(PatcherProject arg0)
-            {
-                createProject(arg0);
-            }
-
-        });
-        container.whenObjectRemoved(new Action<PatcherProject>() {
-            @Override
-            public void execute(PatcherProject arg0)
-            {
-                removeProject(arg0);
-            }
-
-        });
+        container.whenObjectAdded(this::createProject);
+        container.whenObjectRemoved(this::removeProject);
 
         // top level tasks
         {
@@ -218,10 +201,10 @@ public class PatcherPlugin extends BasePlugin<PatcherExtension>
             outputJar.from(delayedFile(BINPATCH_RUN));
             outputJar.from(delayedFile(DEOBF_DATA));
             outputJar.from(delayedFile(JSON_UNIVERSAL));
-            outputJar.setBaseName(project.getName());
+            outputJar.getArchiveBaseName().set(project.getName());
             outputJar.setDuplicatesStrategy(DuplicatesStrategy.EXCLUDE);
             outputJar.getOutputs().upToDateWhen(Constants.CALL_FALSE); // rebuild every time.
-            outputJar.setDestinationDir(new File(DIR_OUTPUT));
+            outputJar.getDestinationDirectory().set(new File(DIR_OUTPUT));
             outputJar.dependsOn(genBinPatches, extractObfClasses, compressDeobf, procJson);
         }
 
@@ -243,10 +226,10 @@ public class PatcherPlugin extends BasePlugin<PatcherExtension>
             installer.from(outputJar);
             installer.from(delayedTree(JAR_INSTALLER), new CopyInto(PatcherPlugin.class, "", "!*.json", "!*.png"));
             installer.from(delayedTree(JSON_INSTALLER));
-            installer.setBaseName(project.getName());
-            installer.setClassifier("installer");
-            installer.setExtension("jar");
-            installer.setDestinationDir(new File(DIR_OUTPUT));
+            installer.getArchiveBaseName().set(project.getName());
+            installer.getArchiveClassifier().set("installer");
+            installer.getArchiveExtension().set("jar");
+            installer.getDestinationDirectory().set(new File(DIR_OUTPUT));
             installer.setDuplicatesStrategy(DuplicatesStrategy.EXCLUDE);
             installer.getOutputs().upToDateWhen(Constants.CALL_FALSE); // rebuild every time.
             installer.dependsOn(dlInstaller, outputJar, procJson);
@@ -267,8 +250,8 @@ public class PatcherPlugin extends BasePlugin<PatcherExtension>
         Zip combineRes = makeTask(TASK_COMBINE_RESOURCES, Zip.class);
         {
             File out = delayedFile(ZIP_USERDEV_RES).call();
-            combineRes.setDestinationDir(out.getParentFile());
-            combineRes.setArchiveName(out.getName());
+            combineRes.getDestinationDirectory().set(out.getParentFile());
+            combineRes.getArchiveBaseName().set(out.getName());
             combineRes.setIncludeEmptyDirs(false);
             combineRes.setDuplicatesStrategy(DuplicatesStrategy.EXCLUDE);
         }
@@ -289,8 +272,8 @@ public class PatcherPlugin extends BasePlugin<PatcherExtension>
         Zip packagePatches = makeTask(TASK_PATCHES_USERDEV, Zip.class);
         {
             File out = delayedFile(ZIP_USERDEV_PATCHES).call();
-            packagePatches.setDestinationDir(out.getParentFile());
-            packagePatches.setArchiveName(out.getName());
+            packagePatches.getDestinationDirectory().set(out.getParentFile());
+            packagePatches.getArchiveBaseName().set(out.getName());
             packagePatches.from(delayedFile(DIR_USERDEV_PATCHES));
             packagePatches.dependsOn(userdevPatches);
         }
@@ -300,10 +283,10 @@ public class PatcherPlugin extends BasePlugin<PatcherExtension>
             userdev.from(delayedFile(DIR_USERDEV));
             userdev.from(getExtension().getDelayedVersionJson()); // cant forge that now can we..
             userdev.rename(".+-dev\\.json", "dev.json");
-            userdev.setBaseName(project.getName());
-            userdev.setClassifier("userdev");
-            userdev.setExtension("jar");
-            userdev.setDestinationDir(new File(DIR_OUTPUT));
+            userdev.getArchiveBaseName().set(project.getName());
+            userdev.getArchiveClassifier().set("userdev");
+            userdev.getArchiveExtension().set("jar");
+            userdev.getDestinationDirectory().set(new File(DIR_OUTPUT));
             userdev.setDuplicatesStrategy(DuplicatesStrategy.EXCLUDE);
             userdev.getOutputs().upToDateWhen(Constants.CALL_FALSE); // rebuild every time.
             userdev.dependsOn(genBinPatches, extractObfClasses, packagePatches, extractNonMcSources, combineRes, mergeFiles);
@@ -834,7 +817,7 @@ public class PatcherPlugin extends BasePlugin<PatcherExtension>
                 {
                     genPatches.addChangedSource(subWorkspace(patcher.getCapName() + DIR_EXTRACTED_SRC));
 
-                    if ("clean".equals(patcher.getGenPatchesFrom().toLowerCase()))
+                    if ("clean".equalsIgnoreCase(patcher.getGenPatchesFrom()))
                     {
                         genPatches.addOriginalSource(delayedFile(JAR_REMAPPED)); // SRG named vanilla..
                     }
@@ -850,7 +833,7 @@ public class PatcherPlugin extends BasePlugin<PatcherExtension>
                     genPatches.addChangedSource(delayedFile(projectString(JAR_PROJECT_RETROMAPPED, patcher)));
                     genPatches.dependsOn(projectString(TASK_PROJECT_RETROMAP, patcher));
 
-                    if ("clean".equals(patcher.getGenPatchesFrom().toLowerCase()))
+                    if ("clean".equalsIgnoreCase(patcher.getGenPatchesFrom()))
                     {
                         genPatches.addOriginalSource(delayedFile(JAR_DECOMP_POST)); // SRG named vanilla..
                     }
@@ -902,9 +885,9 @@ public class PatcherPlugin extends BasePlugin<PatcherExtension>
         userdevSources.dependsOn(projectString(TASK_PROJECT_RETROMAP, patcher), projectString(TASK_PROJECT_RETRO_NONMC, patcher));
 
         // add version to packaging tasks
-        outputJar.setVersion(project.getVersion().toString());
-        ((Zip)project.getTasks().getByName(TASK_BUILD_USERDEV)).setVersion(project.getVersion().toString());
-        ((Zip)project.getTasks().getByName(TASK_BUILD_INSTALLER)).setVersion(project.getVersion().toString());
+        outputJar.getArchiveVersion().set(project.getVersion().toString());
+        ((Zip)project.getTasks().getByName(TASK_BUILD_USERDEV)).getArchiveVersion().set(project.getVersion().toString());
+        ((Zip)project.getTasks().getByName(TASK_BUILD_INSTALLER)).getArchiveVersion().set(project.getVersion().toString());
 
         // add them to the maven artifatcs
         if (project.getPlugins().hasPlugin("maven"))
@@ -957,14 +940,14 @@ public class PatcherPlugin extends BasePlugin<PatcherExtension>
             catch (IllegalArgumentException e)
             {
                 // must exist already.. thus a duplicate value..
-                throw new GradleConfigurationException("2 projects cannot patch after the same project '" + toPut == null ? "clean" : toPut.getName() + "'!");
+                throw new GradleConfigurationException("2 projects cannot patch after the same project '" + (toPut == null ? "clean" : toPut.getName() + "'!"));
             }
         }
 
         // now  patched->patcher
         tempMap = tempMap.inverse();
 
-        ArrayList<PatcherProject> list = new ArrayList<PatcherProject>(projects.size());
+        ArrayList<PatcherProject> list = new ArrayList<>(projects.size());
         PatcherProject key = tempMap.remove(null); // null is clean
         while (key != null)
         {

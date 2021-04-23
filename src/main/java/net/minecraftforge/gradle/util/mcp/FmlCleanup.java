@@ -48,14 +48,7 @@ public class FmlCleanup
     private static final Pattern VAR_CALL = Pattern.compile("(?i)[a-z_$][a-z0-9_\\[\\]]+ var\\d+(?:x)*");
     private static final Pattern VAR = Pattern.compile("var\\d+(?:x)*");
 
-    private static final Comparator<String> COMPARATOR = new Comparator<String>()
-    {
-        @Override
-        public int compare(String str1, String str2)
-        {
-            return str2.length() - str1.length();
-        }
-    };
+    private static final Comparator<String> COMPARATOR = (str1, str2) -> str2.length() - str1.length();
 
     public static String renameClass(String text)
     {
@@ -188,15 +181,10 @@ public class FmlCleanup
             {
                 // We sort the var## names because FF is non-deterministic and sometimes decompiles the declarations in different orders.
                 List<String> sorted = new ArrayList<String>(unnamed.keySet());
-                Collections.sort(sorted, new Comparator<String>()
-                {
-                    @Override
-                    public int compare(String o1, String o2)
-                    {
-                        if (o1.length() < o2.length()) return -1;
-                        if (o1.length() > o2.length()) return  1;
-                        return o1.compareTo(o2);
-                    }
+                Collections.sort(sorted, (o1, o2) -> {
+                    if (o1.length() < o2.length()) return -1;
+                    if (o1.length() > o2.length()) return  1;
+                    return o1.compareTo(o2);
                 });
                 for (String s : sorted)
                 {

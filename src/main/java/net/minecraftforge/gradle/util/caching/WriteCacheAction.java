@@ -58,7 +58,7 @@ public class WriteCacheAction implements Action<Task>
             if (outFile.exists())
             {
                 File hashFile = CacheUtil.getHashFile(outFile);
-                Files.write(CacheUtil.getHashes(annot, inputs, task), hashFile, Constants.CHARSET);
+                Files.asCharSink(hashFile, Constants.CHARSET).write(CacheUtil.getHashes(annot, inputs, task));
             }
         }
         // error? spit it and do the task.

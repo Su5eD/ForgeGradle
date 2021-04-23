@@ -118,7 +118,7 @@ public class TaskExtractAnnotationsText extends DefaultTask
                 }
             }
 
-            Files.write(GSON.toJson(asm_info), getOutput(), Charsets.UTF_8);
+            Files.asCharSink(getOutput(), Charsets.UTF_8).write(GSON.toJson(asm_info));
         }
     }
 }

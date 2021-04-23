@@ -27,10 +27,10 @@ import org.gradle.api.AntBuilder;
 import org.gradle.api.DefaultTask;
 import org.gradle.api.Project;
 import org.gradle.api.Task;
-import org.gradle.api.internal.ClosureBackedAction;
 import org.gradle.api.specs.Spec;
 import org.gradle.api.tasks.OutputFile;
 import org.gradle.api.tasks.TaskAction;
+import org.gradle.util.ClosureBackedAction;
 
 import java.io.File;
 import java.io.IOException;
@@ -39,25 +39,18 @@ import java.util.Properties;
 public class LiteModTask extends DefaultTask
 {
     private String buildNumber;
-    
+
     private Object fileName;
-    
+
     private LiteModJson json;
-    
+
     @OutputFile
     private File output;
-    
+
     public LiteModTask()
     {
         this.setFileName("litemod.json");
-        this.getOutputs().upToDateWhen(new Spec<Task>()
-        {
-            @Override
-            public boolean isSatisfiedBy(Task arg0)
-            {
-                return false;
-            }
-        });
+        this.getOutputs().upToDateWhen(arg0 -> false);
     }
 
     @TaskAction
@@ -67,12 +60,12 @@ public class LiteModTask extends DefaultTask
         outputFile.delete();
         this.getJson().toJsonFile(outputFile);
     }
-    
+
     public Object getFileName()
     {
         return this.fileName;
     }
-    
+
     public void setFileName(Object fileName)
     {
         this.fileName = fileName;
@@ -86,7 +79,7 @@ public class LiteModTask extends DefaultTask
         }
         return this.output;
     }
-    
+
     public LiteModJson getJson() throws IOException
     {
         if (this.json == null)
@@ -96,10 +89,10 @@ public class LiteModTask extends DefaultTask
             String revision = this.getBuildNumber();
             this.json = new LiteModJson(project, version, revision);
         }
-        
+
         return this.json;
     }
-    
+
     public void json(Closure<?> configureClosure) throws IOException
     {
         ClosureBackedAction.execute(this.getJson(), configureClosure);
@@ -111,16 +104,16 @@ public class LiteModTask extends DefaultTask
         {
             AntBuilder ant = getProject().getAnt();
 
-            File buildNumberFile = new File(this.getTemporaryDir(), "build.number");  
+            File buildNumberFile = new File(this.getTemporaryDir(), "build.number");
             BuildNumber buildNumber = (BuildNumber)ant.invokeMethod("buildnumber");
             buildNumber.setFile(buildNumberFile);
             buildNumber.execute();
-            
+
             Properties props = new Properties();
             props.load(Files.newReader(buildNumberFile, Charsets.ISO_8859_1));
             this.buildNumber = props.getProperty("build.number");
         }
-        
+
         return this.buildNumber;
     }
 }

@@ -69,25 +69,25 @@ public class ReobfExceptor
     public File methodCSV;
     public File fieldCSV;
     public File excConfig;
-    
+
     // state stuff
     Map<String, String> clsMap = Maps.newHashMap();
     Map<String, String> access = Maps.newHashMap();
-    
+
 
     public void buildSrg(File inSrg, File outSrg) throws IOException
     {
         // build the SRG
-        
+
         // delete if existing
         if (outSrg.isFile())
             outSrg.delete();
 
         // rewrite it.
-        String fixed = Files.readLines(inSrg, Charset.defaultCharset(), new SrgLineProcessor(clsMap, access));
+        String fixed = Files.asCharSource(inSrg, Charset.defaultCharset()).readLines(new SrgLineProcessor(clsMap, access));
         Files.write(fixed.getBytes(), outSrg);
     }
-    
+
     /**
      * reads the Old jar, the EXC, and the CSVS
      * Hopefully, these things wont change.
@@ -98,14 +98,14 @@ public class ReobfExceptor
         Map<String, String> csvData = readCSVs();
         JarInfo oldInfo = readJar(deobfJar);
         JarInfo newInfo = readJar(toReobfJar);
-        
+
         clsMap = createClassMap(newInfo.map, newInfo.interfaces);
         renameAccess(oldInfo.access, csvData);
         access = mergeAccess(newInfo.access, oldInfo.access);
     }
-    
+
     // Preliminary things here
-    
+
     private Map<String, String> readCSVs() throws IOException
     {
         final Map<String, String> csvData = Maps.newHashMap();
@@ -118,8 +118,8 @@ public class ReobfExceptor
         for (File f : csvs)
         {
             if (f == null) continue;
-           
-            Files.readLines(f, Charset.defaultCharset(), new LineProcessor<Object>()
+
+            Files.asCharSource(f, Charset.defaultCharset()).readLines(new LineProcessor<Object>()
             {
                 @Override
                 public boolean processLine(String line) throws IOException
@@ -131,12 +131,12 @@ public class ReobfExceptor
                 @Override public Object getResult() { return null; }
             });
         }
-        
+
         return csvData;
     }
-    
+
     // ACTUAL things here...
-    
+
     private void renameAccess(Map<String, AccessInfo> data, Map<String, String> csvData) throws IOException
     {
         for (AccessInfo info : data.values())
@@ -148,7 +148,7 @@ public class ReobfExceptor
             }
         }
     }
-    
+
     private JarInfo readJar(File inJar) throws IOException
     {
         try (ZipInputStream zip = new ZipInputStream(new BufferedInputStream(new FileInputStream(inJar))))
@@ -175,10 +175,10 @@ public class ReobfExceptor
             throw new FileNotFoundException("Could not open input file: " + e.getMessage());
         }
     }
-    
+
     private Map<String, String> createClassMap(Map<String, String> markerMap, final List<String> interfaces) throws IOException
     {
-        Map<String, String> excMap = Files.readLines(excConfig, Charset.defaultCharset(), new LineProcessor<Map<String, String>>()
+        Map<String, String> excMap = Files.asCharSource(excConfig, Charset.defaultCharset()).readLines(new LineProcessor<Map<String, String>>()
         {
             Map<String, String> tmp = Maps.newHashMap();
 
@@ -186,8 +186,8 @@ public class ReobfExceptor
             public boolean processLine(String line) throws IOException
             {
                 if (line.contains(".") ||
-                   !line.contains("=") ||
-                    line.startsWith("#")) return true;
+                        !line.contains("=") ||
+                        line.startsWith("#")) return true;
 
                 String[] s = line.split("=");
                 if (!interfaces.contains(s[0])) tmp.put(s[0], s[1] + "_");
@@ -201,7 +201,7 @@ public class ReobfExceptor
                 return tmp;
             }
         });
-        
+
         Map<String, String> map = Maps.newHashMap();
         for (Entry<String, String> e : excMap.entrySet())
         {
@@ -213,7 +213,7 @@ public class ReobfExceptor
         }
         return map;
     }
-    
+
     private Map<String, String> mergeAccess(Map<String, AccessInfo> old_data, Map<String, AccessInfo> new_data)
     {
         // Lets remove things that are mapped exactly right:
@@ -233,7 +233,7 @@ public class ReobfExceptor
         }
 
         Map<String, String> matched = Maps.newHashMap();
-        
+
         //System.out.println("Matched: ");
         itr = old_data.entrySet().iterator();
         while (itr.hasNext())
@@ -259,7 +259,7 @@ public class ReobfExceptor
 
         return matched;
     }
-    
+
     private static class SrgLineProcessor implements LineProcessor<String>
     {
         Map<String, String> map;
@@ -332,7 +332,7 @@ public class ReobfExceptor
         }
 
     }
-    
+
     private static class JarInfo extends ClassVisitor
     {
         private final Map<String, String> map = Maps.newHashMap();
@@ -372,7 +372,7 @@ public class ReobfExceptor
             }
             return null;
         }
-        
+
         @Override
         public MethodVisitor visitMethod(int acc, String name, String desc, String signature, String[] exceptions)
         {
@@ -382,7 +382,7 @@ public class ReobfExceptor
                 final AccessInfo info = new AccessInfo(className, name, desc);
                 info.access = acc;
                 access.put(path, info);
-                
+
                 return new MethodVisitor(Opcodes.ASM5)
                 {
                     // GETSTATIC, PUTSTATIC, GETFIELD or PUTFIELD.
@@ -413,7 +413,7 @@ public class ReobfExceptor
         public int access;
         public List<Insn> insns = new ArrayList<Insn>();
         private String cache = null;
-        
+
         public AccessInfo(String owner, String name, String desc)
         {
             this.owner = owner;
@@ -435,7 +435,7 @@ public class ReobfExceptor
             {
                 if (insns.size() < 1)
                     throw new RuntimeException("Empty Intruction!!!  IMPOSSIBURU");
-                
+
                 cache = "[" + Joiner.on(", ").join(insns) + "]";
             }
             return cache;
@@ -446,9 +446,9 @@ public class ReobfExceptor
             return toString().equals(o.toString());
         }
     }
-    
+
     private static class Insn
-    {   
+    {
         public int opcode;
         public String owner;
         public String name;

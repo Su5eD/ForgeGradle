@@ -128,21 +128,16 @@ public class ApplyFernFlowerTask extends CachedTask {
 
     private void runForkedFernFlower(final File data)
     {
-        ExecResult result = getProject().javaexec(new Action<JavaExecSpec>() {
+        ExecResult result = getProject().javaexec(exec -> {
+            exec.classpath(forkedClasspath);
+            exec.setMain(FernFlowerInvoker.class.getName());
+            exec.setJvmArgs(ImmutableList.of("-Xmx3G"));
+            // pass the temporary file
+            exec.args(data);
 
-            @Override
-            public void execute(JavaExecSpec exec)
-            {
-                exec.classpath(forkedClasspath);
-                exec.setMain(FernFlowerInvoker.class.getName());
-                exec.setJvmArgs(ImmutableList.of("-Xmx3G"));
-                // pass the temporary file
-                exec.args(data);
-
-                // Forward std streams
-                exec.setStandardOutput(System.out);
-                exec.setErrorOutput(System.err);
-            }
+            // Forward std streams
+            exec.setStandardOutput(System.out);
+            exec.setErrorOutput(System.err);
         });
         result.rethrowFailure();
         result.assertNormalExitValue();

@@ -68,7 +68,7 @@ public class EtagDownloadTask extends DefaultTask
         String etag;
         if (etagFile.exists())
         {
-            etag = Files.toString(etagFile, Charsets.UTF_8);
+            etag = Files.asCharSource(etagFile, Charsets.UTF_8).read();
         }
         else
         {
@@ -104,11 +104,11 @@ public class EtagDownloadTask extends DefaultTask
                         etag = con.getHeaderField("ETag");
                         if (!Strings.isNullOrEmpty(etag))
                         {
-                            Files.write(etag, etagFile, Charsets.UTF_8);
+                            Files.asCharSink(etagFile, Charsets.UTF_8).write(etag);
                         }
 
                         break;
-                    default: // another code?? uh.. 
+                    default: // another code?? uh..
                         error("Unexpected reponse " + con.getResponseCode() + " from " + url);
                         break;
                 }

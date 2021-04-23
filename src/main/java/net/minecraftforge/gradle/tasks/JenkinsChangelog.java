@@ -166,15 +166,7 @@ public class JenkinsChangelog extends DefaultTask
             data = cleanJson(data, "{}"); //Empty entries, just for sanities sake
 
             List<Map<String, Object>> json = (List<Map<String, Object>>) new Gson().fromJson(data, Map.class).get("allBuilds");
-            Collections.sort(json, new Comparator<Map<String, Object>>()
-            {
-                @Override
-                public int compare(Map<String, Object> o1, Map<String, Object> o2)
-                {
-                    return (int) ((Double) o1.get("number") - (Double) o2.get("number"));
-                }
-
-            });
+            Collections.sort(json, (o1, o2) -> (int) ((Double) o1.get("number") - (Double) o2.get("number")));
 
             List<Entry<String, String>> items = new ArrayList<Entry<String, String>>();
             Iterator<Map<String, Object>> bitr = json.iterator();
@@ -227,15 +219,7 @@ public class JenkinsChangelog extends DefaultTask
                 build.remove("actions");
             }
             //prettyPrint(json);
-            Collections.sort(json, new Comparator<Map<String, Object>>()
-            {
-                @Override
-                public int compare(Map<String, Object> o1, Map<String, Object> o2)
-                {
-                    return (int) ((Double) o2.get("number") - (Double) o1.get("number"));
-                }
-
-            });
+            Collections.sort(json, (o1, o2) -> (int) ((Double) o2.get("number") - (Double) o1.get("number")));
             return json;
         }
         catch (Exception e)

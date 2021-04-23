@@ -67,30 +67,24 @@ public class CrowdinDownload extends DefaultTask
     {
         super();
 
-        this.onlyIf(new Spec() {
+        this.onlyIf((Spec) arg0 -> {
+            CrowdinDownload task = (CrowdinDownload) arg0;
 
-            @Override
-            public boolean isSatisfiedBy(Object arg0)
+            // no API key? skip
+            if (Strings.isNullOrEmpty(task.getApiKey()))
             {
-                CrowdinDownload task = (CrowdinDownload) arg0;
-
-                // no API key? skip
-                if (Strings.isNullOrEmpty(task.getApiKey()))
-                {
-                    getLogger().lifecycle("Crowdin api key is null, skipping task.");
-                    return false;
-                }
-
-                // offline? skip.
-                if (getProject().getGradle().getStartParameter().isOffline())
-                {
-                    getLogger().lifecycle("Gradle is in offline mode, skipping task.");
-                    return false;
-                }
-
-                return true;
+                getLogger().lifecycle("Crowdin api key is null, skipping task.");
+                return false;
             }
 
+            // offline? skip.
+            if (getProject().getGradle().getStartParameter().isOffline())
+            {
+                getLogger().lifecycle("Gradle is in offline mode, skipping task.");
+                return false;
+            }
+
+            return true;
         });
     }
 

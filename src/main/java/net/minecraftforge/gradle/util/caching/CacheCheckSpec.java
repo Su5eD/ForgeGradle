@@ -36,7 +36,7 @@ public class CacheCheckSpec implements Spec<Task>
     {
         this.container = container;
     }
-    
+
     @Override
     public boolean isSatisfiedBy(Task task)
     {
@@ -46,7 +46,7 @@ public class CacheCheckSpec implements Spec<Task>
     public boolean isSatisfiedBy(ICachableTask task)
     {
         Logger logger = task.getProject().getLogger();
-        
+
         task.getInputs();
 
         if (!task.doesCache() || container.cachedList.isEmpty())
@@ -73,7 +73,7 @@ public class CacheCheckSpec implements Spec<Task>
                     return true;
                 }
 
-                String foundMD5 = Files.toString(CacheUtil.getHashFile(file), Charset.defaultCharset());
+                String foundMD5 = Files.asCharSource(CacheUtil.getHashFile(file), Charset.defaultCharset()).read();
                 String calcMD5 = CacheUtil.getHashes(field, container.inputList, task);
 
                 if (!calcMD5.equals(foundMD5))

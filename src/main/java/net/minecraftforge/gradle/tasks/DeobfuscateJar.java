@@ -227,7 +227,7 @@ public class DeobfuscateJar extends CachedTask
             {
                 getLogger().info("loading AT: " + at.getCanonicalPath());
 
-                Files.readLines(at, Charset.defaultCharset(), new LineProcessor<Object>()
+                Files.asCharSource(at, Charset.defaultCharset()).readLines(new LineProcessor<Object>()
                 {
                     @Override
                     public boolean processLine(String line) throws IOException
@@ -514,7 +514,7 @@ public class DeobfuscateJar extends CachedTask
             {
                 if (f == null)
                     continue;
-                Files.readLines(f, Charsets.UTF_8, new LineProcessor<String>()
+                Files.asCharSource(f, Charsets.UTF_8).readLines(new LineProcessor<String>()
                 {
                     @Override
                     public boolean processLine(String line) throws IOException

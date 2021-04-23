@@ -56,15 +56,9 @@ public class TaskExtractDepAts extends DefaultTask
         FileCollection col = getCollections();
         File outputDir = getOutputDir();
         outputDir.mkdirs(); // make sur eit exists
-        
+
         // make a list of things to delete...
-        List<File> toDelete = Lists.newArrayList(outputDir.listFiles(new FileFilter() {
-            @Override
-            public boolean accept(File f)
-            {
-                return f.isFile();
-            }
-        }));
+        List<File> toDelete = Lists.newArrayList(outputDir.listFiles(f -> f.isFile()));
 
         Splitter splitter = Splitter.on(' ');
 
@@ -102,7 +96,7 @@ public class TaskExtractDepAts extends DefaultTask
                 }
             }
         }
-        
+
         // remove the files that shouldnt be there...
         for (File f : toDelete)
         {

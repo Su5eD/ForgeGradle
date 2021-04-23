@@ -106,7 +106,7 @@ public class CreateStartTask extends CachedTask
             // write file
             File outFile = new File(resourceDir, resEntry.getKey());
             outFile.getParentFile().mkdirs();
-            Files.write(out, outFile, Charsets.UTF_8);
+            Files.asCharSink(outFile, Charsets.UTF_8).write(out);
         }
 
         // now compile, if im compiling.

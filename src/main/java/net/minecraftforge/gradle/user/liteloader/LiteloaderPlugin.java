@@ -82,11 +82,11 @@ public class LiteloaderPlugin extends UserVanillaBasePlugin<LiteloaderExtension>
 
         TaskContainer tasks = this.project.getTasks();
         final Jar jar = (Jar)tasks.getByName("jar");
-        jar.setExtension(MODFILE_EXTENSION);
-        jar.setBaseName(baseName);
+        jar.getArchiveExtension().set(MODFILE_EXTENSION);
+        jar.getArchiveBaseName().set(baseName);
 
         final Jar sourceJar = (Jar)tasks.getByName("sourceJar");
-        sourceJar.setBaseName(baseName);
+        sourceJar.getArchiveBaseName().set(baseName);
 
         makeTask(TASK_LITEMOD, LiteModTask.class);
     }
@@ -100,11 +100,9 @@ public class LiteloaderPlugin extends UserVanillaBasePlugin<LiteloaderExtension>
         // If user has changed extension back to .jar, write the ModType
         // manifest attribute
         final Jar jar = (Jar)this.project.getTasks().getByName("jar");
-        if ("jar".equals(jar.getExtension())) {
+        if ("jar".equals(jar.getArchiveExtension().get())) {
             Attributes attributes = jar.getManifest().getAttributes();
-            if (attributes.get(MFATT_MODTYPE) == null) {
-                attributes.put(MFATT_MODTYPE, MODSYSTEM);
-            }
+            attributes.putIfAbsent(MFATT_MODTYPE, MODSYSTEM);
         }
     }
 
@@ -114,15 +112,11 @@ public class LiteloaderPlugin extends UserVanillaBasePlugin<LiteloaderExtension>
         super.setupDevTimeDeobf(compileDummy, providedDummy);
 
         // die with error if I find invalid types...
-        this.project.afterEvaluate(new Action<Project>() {
-            @Override
-            public void execute(Project project)
-            {
-                if (project.getState().getFailure() != null)
-                    return;
+        this.project.afterEvaluate(project -> {
+            if (project.getState().getFailure() != null)
+                return;
 
-                remapDeps(project, project.getConfigurations().getByName(CONFIG_LL_DEOBF_COMPILE), CONFIG_LL_DC_RESOLVED, compileDummy);
-            }
+            remapDeps(project, project.getConfigurations().getByName(CONFIG_LL_DEOBF_COMPILE), CONFIG_LL_DC_RESOLVED, compileDummy);
         });
     }
 
@@ -150,13 +144,7 @@ public class LiteloaderPlugin extends UserVanillaBasePlugin<LiteloaderExtension>
             return;
         }
 
-        this.project.allprojects(new Action<Project>() {
-            @Override
-            public void execute(Project proj)
-            {
-                addMavenRepo(proj, MAVEN_REPO_NAME, repo.url);
-            }
-        });
+        this.project.allprojects(proj -> addMavenRepo(proj, MAVEN_REPO_NAME, repo.url));
 
         Artifact artifact = this.getArtifact();
         if (artifact == null)

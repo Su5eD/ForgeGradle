@@ -168,13 +168,16 @@ public abstract class BasePlugin<K extends BaseExtension> implements Plugin<Proj
         }
 
         // repos
-        project.allprojects(new Action<Project>() {
-            public void execute(Project proj)
-            {
-                addMavenRepo(proj, "forge", URL_FORGE_MAVEN);
-                proj.getRepositories().mavenCentral();
-                addMavenRepo(proj, "minecraft", URL_LIBRARY);
-            }
+        project.allprojects(proj -> {
+            addMavenRepo(proj, "forge", URL_FORGE_MAVEN);
+            proj.getRepositories().mavenCentral();
+            addMavenRepo(proj, "minecraft", URL_LIBRARY);
+            proj.getRepositories().maven(repo -> {
+                repo.setName("mcp");
+                repo.setUrl(URL_FORGE_MAVEN);
+                repo.metadataSources(MavenArtifactRepository.MetadataSources::artifact);
+                repo.content(content -> content.includeGroup("de.oceanlabs.mcp"));
+            });
         });
 
         // do Mcp Snapshots Stuff
@@ -194,16 +197,12 @@ public abstract class BasePlugin<K extends BaseExtension> implements Plugin<Proj
         project.getConfigurations().getByName(CONFIG_MC_DEPS).extendsFrom(project.getConfigurations().getByName(CONFIG_MC_DEPS_CLIENT));
 
         // after eval
-        project.afterEvaluate(new Action<Project>() {
-            @Override
-            public void execute(Project project)
-            {
-                // dont continue if its already failed!
-                if (project.getState().getFailure() != null)
-                    return;
+        project.afterEvaluate(project -> {
+            // dont continue if its already failed!
+            if (project.getState().getFailure() != null)
+                return;
 
-                afterEvaluate();
-            }
+            afterEvaluate();
         });
 
         // some default tasks
@@ -370,13 +369,7 @@ public abstract class BasePlugin<K extends BaseExtension> implements Plugin<Proj
         Configuration buildscriptClasspath = null;
         while (parent != null && fgDepTemp == null) {
             buildscriptClasspath = parent.getBuildscript().getConfigurations().getByName("classpath");
-            fgDepTemp = Iterables.getFirst(buildscriptClasspath.getDependencies().matching(new Spec<Dependency>() {
-                @Override
-                public boolean isSatisfiedBy(Dependency element)
-                {
-                    return element.getName().equals(GROUP_FG);
-                }
-            }), null);
+            fgDepTemp = Iterables.getFirst(buildscriptClasspath.getDependencies().matching(element -> element.getName().equals(GROUP_FG)), null);
             parent = parent.getParent();
         }
         final Dependency fgDep = fgDepTemp;
@@ -386,13 +379,7 @@ public abstract class BasePlugin<K extends BaseExtension> implements Plugin<Proj
             return;
         }
         // This adds all of the dependencies of FG
-        deps.add(CONFIG_FFI_DEPS, project.files(buildscriptClasspath.getResolvedConfiguration().getFiles(new Spec<Dependency>() {
-            @Override
-            public boolean isSatisfiedBy(Dependency element)
-            {
-                return element.contentEquals(fgDep);
-            }
-        })));
+        deps.add(CONFIG_FFI_DEPS, project.files(buildscriptClasspath.getResolvedConfiguration().getFiles(element -> element.contentEquals(fgDep))));
         // And this adds the groovy dep. FFI shouldn't need Gradle.
         deps.add(CONFIG_FFI_DEPS, deps.localGroovy());
     }
@@ -656,25 +643,17 @@ public abstract class BasePlugin<K extends BaseExtension> implements Plugin<Proj
 
     public MavenArtifactRepository addMavenRepo(Project proj, final String name, final String url)
     {
-        return proj.getRepositories().maven(new Action<MavenArtifactRepository>() {
-            @Override
-            public void execute(MavenArtifactRepository repo)
-            {
-                repo.setName(name);
-                repo.setUrl(url);
-            }
+        return proj.getRepositories().maven(repo -> {
+            repo.setName(name);
+            repo.setUrl(url);
         });
     }
 
     public FlatDirectoryArtifactRepository addFlatRepo(Project proj, final String name, final Object... dirs)
     {
-        return proj.getRepositories().flatDir(new Action<FlatDirectoryArtifactRepository>() {
-            @Override
-            public void execute(FlatDirectoryArtifactRepository repo)
-            {
-                repo.setName(name);
-                repo.dirs(dirs);
-            }
+        return proj.getRepositories().flatDir(repo -> {
+            repo.setName(name);
+            repo.dirs(dirs);
         });
     }
 
@@ -690,16 +669,16 @@ public abstract class BasePlugin<K extends BaseExtension> implements Plugin<Proj
             try
             {
                 if (project.getGradle().getStartParameter().isOffline()) // dont even try the internet
-                    return Files.toString(cache, Charsets.UTF_8);
+                    return Files.asCharSource(cache, Charsets.UTF_8).read();
 
                 // dude, its been less than 1 minute since the last time..
                 if (cache.exists() && cache.lastModified() + 60000 >= System.currentTimeMillis())
-                    return Files.toString(cache, Charsets.UTF_8);
+                    return Files.asCharSource(cache, Charsets.UTF_8).read();
 
                 String etag;
                 if (etagFile.exists())
                 {
-                    etag = Files.toString(etagFile, Charsets.UTF_8);
+                    etag = Files.asCharSource(etagFile, Charsets.UTF_8).read();
                 }
                 else
                 {
@@ -725,7 +704,7 @@ public abstract class BasePlugin<K extends BaseExtension> implements Plugin<Proj
                 {
                     // the existing file is good
                     Files.touch(cache); // touch it to update last-modified time, to wait another minute
-                    return Files.toString(cache, Charsets.UTF_8);
+                    return Files.asCharSource(cache, Charsets.UTF_8).read();
                 }
                 else if (con.getResponseCode() == 200)
                 {
@@ -744,7 +723,7 @@ public abstract class BasePlugin<K extends BaseExtension> implements Plugin<Proj
                     }
                     else
                     {
-                        Files.write(etag, etagFile, Charsets.UTF_8);
+                        Files.asCharSink(etagFile, Charsets.UTF_8).write(etag);
                     }
 
                     return new String(data);
@@ -766,7 +745,7 @@ public abstract class BasePlugin<K extends BaseExtension> implements Plugin<Proj
         {
             try
             {
-                return Files.toString(cache, Charsets.UTF_8);
+                return Files.asCharSource(cache, Charsets.UTF_8).read();
             }
             catch (IOException e)
             {
