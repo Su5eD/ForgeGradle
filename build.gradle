@@ -30,7 +30,7 @@ repositories {
     mavenLocal()
     maven {
         name = "forge"
-        url = "https://files.minecraftforge.net/maven"
+        url = "https://maven.minecraftforge.net/"
     }
     maven {
         // because Srg2Source needs an eclipse dependency.
