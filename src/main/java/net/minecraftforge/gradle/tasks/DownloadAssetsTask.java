@@ -41,6 +41,8 @@ import net.minecraftforge.gradle.util.json.version.AssetIndex;
 import net.minecraftforge.gradle.util.json.version.AssetIndex.AssetEntry;
 
 import org.gradle.api.DefaultTask;
+import org.gradle.api.tasks.InputDirectory;
+import org.gradle.api.tasks.InputFile;
 import org.gradle.api.tasks.TaskAction;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -49,8 +51,10 @@ import com.google.common.io.Files;
 
 public class DownloadAssetsTask extends DefaultTask
 {
+    @InputDirectory
     DelayedFile           assetsDir;
 
+    @InputFile
     Object                assetIndex;
 
     private File          virtualRoot  = null;
@@ -76,16 +80,16 @@ public class DownloadAssetsTask extends DefaultTask
             virtualRoot = new File(getAssetsDir(), "virtual/" + Files.getNameWithoutExtension(indexFile.getName()));
             virtualRoot.mkdirs();
         }
-        
+
         // make thread pool
         ThreadPoolExecutor executor = (ThreadPoolExecutor) Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors()*2);
-        
+
         for (Entry<String, AssetEntry> e : index.objects.entrySet())
         {
             Asset asset = new Asset(e.getKey(), e.getValue().hash, e.getValue().size);
             executor.submit(new GetAssetTask(asset, outDir, minecraftDir, virtualRoot));
         }
-        
+
         executor.shutdown(); // complete all the tasks then shutdown.
 
         int max = (int) executor.getTaskCount(); // its gonna be somewhere around 600-700 I think
@@ -132,18 +136,18 @@ public class DownloadAssetsTask extends DefaultTask
             this.hash = hash.toLowerCase();
             this.size = size;
         }
-    }    
+    }
     private static boolean checkFileCorrupt(File file, long size, String expectedHash)
     {
         if (!file.exists())
             return true;
-        
+
         if (file.length() != size)
             return true;
-        
+
         if (!expectedHash.equalsIgnoreCase(Constants.hash(file, "SHA1")))
             return true;
-        
+
         return false;
     }
 
@@ -152,7 +156,7 @@ public class DownloadAssetsTask extends DefaultTask
         private static final Logger LOGGER = LoggerFactory.getLogger(GetAssetTask.class);
         private final Asset asset;
         private final File assetDir, minecraftDir, virtualRoot;
-        
+
         private GetAssetTask(Asset asset, File assetDir, File minecraftDir, File virtualRoot)
         {
             this.asset = asset;
@@ -160,12 +164,12 @@ public class DownloadAssetsTask extends DefaultTask
             this.minecraftDir = minecraftDir;
             this.virtualRoot = virtualRoot;
         }
-        
+
         @Override
         public Boolean call()
         {
             boolean worked = true;
-            
+
             for (int tryNum = 1; tryNum < MAX_TRIES + 1; tryNum++)
             {
                 try
@@ -182,7 +186,7 @@ public class DownloadAssetsTask extends DefaultTask
                     {
                         file.getParentFile().mkdirs();
                         File localMc = new File(minecraftDir, asset.path);
-                        
+
                         if (checkFileCorrupt(localMc, asset.size, asset.hash))
                         {
                             // download
@@ -199,19 +203,19 @@ public class DownloadAssetsTask extends DefaultTask
                             Constants.copyFile(localMc, file, asset.size);
                         }
                     }
-                    
-                    
+
+
                     if (virtualRoot != null)
                     {
                         File virtual = new File(virtualRoot, asset.name);
-                        
+
                         if (checkFileCorrupt(virtual, asset.size, asset.hash))
                         {
                             virtual.delete();
                             Constants.copyFile(file, virtual);
                         }
                     }
-                    
+
                 }
                 catch (Exception e)
                 {
@@ -220,7 +224,7 @@ public class DownloadAssetsTask extends DefaultTask
                     worked = false;
                 }
             }
-            
+
             return worked;
         }
     }

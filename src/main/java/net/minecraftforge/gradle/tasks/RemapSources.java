@@ -216,7 +216,7 @@ public class RemapSources extends AbstractEditJarTask
     }
 
     @Input
-    public boolean addsJavadocs()
+    public boolean getAddsJavadocs()
     {
         return addsJavadocs;
     }

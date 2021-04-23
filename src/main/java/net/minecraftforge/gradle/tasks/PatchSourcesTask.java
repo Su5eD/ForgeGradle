@@ -338,7 +338,7 @@ public class PatchSourcesTask extends AbstractEditJarTask
 
     @Optional
     @InputDirectory
-    private File getPatchesDir()
+    public File getPatchesDir()
     {
         File patch = getPatches();
         if (patch.isDirectory())
@@ -349,7 +349,7 @@ public class PatchSourcesTask extends AbstractEditJarTask
 
     @Optional
     @InputFile
-    private File getPatchesZip()
+    public File getPatchesZip()
     {
         File patch = getPatches();
         if (patch.isDirectory())
@@ -358,6 +358,7 @@ public class PatchSourcesTask extends AbstractEditJarTask
             return getPatches();
     }
 
+    @InputFile
     public File getPatches()
     {
         return getProject().file(patches);

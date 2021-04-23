@@ -221,7 +221,7 @@ public class TaskSourceCopy extends DefaultTask
         includes.addAll(strs);
     }
 
-    public ArrayList<String> getIncudes()
+    public ArrayList<String> getIncludes()
     {
         return includes;
     }

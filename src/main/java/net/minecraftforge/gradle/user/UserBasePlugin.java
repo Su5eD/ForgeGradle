@@ -52,6 +52,7 @@ import org.gradle.api.artifacts.ModuleVersionIdentifier;
 import org.gradle.api.artifacts.ResolvedArtifact;
 import org.gradle.api.artifacts.component.ComponentIdentifier;
 import org.gradle.api.artifacts.maven.Conf2ScopeMappingContainer;
+import org.gradle.api.artifacts.repositories.MavenArtifactRepository;
 import org.gradle.api.artifacts.result.ArtifactResolutionResult;
 import org.gradle.api.artifacts.result.ArtifactResult;
 import org.gradle.api.artifacts.result.ComponentArtifactsResult;
@@ -643,8 +644,8 @@ public abstract class UserBasePlugin<T extends UserBaseExtension> extends BasePl
 
     protected final void doDevTimeDeobf()
     {
-        final Task compileDummy = getDummyDep("compile", delayedFile(DIR_DEOBF_DEPS + "/compileDummy.jar"), TASK_DD_COMPILE);
-        final Task providedDummy = getDummyDep("compile", delayedFile(DIR_DEOBF_DEPS + "/providedDummy.jar"), TASK_DD_PROVIDED);
+        final Task compileDummy = getDummyDep(delayedFile(DIR_DEOBF_DEPS + "/compileDummy.jar"), TASK_DD_COMPILE);
+        final Task providedDummy = getDummyDep(delayedFile(DIR_DEOBF_DEPS + "/providedDummy.jar"), TASK_DD_PROVIDED);
 
         setupDevTimeDeobf(compileDummy, providedDummy);
     }
@@ -657,7 +658,8 @@ public abstract class UserBasePlugin<T extends UserBaseExtension> extends BasePl
                 return;
 
             // add maven repo
-            addMavenRepo(project, "deobfDeps", delayedFile(DIR_DEOBF_DEPS).call().getAbsoluteFile().toURI().getPath());
+            addMavenRepo(project, "deobfDeps", delayedFile(DIR_DEOBF_DEPS).call().getAbsoluteFile().toURI().getPath())
+                    .metadataSources(MavenArtifactRepository.MetadataSources::artifact);
 
             remapDeps(project, project.getConfigurations().getByName(CONFIG_DEOBF_COMPILE), CONFIG_DC_RESOLVED, compileDummy);
             remapDeps(project, project.getConfigurations().getByName(CONFIG_DEOBF_PROVIDED), CONFIG_DP_RESOLVED, providedDummy);
@@ -893,7 +895,7 @@ public abstract class UserBasePlugin<T extends UserBaseExtension> extends BasePl
         }
     }
 
-    protected final TaskDepDummy getDummyDep(String config, DelayedFile dummy, String taskName)
+    protected final TaskDepDummy getDummyDep(DelayedFile dummy, String taskName)
     {
         TaskDepDummy dummyTask = makeTask(taskName, TaskDepDummy.class);
         dummyTask.setOutputFile(dummy);
@@ -901,7 +903,7 @@ public abstract class UserBasePlugin<T extends UserBaseExtension> extends BasePl
         ConfigurableFileCollection col = project.files(dummy);
         col.builtBy(dummyTask);
 
-        project.getDependencies().add(config, col);
+        project.getDependencies().add("implementation", col);
 
         return dummyTask;
     }

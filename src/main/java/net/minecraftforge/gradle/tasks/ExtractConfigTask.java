@@ -46,14 +46,12 @@ public class ExtractConfigTask extends CachedTask implements PatternFilterable
     @Input
     private String     config;
 
-    @Input
     private PatternSet patternSet       = new PatternSet();
 
     @Input
     private boolean    includeEmptyDirs = true;
 
     @Input
-    @Optional
     private boolean    clean            = false;
 
     @Cached
@@ -65,7 +63,7 @@ public class ExtractConfigTask extends CachedTask implements PatternFilterable
     {
         File dest = getDestinationDir();
 
-        if (shouldClean())
+        if (getClean())
         {
             delete(dest);
         }
@@ -107,7 +105,7 @@ public class ExtractConfigTask extends CachedTask implements PatternFilterable
     {
         return getProject().getConfigurations().getByName(config);
     }
-    
+
     public void setDestinationDir(Object dest)
     {
         this.destinationDir = dest;
@@ -134,7 +132,7 @@ public class ExtractConfigTask extends CachedTask implements PatternFilterable
         return false;
     }
 
-    public boolean shouldClean()
+    public boolean getClean()
     {
         return clean;
     }
@@ -170,12 +168,14 @@ public class ExtractConfigTask extends CachedTask implements PatternFilterable
     }
 
     @Override
+    @Input
     public Set<String> getExcludes()
     {
         return patternSet.getExcludes();
     }
 
     @Override
+    @Input
     public Set<String> getIncludes()
     {
         return patternSet.getIncludes();

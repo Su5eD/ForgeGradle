@@ -36,7 +36,7 @@ import java.util.zip.ZipOutputStream;
 
 import org.gradle.api.DefaultTask;
 import org.gradle.api.file.FileCollection;
-import org.gradle.api.tasks.TaskAction;
+import org.gradle.api.tasks.*;
 
 import com.google.common.base.Charsets;
 import com.google.common.collect.Lists;
@@ -102,15 +102,24 @@ public class TaskSingleReobf extends DefaultTask
     private Object                 fieldCsv;
     private Object                 methodCsv;
     private Object                 exceptorCfg;
+    @InputFile
+    @Optional
     private Object                 deobfFile;
+    @InputFile
+    @Optional
     private Object                 recompFile;
+    @Input
     private boolean                isDecomp          = false;
 
+    @InputFile
     private Object                 primarySrg;
+    @InputFiles
     private List<Object>           secondarySrgFiles = Lists.newArrayList();
     private List<String>           extraSrgLines     = Lists.newArrayList();
 
+    @Input
     private List<ReobfTransformer> preTransformers   = Lists.newArrayList();
+    @Input
     private List<ReobfTransformer> postTransformers  = Lists.newArrayList();
 
     public TaskSingleReobf()
@@ -132,7 +141,7 @@ public class TaskSingleReobf extends DefaultTask
         srg.deleteOnExit();
         srgLines.deleteOnExit();
 
-        if (isDecomp())
+        if (getIsDecomp())
         {
             ReobfExceptor exc = new ReobfExceptor();
             exc.deobfJar = getDeobfFile();
@@ -279,6 +288,7 @@ public class TaskSingleReobf extends DefaultTask
     // Main Jar and classpath
     // --------------------------------------------
 
+    @InputFile
     public File getJar()
     {
         return getProject().file(jar);
@@ -289,6 +299,7 @@ public class TaskSingleReobf extends DefaultTask
         this.jar = jar;
     }
 
+    @InputFiles
     public FileCollection getClasspath()
     {
         return classpath;
@@ -345,6 +356,7 @@ public class TaskSingleReobf extends DefaultTask
         return getProject().files(files);
     }
 
+    @Input
     public List<String> getExtraSrgLines()
     {
         return extraSrgLines;
@@ -368,6 +380,7 @@ public class TaskSingleReobf extends DefaultTask
     // GETTERS AND STUF FOR DECOMP SPECIFIC STUFF
     // --------------------------------------------
 
+    @InputFile
     public File getFieldCsv()
     {
         return fieldCsv == null ? null : getProject().file(fieldCsv);
@@ -378,6 +391,7 @@ public class TaskSingleReobf extends DefaultTask
         this.fieldCsv = fieldCsv;
     }
 
+    @InputFile
     public File getMethodCsv()
     {
         return methodCsv == null ? null : getProject().file(methodCsv);
@@ -388,6 +402,7 @@ public class TaskSingleReobf extends DefaultTask
         this.methodCsv = methodCsv;
     }
 
+    @InputFile
     public File getExceptorCfg()
     {
         return exceptorCfg == null ? null : getProject().file(exceptorCfg);
@@ -418,7 +433,7 @@ public class TaskSingleReobf extends DefaultTask
         this.recompFile = recompFile;
     }
 
-    public boolean isDecomp()
+    public boolean getIsDecomp()
     {
         return isDecomp;
     }

@@ -264,4 +264,16 @@ public class CreateStartTask extends CachedTask
     {
         this.startOut = outputFile;
     }
+
+    public List<String> getExtraLines() {
+        return extraLines;
+    }
+
+    public HashMap<String, Object> getReplacements() {
+        return replacements;
+    }
+
+    public HashMap<String, String> getResources() {
+        return resources;
+    }
 }
