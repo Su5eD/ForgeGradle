@@ -19,10 +19,7 @@
  */
 package net.minecraftforge.gradle.user.tweakers;
 
-import static net.minecraftforge.gradle.common.Constants.JAR_CLIENT_FRESH;
-import static net.minecraftforge.gradle.common.Constants.MCP_INJECT;
-import static net.minecraftforge.gradle.common.Constants.MCP_PATCHES_CLIENT;
-import static net.minecraftforge.gradle.common.Constants.TASK_DL_CLIENT;
+import static net.minecraftforge.gradle.common.Constants.*;
 
 public class ClientTweaker extends TweakerPlugin
 {

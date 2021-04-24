@@ -32,7 +32,7 @@ public enum ReobfMappingType
 
     private String path;
 
-    private ReobfMappingType(String s)
+    ReobfMappingType(String s)
     {
         this.path = s;
     }

@@ -19,6 +19,17 @@
  */
 package net.minecraftforge.gradle.patcher;
 
+import com.google.common.base.Strings;
+import com.google.common.collect.Sets;
+import com.google.common.io.ByteStreams;
+import net.minecraftforge.gradle.util.SequencedInputSupplier;
+import net.minecraftforge.srg2source.util.io.FolderSupplier;
+import net.minecraftforge.srg2source.util.io.InputSupplier;
+import net.minecraftforge.srg2source.util.io.ZipInputSupplier;
+import org.gradle.api.DefaultTask;
+import org.gradle.api.file.FileCollection;
+import org.gradle.api.tasks.*;
+
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -29,31 +40,14 @@ import java.util.Set;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
-import net.minecraftforge.gradle.util.SequencedInputSupplier;
-import net.minecraftforge.srg2source.util.io.FolderSupplier;
-import net.minecraftforge.srg2source.util.io.InputSupplier;
-import net.minecraftforge.srg2source.util.io.ZipInputSupplier;
-
-import org.gradle.api.DefaultTask;
-import org.gradle.api.file.FileCollection;
-import org.gradle.api.tasks.Input;
-import org.gradle.api.tasks.InputFiles;
-import org.gradle.api.tasks.Optional;
-import org.gradle.api.tasks.OutputFile;
-import org.gradle.api.tasks.TaskAction;
-
-import com.google.common.base.Strings;
-import com.google.common.collect.Sets;
-import com.google.common.io.ByteStreams;
-
 /**
  * The point of this task is to take 2 input sets, and then build a zip/jar containing the files that exist in the 2nd set, but not the first.
  */
 class TaskExtractNew extends DefaultTask
 {
     //@formatter:off
-    private final List<Object>      clean = new LinkedList<Object>();
-    private final List<Object>      dirty = new LinkedList<Object>();
+    private final List<Object>      clean = new LinkedList<>();
+    private final List<Object>      dirty = new LinkedList<>();
     @Input @Optional private String ending;
     @OutputFile      private Object output;
     //@formatter:on
@@ -144,7 +138,7 @@ class TaskExtractNew extends DefaultTask
 
     public List<File> getCleanSource()
     {
-        List<File> files = new LinkedList<File>();
+        List<File> files = new LinkedList<>();
         for (Object f : clean)
             files.add(getProject().file(f));
         return files;
@@ -163,7 +157,7 @@ class TaskExtractNew extends DefaultTask
 
     public List<File> getDirtySource()
     {
-        List<File> files = new LinkedList<File>();
+        List<File> files = new LinkedList<>();
         for (Object f : dirty)
             files.add(getProject().file(f));
         return files;

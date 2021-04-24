@@ -19,36 +19,36 @@
  */
 package net.minecraftforge.gradle.util.delayed;
 
-import java.io.File;
-
 import org.gradle.api.Project;
+
+import java.io.File;
 
 @SuppressWarnings("serial")
 public class DelayedFile extends DelayedBase<File>
 {
     protected final File hardcoded;
     protected transient final Project project;
-    
+
     public DelayedFile(Class<?> owner, File file)
     {
-        super(owner, (TokenReplacer)null);
+        super(owner, null);
         hardcoded = file;
         project = null;
     }
-    
+
     public DelayedFile(Class<?> owner, Project project, ReplacementProvider provider, String pattern)
     {
         super(owner, provider, pattern);
         hardcoded = null;
         this.project = project;
     }
-    
+
     public DelayedFile(Class<?> owner, Project project, TokenReplacer replacer)
     {
         super(owner, replacer);
         hardcoded = null;
         this.project = project;
-        
+
     }
 
     @Override
@@ -56,7 +56,7 @@ public class DelayedFile extends DelayedBase<File>
     {
         if (hardcoded != null)
             return hardcoded;
-        
+
         return project.file(replaced);
     }
 
@@ -66,6 +66,6 @@ public class DelayedFile extends DelayedBase<File>
             return new DelayedFileTree(DelayedFile.class, hardcoded);
         else
             return new DelayedFileTree(DelayedFile.class, project, replacer);
-        
+
     }
 }

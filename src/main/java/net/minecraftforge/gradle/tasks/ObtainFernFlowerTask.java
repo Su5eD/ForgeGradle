@@ -19,6 +19,17 @@
  */
 package net.minecraftforge.gradle.tasks;
 
+import com.google.common.io.ByteStreams;
+import com.google.common.io.Files;
+import net.minecraftforge.gradle.common.Constants;
+import net.minecraftforge.gradle.util.caching.Cached;
+import net.minecraftforge.gradle.util.caching.CachedTask;
+import net.minecraftforge.gradle.util.delayed.DelayedFile;
+import net.minecraftforge.gradle.util.delayed.DelayedString;
+import org.gradle.api.tasks.Input;
+import org.gradle.api.tasks.OutputFile;
+import org.gradle.api.tasks.TaskAction;
+
 import java.io.File;
 import java.io.IOException;
 import java.net.HttpURLConnection;
@@ -26,19 +37,6 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
-
-import net.minecraftforge.gradle.common.Constants;
-import net.minecraftforge.gradle.util.caching.Cached;
-import net.minecraftforge.gradle.util.caching.CachedTask;
-import net.minecraftforge.gradle.util.delayed.DelayedFile;
-import net.minecraftforge.gradle.util.delayed.DelayedString;
-
-import org.gradle.api.tasks.Input;
-import org.gradle.api.tasks.OutputFile;
-import org.gradle.api.tasks.TaskAction;
-
-import com.google.common.io.ByteStreams;
-import com.google.common.io.Files;
 
 public class ObtainFernFlowerTask extends CachedTask
 {
@@ -58,7 +56,7 @@ public class ObtainFernFlowerTask extends CachedTask
             this.setDidWork(false);
             return;
         }
-        
+
         File ff = getFfJar();
         String url = getMcpUrl();
 
@@ -91,17 +89,17 @@ public class ObtainFernFlowerTask extends CachedTask
     {
         return mcpUrl.call();
     }
-    
+
     public void setMcpUrl(DelayedString mcpUrl)
     {
         this.mcpUrl = mcpUrl;
     }
-    
+
     public File getFfJar()
     {
         return ffJar.call();
     }
-    
+
     public void setFfJar(DelayedFile ffJar)
     {
         this.ffJar = ffJar;

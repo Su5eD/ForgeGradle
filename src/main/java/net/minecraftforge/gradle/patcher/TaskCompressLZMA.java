@@ -19,23 +19,16 @@
  */
 package net.minecraftforge.gradle.patcher;
 
-import java.io.BufferedInputStream;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.OutputStream;
-
+import com.google.common.io.ByteStreams;
 import lzma.streams.LzmaOutputStream;
 import net.minecraftforge.gradle.util.caching.Cached;
 import net.minecraftforge.gradle.util.caching.CachedTask;
 import net.minecraftforge.gradle.util.delayed.DelayedFile;
-
 import org.gradle.api.tasks.InputFile;
 import org.gradle.api.tasks.OutputFile;
 import org.gradle.api.tasks.TaskAction;
 
-import com.google.common.io.ByteStreams;
+import java.io.*;
 
 class TaskCompressLZMA extends CachedTask
 {

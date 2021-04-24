@@ -19,24 +19,16 @@
  */
 package net.minecraftforge.gradle.patcher;
 
-import java.io.ByteArrayInputStream;
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Set;
-
+import com.cloudbees.diff.Diff;
+import com.cloudbees.diff.Hunk;
+import com.cloudbees.diff.PatchException;
+import com.google.common.base.Charsets;
+import com.google.common.io.ByteStreams;
+import com.google.common.io.Files;
 import net.minecraftforge.gradle.util.SequencedInputSupplier;
 import net.minecraftforge.srg2source.util.io.FolderSupplier;
 import net.minecraftforge.srg2source.util.io.InputSupplier;
 import net.minecraftforge.srg2source.util.io.ZipInputSupplier;
-
 import org.gradle.api.DefaultTask;
 import org.gradle.api.file.FileCollection;
 import org.gradle.api.file.FileTree;
@@ -47,19 +39,15 @@ import org.gradle.api.tasks.InputFiles;
 import org.gradle.api.tasks.OutputDirectory;
 import org.gradle.api.tasks.TaskAction;
 
-import com.cloudbees.diff.Diff;
-import com.cloudbees.diff.Hunk;
-import com.cloudbees.diff.PatchException;
-import com.google.common.base.Charsets;
-import com.google.common.io.ByteStreams;
-import com.google.common.io.Files;
+import java.io.*;
+import java.util.*;
 
 class TaskGenPatches extends DefaultTask
 {
     //@formatter:off
     @OutputDirectory private Object patchDir;
-    private final List<Object>      originals = new LinkedList<Object>();
-    private final List<Object>      changed = new LinkedList<Object>();
+    private final List<Object>      originals = new LinkedList<>();
+    private final List<Object>      changed = new LinkedList<>();
     @Input private String           originalPrefix = "";
     @Input private String           changedPrefix = "";
     //@formatter:on
@@ -68,7 +56,7 @@ class TaskGenPatches extends DefaultTask
     public TaskGenPatches() { super(); }
     //@formatter:on
 
-    private Set<File> created = new HashSet<File>();
+    private Set<File> created = new HashSet<>();
 
     @TaskAction
     public void doTask() throws IOException, PatchException
@@ -103,7 +91,7 @@ class TaskGenPatches extends DefaultTask
 
     private void removeOld(File dir) throws IOException
     {
-        final ArrayList<File> directories = new ArrayList<File>();
+        final ArrayList<File> directories = new ArrayList<>();
         FileTree tree = getProject().fileTree(dir);
 
         tree.visit(new FileVisitor()
@@ -135,11 +123,9 @@ class TaskGenPatches extends DefaultTask
         });
 
         // We want things sorted in reverse order. Do that sub folders come before parents
-        Collections.sort(directories, (o1, o2) -> {
+        directories.sort((o1, o2) -> {
             int r = o1.compareTo(o2);
-            if (r < 0) return  1;
-            if (r > 0) return -1;
-            return 0;
+            return Integer.compare(0, r);
         });
 
         for (File f : directories)
@@ -233,7 +219,7 @@ class TaskGenPatches extends DefaultTask
 
     public List<File> getOriginalSource()
     {
-        List<File> files = new LinkedList<File>();
+        List<File> files = new LinkedList<>();
         for (Object f : originals)
             files.add(getProject().file(f));
         return files;
@@ -252,7 +238,7 @@ class TaskGenPatches extends DefaultTask
 
     public List<File> getChangedSource()
     {
-        List<File> files = new LinkedList<File>();
+        List<File> files = new LinkedList<>();
         for (Object f : changed)
             files.add(getProject().file(f));
         return files;

@@ -33,5 +33,5 @@ public interface ReobfTransformer extends Serializable
      *
      * @return The modified class bytes
      */
-    public abstract byte[] transform(byte[] data);
+    byte[] transform(byte[] data);
 }

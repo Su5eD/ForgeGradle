@@ -19,16 +19,8 @@
  */
 package net.minecraftforge.gradle.patcher;
 
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.net.URLClassLoader;
-import java.nio.charset.Charset;
-import java.util.LinkedList;
-import java.util.List;
-
+import com.google.common.collect.Lists;
+import com.google.common.io.Files;
 import net.md_5.specialsource.Jar;
 import net.md_5.specialsource.JarMapping;
 import net.md_5.specialsource.JarRemapper;
@@ -37,17 +29,15 @@ import net.md_5.specialsource.provider.JarProvider;
 import net.md_5.specialsource.provider.JointProvider;
 import net.minecraftforge.gradle.common.Constants;
 import net.minecraftforge.gradle.util.mcp.ReobfExceptor;
-
 import org.gradle.api.DefaultTask;
 import org.gradle.api.file.FileCollection;
-import org.gradle.api.tasks.Input;
-import org.gradle.api.tasks.InputFile;
-import org.gradle.api.tasks.InputFiles;
-import org.gradle.api.tasks.OutputFile;
-import org.gradle.api.tasks.TaskAction;
+import org.gradle.api.tasks.*;
 
-import com.google.common.collect.Lists;
-import com.google.common.io.Files;
+import java.io.*;
+import java.net.URLClassLoader;
+import java.nio.charset.Charset;
+import java.util.LinkedList;
+import java.util.List;
 
 class TaskReobfuscate extends DefaultTask
 {
@@ -60,13 +50,13 @@ class TaskReobfuscate extends DefaultTask
     @InputFile  private Object fieldsCsv;
     @OutputFile private Object outJar;
     //@formatter: on
-    
+
     @Input
-    private LinkedList<String> extraSrg = new LinkedList<String>();
-    
+    private LinkedList<String> extraSrg = new LinkedList<>();
+
     @InputFiles
     private List<Object> libs = Lists.newArrayList();
-    
+
     //@formatter:off
     public TaskReobfuscate() { super(); }
     //@formatter:on
@@ -84,15 +74,15 @@ class TaskReobfuscate extends DefaultTask
             exceptor.excConfig = getExc();
             exceptor.fieldCSV = getFieldsCsv();
             exceptor.methodCSV = getMethodsCsv();
-            
+
             File outSrg =  new File(this.getTemporaryDir(), "reobf_cls.srg");
-            
+
             exceptor.doFirstThings();
             exceptor.buildSrg(srg, outSrg);
-            
+
             srg = outSrg;
         }
-        
+
         // append SRG
         try (BufferedWriter writer = new BufferedWriter(new FileWriter(srg, true)))
         {
@@ -143,7 +133,7 @@ class TaskReobfuscate extends DefaultTask
                 classLoader.close();
         }
     }
-    
+
     public File getInJar()
     {
         return getProject().file(inJar);
@@ -163,7 +153,7 @@ class TaskReobfuscate extends DefaultTask
     {
         this.outJar = outJar;
     }
-    
+
     public File getPreFFJar()
     {
         return getProject().file(preFFJar);
@@ -224,11 +214,11 @@ class TaskReobfuscate extends DefaultTask
     {
         this.extraSrg = extraSrg;
     }
-    
+
     public FileCollection getLibs()
     {
         FileCollection collection = null;
-        
+
         for (Object o : libs)
         {
             FileCollection col;
@@ -240,13 +230,13 @@ class TaskReobfuscate extends DefaultTask
             {
                 col = getProject().files(o);
             }
-            
+
             if (collection == null)
                 collection = col;
             else
                 collection = collection.plus(col);
         }
-        
+
         return collection;
     }
 

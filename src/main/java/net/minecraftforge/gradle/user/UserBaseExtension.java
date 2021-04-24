@@ -19,15 +19,7 @@
  */
 package net.minecraftforge.gradle.user;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-
 import com.google.common.collect.Lists;
-
 import groovy.lang.Closure;
 import net.minecraftforge.gradle.common.BaseExtension;
 import net.minecraftforge.gradle.common.Constants;
@@ -35,12 +27,15 @@ import org.gradle.api.file.FileCollection;
 import org.gradle.api.plugins.JavaPluginConvention;
 import org.gradle.api.tasks.SourceSet;
 
+import java.util.*;
+import java.util.Map.Entry;
+
 public class UserBaseExtension extends BaseExtension
 {
-    private HashMap<String, Object> replacements     = new HashMap<String, Object>();
-    private ArrayList<String>       includes         = new ArrayList<String>();
-    private ArrayList<Object>       ats              = new ArrayList<Object>();
-    private ArrayList<Object>       atSources        = new ArrayList<Object>();
+    private HashMap<String, Object> replacements     = new HashMap<>();
+    private ArrayList<String>       includes         = new ArrayList<>();
+    private ArrayList<Object>       ats              = new ArrayList<>();
+    private ArrayList<Object>       atSources        = new ArrayList<>();
     private boolean                 useDepAts        = false;
     private String                  runDir           = "run";
     private boolean                 makeObfSourceJar = true;

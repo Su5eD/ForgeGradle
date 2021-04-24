@@ -19,10 +19,7 @@
  */
 package net.minecraftforge.gradle.tasks;
 
-import java.io.File;
-import java.io.IOException;
-import java.util.List;
-
+import com.google.common.collect.Lists;
 import net.minecraftforge.gradle.common.Constants;
 import net.minecraftforge.gradle.util.SequencedInputSupplier;
 import net.minecraftforge.gradle.util.SourceDirSetSupplier;
@@ -31,7 +28,6 @@ import net.minecraftforge.srg2source.api.SourceVersion;
 import net.minecraftforge.srg2source.util.io.FolderSupplier;
 import net.minecraftforge.srg2source.util.io.InputSupplier;
 import net.minecraftforge.srg2source.util.io.ZipInputSupplier;
-
 import org.gradle.api.DefaultTask;
 import org.gradle.api.file.FileCollection;
 import org.gradle.api.file.SourceDirectorySet;
@@ -40,7 +36,9 @@ import org.gradle.api.tasks.OutputFile;
 import org.gradle.api.tasks.SkipWhenEmpty;
 import org.gradle.api.tasks.TaskAction;
 
-import com.google.common.collect.Lists;
+import java.io.File;
+import java.io.IOException;
+import java.util.List;
 
 public class ExtractS2SRangeTask extends DefaultTask
 {

@@ -19,15 +19,14 @@
  */
 package net.minecraftforge.gradle.user.patcherUser.forge;
 
-import java.util.List;
-
 import net.minecraftforge.gradle.common.Constants;
 import net.minecraftforge.gradle.user.ReobfTransformer;
-
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.tree.AnnotationNode;
 import org.objectweb.asm.tree.ClassNode;
+
+import java.util.List;
 
 public class McVersionTransformer implements ReobfTransformer
 {

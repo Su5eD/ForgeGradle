@@ -1,18 +1,18 @@
 
 package edu.sc.seis.launch4j;
 
+import org.gradle.api.Project;
+import org.gradle.api.plugins.JavaPluginConvention;
+
 import java.io.File;
 import java.io.Serializable;
 import java.util.regex.Pattern;
-
-import org.gradle.api.Project;
-import org.gradle.api.plugins.JavaPluginConvention;
 
 
 public class Launch4jPluginExtension implements Serializable
 {
     private static final long serialVersionUID = 1001523559902066994L;
-    
+
     private String  outputDir      = "launch4j";
     private String  xmlFileName    = "launch4j.xml";
     private String  mainClassName;
@@ -33,26 +33,26 @@ public class Launch4jPluginExtension implements Serializable
     private String  version        = "";
     private String  copyright      = "unknown";
     private String  opt            = "";
-	
+
 	private String bundledJrePath;
 	private String jreMinVersion = "1.6.0";
 	private String jreMaxVersion;
-	
+
 	private String mutexName;
 	private String windowTitle;
-	
+
 	private String messagesStartupError;
 	private String messagesBundledJreError;
 	private String messagesJreVersionError;
     private String messagesLauncherError;
-	
+
 	private int initialHeapSize;
 	private int initialHeapPercent;
 	private int maxHeapSize;
 	private int maxHeapPercent;
-	
+
 	private static final Pattern JAVA_VERSION_REGEX = Pattern.compile("\\d+(\\.\\d+){0,1}");
-	
+
     public File getXmlOutFileForProject(Project project)
     {
         return project.file(project.getBuildDir() + "/" + outputDir + "/" + xmlFileName);
@@ -62,7 +62,7 @@ public class Launch4jPluginExtension implements Serializable
     {
         outfile = project.getName()+".exe";
         version = (String)project.getVersion();
-        
+
         JavaPluginConvention javaConv = (JavaPluginConvention)project.getConvention().getPlugins().get("java");
         if (javaConv != null)
         {

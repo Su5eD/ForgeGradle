@@ -19,17 +19,6 @@
  */
 package net.minecraftforge.gradle.user.patcherUser.forge;
 
-import static net.minecraftforge.gradle.common.Constants.REPLACE_MC_VERSION;
-import static net.minecraftforge.gradle.user.UserConstants.TASK_REOBF;
-
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.util.List;
-
-import org.gradle.api.Action;
-import org.gradle.api.tasks.bundling.Jar;
-
 import com.google.common.base.Strings;
 import net.minecraftforge.gradle.common.Constants;
 import net.minecraftforge.gradle.tasks.CreateStartTask;
@@ -41,6 +30,16 @@ import net.minecraftforge.gradle.user.patcherUser.PatcherUserBasePlugin;
 import net.minecraftforge.gradle.util.GradleConfigurationException;
 import net.minecraftforge.gradle.util.json.fgversion.FGVersion;
 import net.minecraftforge.gradle.util.json.fgversion.FGVersionWrapper;
+import org.gradle.api.Action;
+import org.gradle.api.tasks.bundling.Jar;
+
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.util.List;
+
+import static net.minecraftforge.gradle.common.Constants.REPLACE_MC_VERSION;
+import static net.minecraftforge.gradle.user.UserConstants.TASK_REOBF;
 
 public class ForgePlugin extends PatcherUserBasePlugin<ForgeExtension>
 {
@@ -84,7 +83,7 @@ public class ForgePlugin extends PatcherUserBasePlugin<ForgeExtension>
 
             if (f.exists()) // if .location exists
             {
-                String projectDir = "URI//" + project.getProjectDir().toURI().toString();
+                String projectDir = "URI//" + project.getProjectDir().toURI();
                 try
                 {
                     byte[] LOCATION_BEFORE = new byte[] { 0x40, (byte) 0xB1, (byte) 0x8B, (byte) 0x81, 0x23, (byte) 0xBC, 0x00, 0x14, 0x1A, 0x25, (byte) 0x96, (byte) 0xE7, (byte) 0xA3, (byte) 0x93, (byte) 0xBE, 0x1E };

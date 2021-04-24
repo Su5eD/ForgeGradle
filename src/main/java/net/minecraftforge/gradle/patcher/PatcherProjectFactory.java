@@ -20,13 +20,12 @@
 package net.minecraftforge.gradle.patcher;
 
 import net.minecraftforge.gradle.util.GradleConfigurationException;
-
 import org.gradle.api.NamedDomainObjectFactory;
 
 public class PatcherProjectFactory implements NamedDomainObjectFactory<PatcherProject>
 {
     private final PatcherPlugin plugin;
-    
+
     public PatcherProjectFactory(PatcherPlugin plugin)
     {
         this.plugin = plugin;
@@ -39,7 +38,7 @@ public class PatcherProjectFactory implements NamedDomainObjectFactory<PatcherPr
         {
             throw new GradleConfigurationException("You cannot create a project with the name '"+name+"'");
         }
-        
+
         PatcherProject proj = new PatcherProject(name, plugin);
         return proj;
     }

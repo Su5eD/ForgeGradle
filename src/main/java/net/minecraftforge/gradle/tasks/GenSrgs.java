@@ -19,24 +19,19 @@
  */
 package net.minecraftforge.gradle.tasks;
 
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.IOException;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
-
+import au.com.bytecode.opencsv.CSVReader;
+import com.google.common.base.Charsets;
+import com.google.common.base.Joiner;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
+import com.google.common.io.Files;
 import net.minecraftforge.gradle.common.Constants;
 import net.minecraftforge.gradle.util.caching.Cached;
 import net.minecraftforge.gradle.util.caching.CachedTask;
 import net.minecraftforge.gradle.util.delayed.DelayedFile;
 import net.minecraftforge.srg2source.rangeapplier.MethodData;
 import net.minecraftforge.srg2source.rangeapplier.SrgContainer;
-
 import org.gradle.api.file.FileCollection;
 import org.gradle.api.tasks.InputFile;
 import org.gradle.api.tasks.InputFiles;
@@ -44,14 +39,11 @@ import org.gradle.api.tasks.OutputFile;
 import org.gradle.api.tasks.TaskAction;
 import org.objectweb.asm.Type;
 
-import au.com.bytecode.opencsv.CSVReader;
-
-import com.google.common.base.Charsets;
-import com.google.common.base.Joiner;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
-import com.google.common.collect.Maps;
-import com.google.common.io.Files;
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.IOException;
+import java.util.*;
+import java.util.Map.Entry;
 
 public class GenSrgs extends CachedTask
 {
@@ -71,16 +63,16 @@ public class GenSrgs extends CachedTask
     //@formatter:on
 
     @InputFiles
-    private final LinkedList<File> extraExcs = new LinkedList<File>();
+    private final LinkedList<File> extraExcs = new LinkedList<>();
     @InputFiles
-    private final LinkedList<File> extraSrgs = new LinkedList<File>();
+    private final LinkedList<File> extraSrgs = new LinkedList<>();
 
     @TaskAction
     public void doTask() throws IOException
     {
         // csv data.  SRG -> MCP
-        HashMap<String, String> methods = new HashMap<String, String>();
-        HashMap<String, String> fields = new HashMap<String, String>();
+        HashMap<String, String> methods = new HashMap<>();
+        HashMap<String, String> fields = new HashMap<>();
         readCSVs(getMethodsCsv(), getFieldsCsv(), methods, fields);
 
         // Do SRG stuff

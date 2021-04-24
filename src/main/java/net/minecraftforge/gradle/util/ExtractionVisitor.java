@@ -19,12 +19,12 @@
  */
 package net.minecraftforge.gradle.util;
 
-import java.io.File;
-
 import org.gradle.api.file.FileTreeElement;
 import org.gradle.api.file.FileVisitDetails;
 import org.gradle.api.file.FileVisitor;
 import org.gradle.api.specs.Spec;
+
+import java.io.File;
 
 public class ExtractionVisitor implements FileVisitor
 {

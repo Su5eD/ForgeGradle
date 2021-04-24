@@ -19,11 +19,11 @@
  */
 package net.minecraftforge.gradle.util.json.fgversion;
 
-import java.util.List;
-import java.util.Map;
-
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+
+import java.util.List;
+import java.util.Map;
 
 /**
  * This class exist to be deserialised by FGWrapperDeserialiser

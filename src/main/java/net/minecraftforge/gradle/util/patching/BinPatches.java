@@ -23,8 +23,8 @@ import com.google.common.io.ByteArrayDataOutput;
 import com.google.common.io.ByteStreams;
 import com.nothome.delta.Delta;
 
-import java.io.*;
-import java.util.zip.*;
+import java.io.IOException;
+import java.util.zip.Adler32;
 
 public class BinPatches
 {

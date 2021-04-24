@@ -1,9 +1,9 @@
 package net.minecraftforge.gradle.util.json.version;
 
+import net.minecraftforge.gradle.common.Constants;
+
 import java.util.List;
 import java.util.Map;
-
-import net.minecraftforge.gradle.common.Constants;
 
 public class Library
 {
@@ -78,7 +78,7 @@ public class Library
         return name;
     }
 
-    private class Artifact
+    private static class Artifact
     {
         private String domain;
         private String name;

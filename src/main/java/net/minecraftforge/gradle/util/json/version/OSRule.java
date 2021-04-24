@@ -7,7 +7,7 @@ public class OSRule
     public Action action = Action.ALLOW;
     public OSInfo os;
 
-    public class OSInfo
+    public static class OSInfo
     {
         private OS name;
         private String version;

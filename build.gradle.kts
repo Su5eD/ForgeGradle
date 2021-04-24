@@ -191,7 +191,7 @@ tasks {
     }
 
     named<Javadoc>("javadoc") {
-        classpath += configurations.compileOnly
+        classpath += configurations.compileOnly.get()
 
         // linked javadoc urls.. why not...
         val opts = options as CoreJavadocOptions
@@ -335,11 +335,11 @@ fun getGitHash(): String {
 //TODO: Eclipse complains about unused messages. Find a way to make it shut up.
 open class PatchJDTClasses: DefaultTask() {
     companion object {
-        val compilationUnitResolver = "org/eclipse/jdt/core/dom/CompilationUnitResolver"
-        val rangeExtractor = "net/minecraftforge/srg2source/ast/RangeExtractor"
-        val resolveMethod = "resolve([Ljava/lang/String;[Ljava/lang/String;[Ljava/lang/String;Lorg/eclipse/jdt/core/dom/FileASTRequestor;ILjava/util/Map;I)V"
-        val getContents = "org/eclipse/jdt/internal/compiler/util/Util.getFileCharContent(Ljava/io/File;Ljava/lang/String;)[C"
-        val hookDescResolve = "(Ljava/lang/String;Ljava/lang/String;)[C"
+        const val compilationUnitResolver = "org/eclipse/jdt/core/dom/CompilationUnitResolver"
+        const val rangeExtractor = "net/minecraftforge/srg2source/ast/RangeExtractor"
+        const val resolveMethod = "resolve([Ljava/lang/String;[Ljava/lang/String;[Ljava/lang/String;Lorg/eclipse/jdt/core/dom/FileASTRequestor;ILjava/util/Map;I)V"
+        const val getContents = "org/eclipse/jdt/internal/compiler/util/Util.getFileCharContent(Ljava/io/File;Ljava/lang/String;)[C"
+        const val hookDescResolve = "(Ljava/lang/String;Ljava/lang/String;)[C"
     }
 
     @Input
@@ -360,7 +360,7 @@ open class PatchJDTClasses: DefaultTask() {
     @TaskAction
     fun patchClass() {
         val toProcess: MutableSet<String> = targets.toMutableSet()
-        ZipOutputStream(FileOutputStream(output!!)).use { zout ->
+        ZipOutputStream(FileOutputStream(output)).use { zout ->
             libraries.stream().filter{ !it.isDirectory }.forEach { lib ->
                 ZipFile(lib).use useZip@ { zin ->
                     val remove: MutableSet<String> = HashSet()

@@ -126,7 +126,7 @@ public class TestArtifactSaver
         for (String folder : FOLDERS)
         {
             saver.createArchive(folder, ARCHIVE, null);
-            saver.copyEntry(source.getAbsolutePath().toString(), folder, ARCHIVE, firstEntryName);
+            saver.copyEntry(source.getAbsolutePath(), folder, ARCHIVE, firstEntryName);
         }
 
         for (String folder : FOLDERS)

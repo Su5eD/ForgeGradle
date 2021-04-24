@@ -41,7 +41,7 @@
 package net.minecraftforge.gradle.util.patching;
 
 import java.io.ByteArrayOutputStream;
-import java.util.*;
+import java.util.List;
 
 /**
  * STOLEN FROM diff4j v1.1

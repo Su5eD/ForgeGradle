@@ -19,12 +19,12 @@
  */
 package net.minecraftforge.gradle.util.json;
 
-import java.io.File;
-import java.io.IOException;
-
 import com.google.gson.TypeAdapter;
 import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonWriter;
+
+import java.io.File;
+import java.io.IOException;
 
 public class FileAdapter extends TypeAdapter<File>
 {

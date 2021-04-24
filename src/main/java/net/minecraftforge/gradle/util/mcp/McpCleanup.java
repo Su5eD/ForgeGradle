@@ -19,11 +19,11 @@
  */
 package net.minecraftforge.gradle.util.mcp;
 
+import net.minecraftforge.gradle.common.Constants;
+
 import java.io.StringWriter;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
-import net.minecraftforge.gradle.common.Constants;
 
 public class McpCleanup
 {

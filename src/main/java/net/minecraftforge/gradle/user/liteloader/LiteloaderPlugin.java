@@ -19,9 +19,6 @@
  */
 package net.minecraftforge.gradle.user.liteloader;
 
-import static net.minecraftforge.gradle.common.Constants.*;
-import static net.minecraftforge.gradle.user.UserConstants.*;
-
 import net.minecraftforge.gradle.user.UserVanillaBasePlugin;
 import net.minecraftforge.gradle.util.delayed.DelayedFile;
 import net.minecraftforge.gradle.util.json.JsonFactory;
@@ -29,7 +26,6 @@ import net.minecraftforge.gradle.util.json.LiteLoaderJson;
 import net.minecraftforge.gradle.util.json.LiteLoaderJson.Artifact;
 import net.minecraftforge.gradle.util.json.LiteLoaderJson.RepoObject;
 import net.minecraftforge.gradle.util.json.LiteLoaderJson.VersionObject;
-import org.gradle.api.Action;
 import org.gradle.api.Project;
 import org.gradle.api.Task;
 import org.gradle.api.artifacts.ConfigurationContainer;
@@ -39,6 +35,9 @@ import org.gradle.jvm.tasks.Jar;
 
 import java.util.List;
 import java.util.Map;
+
+import static net.minecraftforge.gradle.common.Constants.*;
+import static net.minecraftforge.gradle.user.UserConstants.CONFIG_DC_RESOLVED;
 
 public class LiteloaderPlugin extends UserVanillaBasePlugin<LiteloaderExtension>
 {
@@ -50,7 +49,7 @@ public class LiteloaderPlugin extends UserVanillaBasePlugin<LiteloaderExtension>
     public static final String MODFILE_PREFIX = "mod-";
     public static final String MODFILE_EXTENSION = "litemod";
 
-    public static final String VERSION_JSON_URL = "http://dl.liteloader.com/versions/versions.json";
+    public static final String VERSION_JSON_URL = "https://dl.liteloader.com/versions/versions.json";
     public static final String VERSION_JSON_FILENAME = "versions.json";
     public static final String VERSION_JSON_FILE = REPLACE_CACHE_DIR + "/com/mumfrey/liteloader/" + VERSION_JSON_FILENAME;
 

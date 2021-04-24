@@ -47,7 +47,7 @@ public class ExtensionMcpMappingTest
         this.ext = this.testProject.getExtensions().findByType(TweakerExtension.class);   // unlike getByType(), does not throw exception
         assertNotNull(this.ext);
         this.ext.setSuppressVersionTest(true);
-        
+
         this.ext.setTweakClass("some.thing.other"); // to ignore any issues regarding this.
     }
     private static final String VERSION_17 = "1.7.10";
@@ -139,14 +139,15 @@ public class ExtensionMcpMappingTest
         this.ext.setVersion(VERSION_17);
         this.ext.setMappings("stable_20140925");
     }
-    
+
     @Test(expected = GradleConfigurationException.class)
     public void testInvalidCustom()
     {
         this.ext.setVersion(VERSION_17);
         this.ext.setMappings("abrar_blahblah");
     }
-    
+
+    @Test
     public void testValidCustom()
     {
         this.ext.setVersion(VERSION_17);

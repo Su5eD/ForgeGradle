@@ -19,14 +19,13 @@
  */
 package net.minecraftforge.gradle.util.caching;
 
-import java.io.File;
-import java.nio.charset.Charset;
-
+import com.google.common.io.Files;
 import org.gradle.api.Task;
 import org.gradle.api.logging.Logger;
 import org.gradle.api.specs.Spec;
 
-import com.google.common.io.Files;
+import java.io.File;
+import java.nio.charset.Charset;
 
 public class CacheCheckSpec implements Spec<Task>
 {

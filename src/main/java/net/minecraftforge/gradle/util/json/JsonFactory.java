@@ -19,29 +19,22 @@
  */
 package net.minecraftforge.gradle.util.json;
 
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileReader;
-import java.io.IOException;
-import java.util.*;
-import java.util.Map.Entry;
-
 import com.google.common.base.Strings;
 import com.google.common.reflect.TypeToken;
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonIOException;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
-import com.google.gson.JsonSyntaxException;
-
+import com.google.gson.*;
 import net.minecraftforge.gradle.util.json.LiteLoaderJson.VersionObject;
 import net.minecraftforge.gradle.util.json.fgversion.FGVersionDeserializer;
 import net.minecraftforge.gradle.util.json.fgversion.FGVersionWrapper;
 import net.minecraftforge.gradle.util.json.version.AssetIndex;
 import net.minecraftforge.gradle.util.json.version.ManifestVersion;
 import net.minecraftforge.gradle.util.json.version.Version;
+
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.io.IOException;
+import java.util.*;
+import java.util.Map.Entry;
 
 @SuppressWarnings("serial")
 public class JsonFactory
@@ -79,7 +72,7 @@ public class JsonFactory
 
                 if (parentFile.exists())
                 {
-                    List<File> dirs = new ArrayList<File>(inheritanceDirs.length-1);
+                    List<File> dirs = new ArrayList<>(inheritanceDirs.length - 1);
                     for (File toAdd : inheritanceDirs)
                     {
                         if (toAdd != inheritDir)
@@ -88,7 +81,7 @@ public class JsonFactory
                         }
                     }
 
-                    Version parent = loadVersion(new File(inheritDir, v.inheritsFrom + ".json"), mcVersion, dirs.toArray(new File[dirs.size()]));
+                    Version parent = loadVersion(new File(inheritDir, v.inheritsFrom + ".json"), mcVersion, dirs.toArray(new File[0]));
                     v.extendFrom(parent);
                     found = true;
                     break;
@@ -111,7 +104,7 @@ public class JsonFactory
 
                 if (parentFile.exists())
                 {
-                    List<File> dirs = new ArrayList<File>(inheritanceDirs.length-1);
+                    List<File> dirs = new ArrayList<>(inheritanceDirs.length - 1);
                     for (File toAdd : inheritanceDirs)
                     {
                         if (toAdd != inheritDir)
@@ -120,7 +113,7 @@ public class JsonFactory
                         }
                     }
 
-                    Version parent = loadVersion(new File(inheritDir, mcVersion + ".json"), mcVersion, dirs.toArray(new File[dirs.size()]));
+                    Version parent = loadVersion(new File(inheritDir, mcVersion + ".json"), mcVersion, dirs.toArray(new File[0]));
                     v.extendFrom(parent);
                     found = true;
                     break;
@@ -153,7 +146,7 @@ public class JsonFactory
     public static Map<String, MCInjectorStruct> loadMCIJson(File json) throws IOException
     {
         FileReader reader = new FileReader(json);
-        Map<String, MCInjectorStruct> ret = new LinkedHashMap<String, MCInjectorStruct>();
+        Map<String, MCInjectorStruct> ret = new LinkedHashMap<>();
 
         JsonObject object = (JsonObject) new JsonParser().parse(reader);
         reader.close();

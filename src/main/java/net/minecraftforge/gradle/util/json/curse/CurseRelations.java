@@ -26,5 +26,5 @@ public class CurseRelations
 {
 
     /** A set of related projects */
-    public final Set<CurseProjectDep> projects = new HashSet<CurseProjectDep>();
+    public final Set<CurseProjectDep> projects = new HashSet<>();
 }

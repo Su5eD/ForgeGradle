@@ -19,15 +19,13 @@
  */
 package net.minecraftforge.gradle.user.tweakers;
 
-import java.util.List;
-
+import com.google.common.base.Strings;
+import net.minecraftforge.gradle.common.Constants;
 import net.minecraftforge.gradle.user.UserVanillaBasePlugin;
+import net.minecraftforge.gradle.util.GradleConfigurationException;
 import org.gradle.api.tasks.bundling.Jar;
 
-import com.google.common.base.Strings;
-
-import net.minecraftforge.gradle.common.Constants;
-import net.minecraftforge.gradle.util.GradleConfigurationException;
+import java.util.List;
 
 public abstract class TweakerPlugin extends UserVanillaBasePlugin<TweakerExtension>
 {

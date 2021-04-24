@@ -19,17 +19,10 @@
  */
 package net.minecraftforge.gradle.util.caching;
 
+import com.google.common.base.Joiner;
+import com.google.common.collect.Lists;
 import groovy.lang.Closure;
-
-import java.io.File;
-import java.lang.reflect.AnnotatedElement;
-import java.lang.reflect.InvocationTargetException;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-
 import net.minecraftforge.gradle.common.Constants;
-
 import org.gradle.api.file.FileCollection;
 import org.gradle.api.tasks.InputDirectory;
 import org.gradle.api.tasks.InputFile;
@@ -39,8 +32,12 @@ import org.gradle.api.tasks.util.PatternSet;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.base.Joiner;
-import com.google.common.collect.Lists;
+import java.io.File;
+import java.lang.reflect.AnnotatedElement;
+import java.lang.reflect.InvocationTargetException;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 
 class CacheUtil
 {
@@ -102,7 +99,7 @@ class CacheUtil
                 if (obj instanceof String)
                 {
                     hashes.add(Constants.hash((String) obj));
-                    LOGGER.debug(Constants.hash((String) obj) + " " + (String) obj);
+                    LOGGER.debug(Constants.hash((String) obj) + " " + obj);
                 }
                 else if (obj instanceof File)
                 {
@@ -129,8 +126,8 @@ class CacheUtil
                     hashes.add(Constants.hash(
                             "" +
                             set.isCaseSensitive() + " " +
-                            set.getIncludes().toString() + " " +
-                            set.getExcludes().toString() + " " +
+                                    set.getIncludes() + " " +
+                                    set.getExcludes() + " " +
                             set.getIncludeSpecs().size() + " " +
                             set.getExcludeSpecs().size()
                             ));

@@ -19,17 +19,11 @@
  */
 package net.minecraftforge.gradle.user;
 
-import java.io.File;
-import java.io.FileFilter;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.util.List;
-import java.util.jar.JarEntry;
-import java.util.jar.JarFile;
-import java.util.jar.Manifest;
-
+import com.google.common.base.Splitter;
+import com.google.common.base.Strings;
+import com.google.common.collect.Lists;
+import com.google.common.io.ByteStreams;
+import com.google.common.io.Files;
 import org.gradle.api.DefaultTask;
 import org.gradle.api.artifacts.Configuration;
 import org.gradle.api.file.FileCollection;
@@ -37,11 +31,11 @@ import org.gradle.api.tasks.Input;
 import org.gradle.api.tasks.OutputDirectory;
 import org.gradle.api.tasks.TaskAction;
 
-import com.google.common.base.Splitter;
-import com.google.common.base.Strings;
-import com.google.common.collect.Lists;
-import com.google.common.io.ByteStreams;
-import com.google.common.io.Files;
+import java.io.*;
+import java.util.List;
+import java.util.jar.JarEntry;
+import java.util.jar.JarFile;
+import java.util.jar.Manifest;
 
 public class TaskExtractDepAts extends DefaultTask
 {
@@ -58,7 +52,7 @@ public class TaskExtractDepAts extends DefaultTask
         outputDir.mkdirs(); // make sur eit exists
 
         // make a list of things to delete...
-        List<File> toDelete = Lists.newArrayList(outputDir.listFiles(f -> f.isFile()));
+        List<File> toDelete = Lists.newArrayList(outputDir.listFiles(File::isFile));
 
         Splitter splitter = Splitter.on(' ');
 

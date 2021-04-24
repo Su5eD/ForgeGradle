@@ -19,10 +19,16 @@
  */
 package net.minecraftforge.gradle.tasks;
 
-import static net.minecraftforge.gradle.common.Constants.addXml;
-
-import java.io.File;
-import java.io.IOException;
+import com.google.common.base.Strings;
+import com.google.common.collect.ImmutableMap;
+import net.minecraftforge.gradle.common.Constants;
+import org.gradle.api.DefaultTask;
+import org.gradle.api.tasks.Input;
+import org.gradle.api.tasks.Optional;
+import org.gradle.api.tasks.OutputFile;
+import org.gradle.api.tasks.TaskAction;
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
@@ -32,19 +38,10 @@ import javax.xml.transform.TransformerException;
 import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
+import java.io.File;
+import java.io.IOException;
 
-import net.minecraftforge.gradle.common.Constants;
-
-import org.gradle.api.DefaultTask;
-import org.gradle.api.tasks.Input;
-import org.gradle.api.tasks.Optional;
-import org.gradle.api.tasks.OutputFile;
-import org.gradle.api.tasks.TaskAction;
-import org.w3c.dom.Document;
-import org.w3c.dom.Element;
-
-import com.google.common.base.Strings;
-import com.google.common.collect.ImmutableMap;
+import static net.minecraftforge.gradle.common.Constants.addXml;
 
 public class GenEclipseRunTask extends DefaultTask
 {

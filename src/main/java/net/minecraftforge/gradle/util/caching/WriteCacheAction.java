@@ -19,16 +19,14 @@
  */
 package net.minecraftforge.gradle.util.caching;
 
-import java.io.File;
-import java.util.List;
-
+import com.google.common.io.Files;
 import net.minecraftforge.gradle.common.Constants;
 import net.minecraftforge.gradle.util.ThrowableUtil;
-
 import org.gradle.api.Action;
 import org.gradle.api.Task;
 
-import com.google.common.io.Files;
+import java.io.File;
+import java.util.List;
 
 public class WriteCacheAction implements Action<Task>
 {

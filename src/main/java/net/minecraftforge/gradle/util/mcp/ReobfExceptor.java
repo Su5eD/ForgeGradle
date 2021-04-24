@@ -19,47 +19,25 @@
  */
 package net.minecraftforge.gradle.util.mcp;
 
-import static org.objectweb.asm.Opcodes.ACC_INTERFACE;
-import static org.objectweb.asm.Opcodes.GETFIELD;
-import static org.objectweb.asm.Opcodes.GETSTATIC;
-import static org.objectweb.asm.Opcodes.INVOKEINTERFACE;
-import static org.objectweb.asm.Opcodes.INVOKESPECIAL;
-import static org.objectweb.asm.Opcodes.INVOKESTATIC;
-import static org.objectweb.asm.Opcodes.INVOKEVIRTUAL;
-import static org.objectweb.asm.Opcodes.PUTFIELD;
-import static org.objectweb.asm.Opcodes.PUTSTATIC;
-
-import java.io.BufferedInputStream;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.nio.charset.Charset;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-import java.util.zip.ZipEntry;
-import java.util.zip.ZipInputStream;
-
-import org.objectweb.asm.ClassReader;
-import org.objectweb.asm.ClassVisitor;
-import org.objectweb.asm.FieldVisitor;
-import org.objectweb.asm.MethodVisitor;
-import org.objectweb.asm.Opcodes;
-
 import com.google.common.base.Joiner;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.io.ByteStreams;
 import com.google.common.io.Files;
 import com.google.common.io.LineProcessor;
-
 import de.oceanlabs.mcp.mcinjector.StringUtil;
+import org.objectweb.asm.*;
+
+import java.io.*;
+import java.nio.charset.Charset;
+import java.util.*;
+import java.util.Map.Entry;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipInputStream;
+
+import static org.objectweb.asm.Opcodes.*;
 
 public class ReobfExceptor
 {
@@ -293,33 +271,32 @@ public class ReobfExceptor
         public boolean processLine(String line) throws IOException
         {
             String[] split = line.split(" ");
-            if (split[0].equals("CL:"))
-            {
-                split[2] = rename(split[2]);
-            }
-            else if (split[0].equals("FD:"))
-            {
-                String[] s = rsplit(split[2], "/");
-                split[2] = rename(s[0]) + "/" + s[1];
-            }
-            else if (split[0].equals("MD:"))
-            {
-                String[] s = rsplit(split[3], "/");
-                split[3] = rename(s[0]) + "/" + s[1];
-
-                if (access.containsKey(split[3]))
-                {
-                    split[3] = access.get(split[3]);
+            switch (split[0]) {
+                case "CL:":
+                    split[2] = rename(split[2]);
+                    break;
+                case "FD:": {
+                    String[] s = rsplit(split[2], "/");
+                    split[2] = rename(s[0]) + "/" + s[1];
+                    break;
                 }
+                case "MD:": {
+                    String[] s = rsplit(split[3], "/");
+                    split[3] = rename(s[0]) + "/" + s[1];
 
-                Matcher m = reg.matcher(split[4]);
-                StringBuffer b = new StringBuffer();
-                while(m.find())
-                {
-                    m.appendReplacement(b, "L" + rename(m.group(1)).replace("$",  "\\$") + ";");
+                    if (access.containsKey(split[3])) {
+                        split[3] = access.get(split[3]);
+                    }
+
+                    Matcher m = reg.matcher(split[4]);
+                    StringBuffer b = new StringBuffer();
+                    while (m.find()) {
+                        m.appendReplacement(b, "L" + rename(m.group(1)).replace("$", "\\$") + ";");
+                    }
+                    m.appendTail(b);
+                    split[4] = b.toString();
+                    break;
                 }
-                m.appendTail(b);
-                split[4] = b.toString();
             }
             out.append(StringUtil.joinString(Arrays.asList(split), " ")).append('\n');
             return true;
@@ -350,7 +327,7 @@ public class ReobfExceptor
         public void visit(int version, int access, String name, String signature, String superName, String[] ints)
         {
             //System.out.println("Class: " + name);
-            this.className = name;;
+            this.className = name;
             if ((access & ACC_INTERFACE) == ACC_INTERFACE)
             {
                 interfaces.add(className);
@@ -367,7 +344,7 @@ public class ReobfExceptor
                 {
                     throw new RuntimeException("Modder stupidity detected, DO NOT USE __OBFID, Copy pasting code you don't understand is bad: " + className);
                 }
-                map.put(String.valueOf(value) + "_", className);
+                map.put(value + "_", className);
                 //System.out.println("  Marker:    " + String.valueOf(value));
             }
             return null;
@@ -411,7 +388,7 @@ public class ReobfExceptor
         public String name;
         public String desc;
         public int access;
-        public List<Insn> insns = new ArrayList<Insn>();
+        public List<Insn> insns = new ArrayList<>();
         private String cache = null;
 
         public AccessInfo(String owner, String name, String desc)

@@ -1,15 +1,9 @@
 package edu.sc.seis.launch4j;
 
 import groovy.lang.Closure;
-
-import java.io.File;
-import java.util.HashMap;
-
 import net.minecraftforge.gradle.common.Constants;
 import net.minecraftforge.gradle.tasks.EtagDownloadTask;
 import net.minecraftforge.gradle.tasks.ExtractTask;
-
-import org.gradle.api.Action;
 import org.gradle.api.DefaultTask;
 import org.gradle.api.Plugin;
 import org.gradle.api.Project;
@@ -22,6 +16,9 @@ import org.gradle.api.plugins.JavaPlugin;
 import org.gradle.api.tasks.JavaExec;
 import org.gradle.api.tasks.Sync;
 import org.gradle.api.tasks.bundling.Jar;
+
+import java.io.File;
+import java.util.HashMap;
 
 public class Launch4jPlugin implements Plugin<Project>
 {
@@ -193,7 +190,7 @@ public class Launch4jPlugin implements Plugin<Project>
     @SuppressWarnings("unchecked")
     public static <T extends Task> T makeTask(Project proj, String name, Class<T> type)
     {
-        HashMap<String, Object> map = new HashMap<String, Object>();
+        HashMap<String, Object> map = new HashMap<>();
         map.put("name", name);
         map.put("type", type);
         return (T) proj.task(map, name);

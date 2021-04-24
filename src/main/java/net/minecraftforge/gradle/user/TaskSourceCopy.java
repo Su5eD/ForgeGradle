@@ -19,17 +19,9 @@
  */
 package net.minecraftforge.gradle.user;
 
+import com.google.common.base.Charsets;
+import com.google.common.io.Files;
 import groovy.lang.Closure;
-
-import java.io.File;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.regex.Pattern;
-
 import org.gradle.api.DefaultTask;
 import org.gradle.api.file.DirectoryTree;
 import org.gradle.api.file.FileCollection;
@@ -41,8 +33,14 @@ import org.gradle.api.tasks.OutputDirectory;
 import org.gradle.api.tasks.TaskAction;
 import org.gradle.api.tasks.util.PatternSet;
 
-import com.google.common.base.Charsets;
-import com.google.common.io.Files;
+import java.io.File;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.regex.Pattern;
 
 public class TaskSourceCopy extends DefaultTask
 {
@@ -50,10 +48,10 @@ public class TaskSourceCopy extends DefaultTask
     SourceDirectorySet      source;
 
     @Input
-    HashMap<String, Object> replacements = new HashMap<String, Object>();
+    HashMap<String, Object> replacements = new HashMap<>();
 
     @Input
-    ArrayList<String>       includes     = new ArrayList<String>();
+    ArrayList<String>       includes     = new ArrayList<>();
 
     @OutputDirectory
     Object             output;
@@ -76,7 +74,7 @@ public class TaskSourceCopy extends DefaultTask
         out = out.getCanonicalFile();
 
         // resolve replacements
-        HashMap<String, String> repl = new HashMap<String, String>(replacements.size());
+        HashMap<String, String> repl = new HashMap<>(replacements.size());
         for (Entry<String, Object> e : replacements.entrySet())
         {
             if (e.getKey() == null || e.getValue() == null)
@@ -160,15 +158,11 @@ public class TaskSourceCopy extends DefaultTask
             File[] files = dir.listFiles();
             if (null != files)
             {
-                for (int i = 0; i < files.length; i++)
-                {
-                    if (files[i].isDirectory())
-                    {
-                        deleteDir(files[i]);
-                    }
-                    else
-                    {
-                        files[i].delete();
+                for (File file : files) {
+                    if (file.isDirectory()) {
+                        deleteDir(file);
+                    } else {
+                        file.delete();
                     }
                 }
             }

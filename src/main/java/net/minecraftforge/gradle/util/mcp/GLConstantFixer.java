@@ -19,20 +19,19 @@
  */
 package net.minecraftforge.gradle.util.mcp;
 
+import com.google.common.base.Joiner;
+import com.google.common.io.Resources;
+import com.google.gson.reflect.TypeToken;
+import net.minecraftforge.gradle.common.Constants;
+import net.minecraftforge.gradle.util.json.GLConstantGroup;
+import net.minecraftforge.gradle.util.json.JsonFactory;
+
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
-import net.minecraftforge.gradle.common.Constants;
-import net.minecraftforge.gradle.util.json.GLConstantGroup;
-import net.minecraftforge.gradle.util.json.JsonFactory;
-
-import com.google.common.base.Joiner;
-import com.google.common.io.Resources;
-import com.google.gson.reflect.TypeToken;
 
 public class GLConstantFixer
 {

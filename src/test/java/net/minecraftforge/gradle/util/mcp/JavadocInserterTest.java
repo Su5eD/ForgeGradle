@@ -42,7 +42,7 @@ public class JavadocInserterTest
     {
         String input = readResource(INPUT);
 
-        ArrayList<String> newLines = new ArrayList<String>();
+        ArrayList<String> newLines = new ArrayList<>();
         for (String line : Constants.lines(input))
         {
             System.out.println(line);

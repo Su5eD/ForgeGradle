@@ -19,19 +19,18 @@
  */
 package net.minecraftforge.gradle.util.caching;
 
-import java.lang.reflect.Field;
-import java.lang.reflect.Method;
-import java.util.List;
-
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.CacheLoader;
+import com.google.common.cache.LoadingCache;
+import com.google.common.collect.Lists;
 import org.gradle.api.tasks.Input;
 import org.gradle.api.tasks.InputDirectory;
 import org.gradle.api.tasks.InputFile;
 import org.gradle.api.tasks.InputFiles;
 
-import com.google.common.cache.CacheBuilder;
-import com.google.common.cache.CacheLoader;
-import com.google.common.cache.LoadingCache;
-import com.google.common.collect.Lists;
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
+import java.util.List;
 
 public class CacheContainer
 {
@@ -39,7 +38,7 @@ public class CacheContainer
     {
         return pool.getUnchecked(task.getClass()).applyTo(task);
     }
-    
+
     //@formatter:off
     private static final LoadingCache<Class<?>, CacheContainer> pool = CacheBuilder.newBuilder()
             .build(
@@ -50,7 +49,7 @@ public class CacheContainer
                             return new CacheContainer(key);
                         }
                     });
-    
+
     protected final List<Annotated> cachedList = Lists.newArrayList();
     protected final List<Annotated> inputList  = Lists.newArrayList();
     protected final List<WriteCacheAction> lastActions  = Lists.newArrayList();
@@ -110,7 +109,7 @@ public class CacheContainer
         {
             task.doLast(a);
         }
-        
+
         return this;
     }
 }

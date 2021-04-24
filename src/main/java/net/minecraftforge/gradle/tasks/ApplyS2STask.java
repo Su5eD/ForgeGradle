@@ -19,6 +19,22 @@
  */
 package net.minecraftforge.gradle.tasks;
 
+import com.google.common.base.Charsets;
+import com.google.common.base.Joiner;
+import com.google.common.base.Strings;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+import com.google.common.io.Files;
+import net.minecraftforge.gradle.common.Constants;
+import net.minecraftforge.gradle.util.SequencedInputSupplier;
+import net.minecraftforge.gradle.util.SourceDirSetSupplier;
+import net.minecraftforge.srg2source.api.RangeApplierBuilder;
+import net.minecraftforge.srg2source.util.io.*;
+import org.gradle.api.DefaultTask;
+import org.gradle.api.file.FileCollection;
+import org.gradle.api.file.SourceDirectorySet;
+import org.gradle.api.tasks.*;
+
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.IOException;
@@ -27,36 +43,14 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
-import net.minecraftforge.gradle.common.Constants;
-import net.minecraftforge.gradle.util.SequencedInputSupplier;
-import net.minecraftforge.gradle.util.SourceDirSetSupplier;
-import net.minecraftforge.srg2source.api.RangeApplierBuilder;
-import net.minecraftforge.srg2source.util.io.FolderSupplier;
-import net.minecraftforge.srg2source.util.io.InputSupplier;
-import net.minecraftforge.srg2source.util.io.OutputSupplier;
-import net.minecraftforge.srg2source.util.io.ZipInputSupplier;
-import net.minecraftforge.srg2source.util.io.ZipOutputSupplier;
-
-import org.gradle.api.DefaultTask;
-import org.gradle.api.file.FileCollection;
-import org.gradle.api.file.SourceDirectorySet;
-import org.gradle.api.tasks.*;
-
-import com.google.common.base.Charsets;
-import com.google.common.base.Joiner;
-import com.google.common.base.Strings;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
-import com.google.common.io.Files;
-
 public class ApplyS2STask extends DefaultTask
 {
     @InputFiles
-    private final List<Object> srg = new LinkedList<Object>();
+    private final List<Object> srg = new LinkedList<>();
 
     @Optional
     @InputFiles
-    private final List<Object> exc = new LinkedList<Object>();
+    private final List<Object> exc = new LinkedList<>();
 
     @InputFile
     private Object rangeMap;
@@ -213,7 +207,7 @@ public class ApplyS2STask extends DefaultTask
                             name = name.substring(5, name.indexOf('_', 5));
 
                             List<String> params = Lists.newArrayList();
-                            int idx = isStatic == null || !isStatic.booleanValue() ? 1 : 0;
+                            int idx = isStatic == null || !isStatic ? 1 : 0;
                             getLogger().debug("      Name: " + name + " Idx: " + idx);
 
                             int i = 0;

@@ -19,6 +19,16 @@
  */
 package net.minecraftforge.gradle.tasks;
 
+import com.google.common.collect.Maps;
+import com.google.common.io.ByteStreams;
+import net.minecraftforge.gradle.common.Constants;
+import net.minecraftforge.gradle.util.caching.Cached;
+import net.minecraftforge.gradle.util.caching.CachedTask;
+import org.apache.commons.io.FilenameUtils;
+import org.gradle.api.tasks.InputFile;
+import org.gradle.api.tasks.OutputFile;
+import org.gradle.api.tasks.TaskAction;
+
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -29,18 +39,6 @@ import java.util.jar.JarOutputStream;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipException;
 import java.util.zip.ZipInputStream;
-
-import net.minecraftforge.gradle.common.Constants;
-import net.minecraftforge.gradle.util.caching.Cached;
-import net.minecraftforge.gradle.util.caching.CachedTask;
-
-import org.apache.commons.io.FilenameUtils;
-import org.gradle.api.tasks.InputFile;
-import org.gradle.api.tasks.OutputFile;
-import org.gradle.api.tasks.TaskAction;
-
-import com.google.common.collect.Maps;
-import com.google.common.io.ByteStreams;
 
 public abstract class AbstractEditJarTask extends CachedTask
 {

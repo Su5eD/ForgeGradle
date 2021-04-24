@@ -19,30 +19,10 @@
  */
 package net.minecraftforge.gradle.user;
 
-import java.io.BufferedOutputStream;
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.net.URLClassLoader;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-import java.util.zip.ZipEntry;
-import java.util.zip.ZipFile;
-import java.util.zip.ZipOutputStream;
-
-import org.gradle.api.DefaultTask;
-import org.gradle.api.file.FileCollection;
-import org.gradle.api.tasks.*;
-
 import com.google.common.base.Charsets;
 import com.google.common.collect.Lists;
 import com.google.common.io.ByteStreams;
 import com.google.common.io.Files;
-
 import groovy.lang.Closure;
 import net.md_5.specialsource.Jar;
 import net.md_5.specialsource.JarMapping;
@@ -53,6 +33,17 @@ import net.md_5.specialsource.provider.JointProvider;
 import net.minecraftforge.gradle.common.Constants;
 import net.minecraftforge.gradle.util.GradleConfigurationException;
 import net.minecraftforge.gradle.util.mcp.ReobfExceptor;
+import org.gradle.api.DefaultTask;
+import org.gradle.api.file.FileCollection;
+import org.gradle.api.tasks.Optional;
+import org.gradle.api.tasks.*;
+
+import java.io.*;
+import java.net.URLClassLoader;
+import java.util.*;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipFile;
+import java.util.zip.ZipOutputStream;
 
 /**
  * Reobfuscates an arbitrary jar artifact.
@@ -332,7 +323,7 @@ public class TaskSingleReobf extends DefaultTask
 
     public FileCollection getSecondarySrgFiles()
     {
-        List<File> files = new ArrayList<File>(secondarySrgFiles.size());
+        List<File> files = new ArrayList<>(secondarySrgFiles.size());
 
         for (Object thing : getProject().files(secondarySrgFiles))
         {
@@ -341,13 +332,13 @@ public class TaskSingleReobf extends DefaultTask
             {
                 for (File nested : getProject().fileTree(f))
                 {
-                    if ("srg".equals(Files.getFileExtension(nested.getName()).toLowerCase()))
+                    if ("srg".equalsIgnoreCase(Files.getFileExtension(nested.getName())))
                     {
                         files.add(nested.getAbsoluteFile());
                     }
                 }
             }
-            else if ("srg".equals(Files.getFileExtension(f.getName()).toLowerCase()))
+            else if ("srg".equalsIgnoreCase(Files.getFileExtension(f.getName())))
             {
                 files.add(f.getAbsoluteFile());
             }

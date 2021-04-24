@@ -19,9 +19,9 @@
  */
 package net.minecraftforge.gradle.user.patcherUser.generic;
 
-import java.util.List;
-
 import net.minecraftforge.gradle.user.patcherUser.PatcherUserBasePlugin;
+
+import java.util.List;
 
 public class GenericPatcherUserPlugin extends PatcherUserBasePlugin<GenericPatcherUserExtension>
 {

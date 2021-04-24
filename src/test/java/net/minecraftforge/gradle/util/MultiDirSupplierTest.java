@@ -42,22 +42,22 @@ import com.google.common.io.Files;
 
 public class MultiDirSupplierTest
 {
-    private final List<File> dirs = new LinkedList<File>();
+    private final List<File> dirs = new LinkedList<>();
     private final Multimap<File, String> expectedFiles = HashMultimap.create();
     private final Random rand = new Random();
     private static final String END = ".tmp";
-    
+
     @Before // before each test
     public void setup() throws IOException
     {
         int dirNum = rand.nextInt(4) + 1; // 0-5
-        
+
         for (int i = 0; i < dirNum; i++)
         {
             // create and add dir
             File dir = Files.createTempDir().getCanonicalFile();
             dirs.add(dir);
-            
+
             int fileNum = rand.nextInt(9) + 1; // 0-10
             for (int j = 0; j < fileNum; j++)
             {
@@ -66,19 +66,19 @@ public class MultiDirSupplierTest
             }
         }
     }
-    
+
     @After // after each test
     public void cleanup()
     {
         // delete the files.
         for (File f : dirs)
             delete(f);
-        
+
         // empty the variables.
         dirs.clear();
         expectedFiles.clear();
     }
-    
+
     /**
      * Deletes the specified file or directory.
      */
@@ -92,7 +92,7 @@ public class MultiDirSupplierTest
                 delete(file);
         }
     }
-    
+
     /**
      * Returns the path of the child relative to the provided root. Assumes that the child is actually a child of the provided root.
      */
@@ -100,26 +100,26 @@ public class MultiDirSupplierTest
     {
         return child.getCanonicalPath().substring(root.getCanonicalPath().length() + 1); // + 1 for the slash
     }
-    
+
     @Test
     public void testGatherAll() throws IOException
     {
         InputSupplier supp = new MultiDirSupplier(dirs);
-        
+
         // gather all the relative paths
         for (String rel : supp.gatherAll(END))
         {
             Assert.assertTrue(expectedFiles.containsValue(rel));
         }
-        
+
         supp.close(); // to please the compiler..
     }
-    
+
     @Test
     public void testGetRoot() throws IOException
     {
         InputSupplier supp = new MultiDirSupplier(dirs);
-        
+
         for (File dir : expectedFiles.keySet())
         {
             for (String rel : expectedFiles.get(dir))
@@ -127,19 +127,19 @@ public class MultiDirSupplierTest
                 Assert.assertEquals(dir, new File(supp.getRoot(rel)).getCanonicalFile());
             }
         }
-        
+
         supp.close(); // to please the compiler..
     }
-    
+
     @Test
     public void testIOStreams() throws IOException
     {
         // to keep track of changes to check later.
-        HashMap<String, byte[]> dataMap = new HashMap<String, byte[]>(expectedFiles.size());
-        
+        HashMap<String, byte[]> dataMap = new HashMap<>(expectedFiles.size());
+
         // its both an input and output supplier.
         MultiDirSupplier supp = new MultiDirSupplier(dirs);
-        
+
         // write a bunch of random bytes to each file.
         for (String resource : supp.gatherAll(END))
         {
@@ -147,29 +147,29 @@ public class MultiDirSupplierTest
             byte[] bytes = new byte[rand.nextInt(90)+10]; // 10-100 bytes
             rand.nextBytes(bytes); // fill with random stuff
             dataMap.put(resource, bytes); // put into the map.
-            
-            
+
+
             OutputStream stream = supp.getOutput(resource);
             stream.write(bytes);
             stream.close();
         }
-        
+
         // this IO supplier shouldnt need closing.. so we dont care here...
         // otherwise we would close the one supplier, and open another.
-        
+
         // read the files, and ensure they are correct.
         for (String resource : supp.gatherAll(END))
         {
             byte[] expected = dataMap.get(resource);
             byte[] actual = new byte[expected.length];
-            
+
             InputStream stream = supp.getInput(resource);
             stream.read(actual);
             stream.close();
-            
+
             Assert.assertArrayEquals(expected, actual);
         }
-        
+
         supp.close(); // to please the compiler..
     }
 }

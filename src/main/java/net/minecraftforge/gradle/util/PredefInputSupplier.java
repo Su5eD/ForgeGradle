@@ -19,6 +19,10 @@
  */
 package net.minecraftforge.gradle.util;
 
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+import net.minecraftforge.srg2source.util.io.InputSupplier;
+
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
@@ -26,11 +30,6 @@ import java.io.InputStream;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-
-import net.minecraftforge.srg2source.util.io.InputSupplier;
-
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 
 public class PredefInputSupplier implements InputSupplier
 {
@@ -83,7 +82,7 @@ public class PredefInputSupplier implements InputSupplier
         {
             return null;
         }
-        
+
         in = in.replace('\\', '/');
 
         if (in.endsWith("/"))

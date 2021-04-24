@@ -19,22 +19,16 @@
  */
 package net.minecraftforge.gradle.util;
 
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+import org.jetbrains.org.objectweb.asm.Opcodes;
+import org.objectweb.asm.*;
+
 import java.lang.reflect.Array;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
-
-import org.jetbrains.org.objectweb.asm.Opcodes;
-import org.objectweb.asm.AnnotationVisitor;
-import org.objectweb.asm.ClassReader;
-import org.objectweb.asm.ClassVisitor;
-import org.objectweb.asm.FieldVisitor;
-import org.objectweb.asm.MethodVisitor;
-import org.objectweb.asm.Type;
-
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 
 public class AnnotationUtils
 {
@@ -105,11 +99,12 @@ public class AnnotationUtils
         }
     }
 
-    public enum TargetType { CLASS, FIELD, METHOD, SUBTYPE };
+    public enum TargetType { CLASS, FIELD, METHOD, SUBTYPE }
 
     public static class ValueHolder
     {
-        public enum ValueType { BOOL, BYTE, CHAR, SHORT, INT, LONG, FLOAT, DOUBLE, STRING, CLASS, ENUM, ANNOTATION, NULL};
+        public enum ValueType { BOOL, BYTE, CHAR, SHORT, INT, LONG, FLOAT, DOUBLE, STRING, CLASS, ENUM, ANNOTATION, NULL}
+
         private static final Map<Class<?>, ValueType> byClass = ImmutableMap.<Class<?>, ValueType>builder()
             .put(Boolean.class,   ValueType.BOOL  )
             .put(boolean[].class, ValueType.BOOL  )
@@ -296,13 +291,9 @@ public class AnnotationUtils
         {
             //TODO: Actually load the annotation and filter anything with a special annotation?
             //For now we just filter 'java.*' annotations. And a couple of Forge ones.
-            if (
-                 anno.name.startsWith("Ljava/lang/") ||
-                 anno.name.startsWith("Ljavax/annotation/") ||
-                 anno.name.contains("/fml/relauncher/SideOnly;")
-               )
-                return true;
-            return false;
+            return anno.name.startsWith("Ljava/lang/") ||
+                    anno.name.startsWith("Ljavax/annotation/") ||
+                    anno.name.contains("/fml/relauncher/SideOnly;");
         }
     }
 }

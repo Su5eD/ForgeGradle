@@ -19,20 +19,14 @@
  */
 package net.minecraftforge.gradle.util;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Stack;
-
+import com.google.common.collect.ImmutableList;
 import net.minecraftforge.srg2source.util.io.InputSupplier;
 import net.minecraftforge.srg2source.util.io.OutputSupplier;
 
-import com.google.common.collect.ImmutableList;
+import java.io.*;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Stack;
 
 public class MultiDirSupplier implements InputSupplier, OutputSupplier
 {
@@ -88,8 +82,8 @@ public class MultiDirSupplier implements InputSupplier, OutputSupplier
     public List<String> gatherAll(String endFilter)
     {
         // stolen from the FolderSupplier.
-        LinkedList<String> out = new LinkedList<String>();
-        Stack<File> dirStack = new Stack<File>();
+        LinkedList<String> out = new LinkedList<>();
+        Stack<File> dirStack = new Stack<>();
 
         for (File root : dirs)
         {

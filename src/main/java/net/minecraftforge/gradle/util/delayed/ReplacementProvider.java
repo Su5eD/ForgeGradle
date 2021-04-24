@@ -19,10 +19,10 @@
  */
 package net.minecraftforge.gradle.util.delayed;
 
+import com.google.common.collect.Maps;
+
 import java.io.Serializable;
 import java.util.Map;
-
-import com.google.common.collect.Maps;
 
 public class ReplacementProvider implements Serializable
 {
@@ -51,7 +51,7 @@ public class ReplacementProvider implements Serializable
 
         return replaceMap.containsKey(key);
     }
-    
+
     public String get(String key)
     {
         return replaceMap.get(key);

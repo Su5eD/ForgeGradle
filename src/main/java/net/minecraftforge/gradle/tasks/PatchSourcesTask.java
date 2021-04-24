@@ -19,36 +19,31 @@
  */
 package net.minecraftforge.gradle.tasks;
 
-import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.io.IOException;
-import java.nio.charset.Charset;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-
+import com.cloudbees.diff.PatchException;
+import com.google.common.base.Charsets;
+import com.google.common.base.Joiner;
+import com.google.common.collect.Lists;
 import com.google.common.io.FileWriteMode;
+import com.google.common.io.Files;
 import net.minecraftforge.gradle.common.Constants;
 import net.minecraftforge.gradle.util.GradleConfigurationException;
 import net.minecraftforge.gradle.util.ThrowableUtil;
 import net.minecraftforge.gradle.util.patching.ContextualPatch;
 import net.minecraftforge.gradle.util.patching.ContextualPatch.PatchStatus;
-
 import org.gradle.api.file.FileCollection;
 import org.gradle.api.file.FileVisitDetails;
 import org.gradle.api.file.FileVisitor;
 import org.gradle.api.logging.LogLevel;
-import org.gradle.api.tasks.Input;
-import org.gradle.api.tasks.InputDirectory;
-import org.gradle.api.tasks.InputFile;
-import org.gradle.api.tasks.InputFiles;
-import org.gradle.api.tasks.Optional;
+import org.gradle.api.tasks.*;
 
-import com.cloudbees.diff.PatchException;
-import com.google.common.base.Charsets;
-import com.google.common.base.Joiner;
-import com.google.common.collect.Lists;
-import com.google.common.io.Files;
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.IOException;
+import java.nio.charset.Charset;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
 
 public class PatchSourcesTask extends AbstractEditJarTask
 {
@@ -118,7 +113,6 @@ public class PatchSourcesTask extends AbstractEditJarTask
                 }
 
             });
-            ;
         }
         else
         {
@@ -224,7 +218,7 @@ public class PatchSourcesTask extends AbstractEditJarTask
                             {
                                 rejectBuilder.append(String.format("++++ REJECTED PATCH %d\n", hunk.getHunkID()));
                                 rejectBuilder.append(Joiner.on('\n').join(hunk.hunk.lines));
-                                rejectBuilder.append(String.format("\n++++ END PATCH\n"));
+                                rejectBuilder.append("\n++++ END PATCH\n");
                             }
                         }
                         else if (hunk.getStatus() == PatchStatus.Fuzzed)
@@ -426,11 +420,8 @@ public class PatchSourcesTask extends AbstractEditJarTask
             if (fileMap.containsKey(target))
             {
                 String[] lines = fileMap.get(target).split("\r\n|\r|\n");
-                List<String> ret = new ArrayList<String>();
-                for (String line : lines)
-                {
-                    ret.add(line);
-                }
+                List<String> ret = new ArrayList<>();
+                ret.addAll(Arrays.asList(lines));
                 return ret;
             }
 

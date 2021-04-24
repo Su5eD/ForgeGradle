@@ -19,14 +19,13 @@
  */
 package net.minecraftforge.gradle.user.patcherUser.forge;
 
-import java.util.regex.Pattern;
-
-import org.gradle.api.logging.Logger;
-import org.gradle.api.logging.Logging;
-
 import net.minecraftforge.gradle.common.Constants;
 import net.minecraftforge.gradle.user.UserBaseExtension;
 import net.minecraftforge.gradle.user.UserBasePlugin;
+import org.gradle.api.logging.Logger;
+import org.gradle.api.logging.Logging;
+
+import java.util.regex.Pattern;
 
 @SuppressWarnings("unused")
 public class ForgeExtension extends UserBaseExtension

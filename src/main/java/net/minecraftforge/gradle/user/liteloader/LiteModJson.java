@@ -129,7 +129,7 @@ public class LiteModJson
     {
         if (this.classTransformerClasses == null)
         {
-            this.classTransformerClasses = new ArrayList<String>();
+            this.classTransformerClasses = new ArrayList<>();
         }
         return this.classTransformerClasses;
     }
@@ -138,7 +138,7 @@ public class LiteModJson
     {
         if (this.dependsOn == null)
         {
-            this.dependsOn = new ArrayList<String>();
+            this.dependsOn = new ArrayList<>();
         }
         return this.dependsOn;
     }
@@ -147,7 +147,7 @@ public class LiteModJson
     {
         if (this.requiredAPIs == null)
         {
-            this.requiredAPIs = new ArrayList<String>();
+            this.requiredAPIs = new ArrayList<>();
         }
         return this.requiredAPIs;
     }
@@ -156,7 +156,7 @@ public class LiteModJson
     {
         if (this.mixinConfigs == null)
         {
-            this.mixinConfigs = new ArrayList<String>();
+            this.mixinConfigs = new ArrayList<>();
         }
         return this.mixinConfigs;
     }

@@ -19,26 +19,23 @@
  */
 package net.minecraftforge.gradle.tasks;
 
+import au.com.bytecode.opencsv.CSVReader;
+import com.google.code.regexp.Matcher;
+import com.google.code.regexp.Pattern;
+import com.google.common.base.Joiner;
+import com.google.common.base.Strings;
+import com.google.common.collect.Maps;
+import net.minecraftforge.gradle.common.Constants;
+import net.minecraftforge.gradle.util.delayed.DelayedFile;
+import net.minecraftforge.gradle.util.mcp.JavadocAdder;
+import org.gradle.api.tasks.Input;
+import org.gradle.api.tasks.InputFile;
+
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
-
-import net.minecraftforge.gradle.common.Constants;
-import net.minecraftforge.gradle.util.delayed.DelayedFile;
-import net.minecraftforge.gradle.util.mcp.JavadocAdder;
-
-import org.gradle.api.tasks.Input;
-import org.gradle.api.tasks.InputFile;
-
-import au.com.bytecode.opencsv.CSVReader;
-
-import com.google.common.base.Joiner;
-import com.google.common.base.Strings;
-import com.google.common.collect.Maps;
-import com.google.code.regexp.Matcher;
-import com.google.code.regexp.Pattern;
 
 public class RemapSources extends AbstractEditJarTask
 {
@@ -94,7 +91,7 @@ public class RemapSources extends AbstractEditJarTask
     @Override
     public String asRead(String name, String text)
     {
-        ArrayList<String> newLines = new ArrayList<String>();
+        ArrayList<String> newLines = new ArrayList<>();
         for (String line : Constants.lines(text))
         {
             // basically all this code is to find the javadocs for a field before replacing it.

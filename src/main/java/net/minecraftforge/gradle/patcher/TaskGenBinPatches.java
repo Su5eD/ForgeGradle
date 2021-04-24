@@ -19,35 +19,6 @@
  */
 package net.minecraftforge.gradle.patcher;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.io.IOException;
-import java.io.PrintStream;
-import java.nio.charset.Charset;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.SortedMap;
-import java.util.jar.JarEntry;
-import java.util.jar.JarFile;
-import java.util.jar.JarInputStream;
-import java.util.jar.JarOutputStream;
-import java.util.jar.Pack200;
-import java.util.jar.Pack200.Packer;
-
-import lzma.streams.LzmaOutputStream;
-
-import net.minecraftforge.gradle.util.patching.BinPatches;
-import org.gradle.api.DefaultTask;
-import org.gradle.api.file.FileCollection;
-import org.gradle.api.tasks.InputFile;
-import org.gradle.api.tasks.InputFiles;
-import org.gradle.api.tasks.OutputFile;
-import org.gradle.api.tasks.TaskAction;
-
 import com.google.common.base.CharMatcher;
 import com.google.common.base.Splitter;
 import com.google.common.collect.ArrayListMultimap;
@@ -58,6 +29,20 @@ import com.google.common.io.ByteStreams;
 import com.google.common.io.Files;
 import com.google.common.io.LineProcessor;
 import com.nothome.delta.Delta;
+import lzma.streams.LzmaOutputStream;
+import net.minecraftforge.gradle.util.patching.BinPatches;
+import org.gradle.api.DefaultTask;
+import org.gradle.api.file.FileCollection;
+import org.gradle.api.tasks.InputFile;
+import org.gradle.api.tasks.InputFiles;
+import org.gradle.api.tasks.OutputFile;
+import org.gradle.api.tasks.TaskAction;
+
+import java.io.*;
+import java.nio.charset.Charset;
+import java.util.*;
+import java.util.jar.*;
+import java.util.jar.Pack200.Packer;
 
 class TaskGenBinPatches extends DefaultTask
 {
@@ -72,10 +57,10 @@ class TaskGenBinPatches extends DefaultTask
     //@formatter:on
 
     private List<Object>             patchSets    = Lists.newArrayList();
-    private HashMap<String, String>  obfMapping   = new HashMap<String, String>();
-    private HashMap<String, String>  srgMapping   = new HashMap<String, String>();
+    private HashMap<String, String>  obfMapping   = new HashMap<>();
+    private HashMap<String, String>  srgMapping   = new HashMap<>();
     private Multimap<String, String> innerClasses = ArrayListMultimap.create();
-    private Set<String>              patchedFiles = new HashSet<String>();
+    private Set<String>              patchedFiles = new HashSet<>();
     private Delta                    delta        = new Delta();
 
     //@formatter:off
@@ -107,8 +92,8 @@ class TaskGenBinPatches extends DefaultTask
             }
         }
 
-        HashMap<String, byte[]> runtime = new HashMap<String, byte[]>();
-        HashMap<String, byte[]> devtime = new HashMap<String, byte[]>();
+        HashMap<String, byte[]> runtime = new HashMap<>();
+        HashMap<String, byte[]> devtime = new HashMap<>();
 
         File dirtyJar = getDirtyJar();
 

@@ -70,7 +70,7 @@ class Annotated
 
             try
             {
-                method = clazz.getMethod(methodName, new Class[0]);
+                method = clazz.getMethod(methodName);
             }
             catch (NoSuchMethodException e)
             {
@@ -79,9 +79,9 @@ class Annotated
                 return f.get(instance);
             }
         }
-        
+
         method.setAccessible(true);
 
-        return method.invoke(instance, new Object[0]);
+        return method.invoke(instance);
     }
 }

@@ -19,14 +19,14 @@
  */
 package net.minecraftforge.gradle.util.json.fgversion;
 
-import java.lang.reflect.Type;
-import java.util.List;
-
 import com.google.gson.JsonDeserializationContext;
 import com.google.gson.JsonDeserializer;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonParseException;
 import com.google.gson.reflect.TypeToken;
+
+import java.lang.reflect.Type;
+import java.util.List;
 
 public class FGVersionDeserializer implements JsonDeserializer<FGVersionWrapper>
 {

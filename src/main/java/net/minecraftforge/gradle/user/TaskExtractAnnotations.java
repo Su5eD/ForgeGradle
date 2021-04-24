@@ -19,6 +19,19 @@
  */
 package net.minecraftforge.gradle.user;
 
+import com.google.common.base.Charsets;
+import com.google.common.collect.Maps;
+import com.google.common.io.ByteStreams;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import net.minecraftforge.gradle.common.Constants;
+import net.minecraftforge.gradle.util.AnnotationUtils;
+import net.minecraftforge.gradle.util.AnnotationUtils.ASMInfo;
+import net.minecraftforge.gradle.util.AnnotationUtils.Annotation;
+import org.gradle.api.DefaultTask;
+import org.gradle.api.tasks.InputFile;
+import org.gradle.api.tasks.TaskAction;
+
 import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
@@ -29,20 +42,6 @@ import java.util.Map;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 import java.util.zip.ZipOutputStream;
-
-import org.gradle.api.DefaultTask;
-import org.gradle.api.tasks.InputFile;
-import org.gradle.api.tasks.TaskAction;
-import com.google.common.base.Charsets;
-import com.google.common.collect.Maps;
-import com.google.common.io.ByteStreams;
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-
-import net.minecraftforge.gradle.common.Constants;
-import net.minecraftforge.gradle.util.AnnotationUtils;
-import net.minecraftforge.gradle.util.AnnotationUtils.ASMInfo;
-import net.minecraftforge.gradle.util.AnnotationUtils.Annotation;
 
 public class TaskExtractAnnotations extends DefaultTask
 {

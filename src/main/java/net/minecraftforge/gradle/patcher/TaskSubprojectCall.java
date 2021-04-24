@@ -19,6 +19,18 @@
  */
 package net.minecraftforge.gradle.patcher;
 
+import com.google.common.base.Splitter;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+import com.google.common.io.Files;
+import com.google.common.io.Resources;
+import net.minecraftforge.gradle.common.Constants;
+import org.gradle.api.DefaultTask;
+import org.gradle.api.invocation.Gradle;
+import org.gradle.api.tasks.TaskAction;
+import org.gradle.tooling.GradleConnector;
+import org.gradle.tooling.ProjectConnection;
+
 import java.io.File;
 import java.io.IOException;
 import java.net.URL;
@@ -26,20 +38,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-
-import net.minecraftforge.gradle.common.Constants;
-
-import org.gradle.api.DefaultTask;
-import org.gradle.api.invocation.Gradle;
-import org.gradle.api.tasks.TaskAction;
-import org.gradle.tooling.GradleConnector;
-import org.gradle.tooling.ProjectConnection;
-
-import com.google.common.base.Splitter;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
-import com.google.common.io.Files;
-import com.google.common.io.Resources;
 
 class TaskSubprojectCall extends DefaultTask
 {
@@ -56,10 +54,7 @@ class TaskSubprojectCall extends DefaultTask
     public void doTask() throws IOException
     {
         // resolve replacements
-        for (Entry<String, Object> entry : replacements.entrySet())
-        {
-            replacements.put(entry.getKey(), Constants.resolveString(entry.getValue()).replace('\\', '/'));
-        }
+        replacements.replaceAll((k, v) -> Constants.resolveString(v).replace('\\', '/'));
 
         // extract extra initscripts
         List<File> initscripts = Lists.newArrayListWithCapacity(initResources.size());
@@ -92,7 +87,7 @@ class TaskSubprojectCall extends DefaultTask
                 .connect();
 
         //get args
-        ArrayList<String> args = new ArrayList<String>(5);
+        ArrayList<String> args = new ArrayList<>(5);
         args.addAll(Splitter.on(' ').splitToList(getCallLine()));
 
         for (File f : initscripts)
@@ -105,7 +100,7 @@ class TaskSubprojectCall extends DefaultTask
                 .setStandardOutput(System.out)
                 .setStandardInput(System.in)
                 .setStandardError(System.err)
-                .withArguments(args.toArray(new String[args.size()]))
+                .withArguments(args.toArray(new String[0]))
                 .setColorOutput(false)
                 .run();
 

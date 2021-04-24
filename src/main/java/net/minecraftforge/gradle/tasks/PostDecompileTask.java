@@ -19,37 +19,6 @@
  */
 package net.minecraftforge.gradle.tasks;
 
-import java.io.File;
-import java.io.IOException;
-import java.io.Reader;
-import java.io.StringReader;
-import java.io.StringWriter;
-import java.io.Writer;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.jar.JarOutputStream;
-import java.util.zip.ZipEntry;
-
-import net.minecraftforge.gradle.common.Constants;
-import net.minecraftforge.gradle.util.ThrowableUtil;
-import net.minecraftforge.gradle.util.delayed.DelayedFile;
-import net.minecraftforge.gradle.util.mcp.FFPatcher;
-import net.minecraftforge.gradle.util.mcp.GLConstantFixer;
-import net.minecraftforge.gradle.util.mcp.McpCleanup;
-import net.minecraftforge.gradle.util.patching.ContextualPatch;
-import net.minecraftforge.gradle.util.patching.ContextualPatch.HunkReport;
-import net.minecraftforge.gradle.util.patching.ContextualPatch.PatchReport;
-import net.minecraftforge.gradle.util.patching.ContextualPatch.PatchStatus;
-
-import org.gradle.api.file.FileCollection;
-import org.gradle.api.logging.LogLevel;
-import org.gradle.api.logging.Logger;
-import org.gradle.api.tasks.InputFile;
-import org.gradle.api.tasks.InputFiles;
-
 import com.github.abrarsyed.jastyle.ASFormatter;
 import com.github.abrarsyed.jastyle.OptParser;
 import com.google.common.base.Charsets;
@@ -60,6 +29,26 @@ import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 import com.google.common.io.Files;
 import com.google.common.io.Resources;
+import net.minecraftforge.gradle.common.Constants;
+import net.minecraftforge.gradle.util.ThrowableUtil;
+import net.minecraftforge.gradle.util.delayed.DelayedFile;
+import net.minecraftforge.gradle.util.mcp.FFPatcher;
+import net.minecraftforge.gradle.util.mcp.GLConstantFixer;
+import net.minecraftforge.gradle.util.mcp.McpCleanup;
+import net.minecraftforge.gradle.util.patching.ContextualPatch;
+import net.minecraftforge.gradle.util.patching.ContextualPatch.HunkReport;
+import net.minecraftforge.gradle.util.patching.ContextualPatch.PatchReport;
+import net.minecraftforge.gradle.util.patching.ContextualPatch.PatchStatus;
+import org.gradle.api.file.FileCollection;
+import org.gradle.api.logging.LogLevel;
+import org.gradle.api.logging.Logger;
+import org.gradle.api.tasks.InputFile;
+import org.gradle.api.tasks.InputFiles;
+
+import java.io.*;
+import java.util.*;
+import java.util.jar.JarOutputStream;
+import java.util.zip.ZipEntry;
 
 public class PostDecompileTask extends AbstractEditJarTask
 {
@@ -98,7 +87,7 @@ public class PostDecompileTask extends AbstractEditJarTask
 
         oglFixer = new GLConstantFixer();
     }
-    class PatchAttempt {
+    static class PatchAttempt {
         public PatchAttempt(List<PatchReport> report, String file) {
             super();
             this.report = report;
@@ -122,7 +111,7 @@ public class PostDecompileTask extends AbstractEditJarTask
             ContextProvider provider = new ContextProvider(file);
             ContextualPatch patch = findPatch(patchFiles, provider,getLogger());
             if (patch != null) {
-                patchErrors.add(new PatchAttempt(patch.patch(false),file));
+                patchErrors.add(new PatchAttempt(patch.patch(false), file));
                 file = provider.getAsString();
             }
         }
@@ -267,8 +256,10 @@ public class PostDecompileTask extends AbstractEditJarTask
             success = true;
             for (PatchReport rep : errors)
             {
-                if (!rep.getStatus().isSuccess())
+                if (!rep.getStatus().isSuccess()) {
                     success = false;
+                    break;
+                }
             }
             if (success) {
                 logger.debug("accepted MCP patch " + f.getName());
@@ -329,7 +320,7 @@ public class PostDecompileTask extends AbstractEditJarTask
         @Override
         public List<String> getData(String target)
         {
-            List<String> out = new ArrayList<String>(data.size() + 5);
+            List<String> out = new ArrayList<>(data.size() + 5);
             out.addAll(data);
             return out;
         }

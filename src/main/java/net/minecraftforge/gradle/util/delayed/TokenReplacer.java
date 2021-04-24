@@ -19,10 +19,10 @@
  */
 package net.minecraftforge.gradle.util.delayed;
 
-import java.io.Serializable;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.io.Serializable;
 
 public class TokenReplacer implements Serializable
 {

@@ -19,21 +19,16 @@
  */
 package net.minecraftforge.gradle.patcher;
 
-import static net.minecraftforge.gradle.patcher.PatcherConstants.DEFAULT_RES_DIR;
-import static net.minecraftforge.gradle.patcher.PatcherConstants.DEFAULT_SRC_DIR;
-import static net.minecraftforge.gradle.patcher.PatcherConstants.DEFAULT_TEST_RES_DIR;
-import static net.minecraftforge.gradle.patcher.PatcherConstants.DEFAULT_TEST_SRC_DIR;
+import com.google.common.base.Strings;
 import groovy.lang.Closure;
+import net.minecraftforge.gradle.common.Constants;
+import net.minecraftforge.gradle.util.GradleConfigurationException;
+import org.gradle.api.Project;
 
 import java.io.File;
 import java.io.Serializable;
 
-import net.minecraftforge.gradle.common.Constants;
-import net.minecraftforge.gradle.util.GradleConfigurationException;
-
-import org.gradle.api.Project;
-
-import com.google.common.base.Strings;
+import static net.minecraftforge.gradle.patcher.PatcherConstants.*;
 
 public class PatcherProject implements Serializable
 {
@@ -514,7 +509,7 @@ public class PatcherProject implements Serializable
         if (field == null && rootDir != null)
             return new File(getRootDir(), defaultPath);
         else
-            return ((File) field);
+            return field;
     }
 
     public boolean isGenMcpPatches()

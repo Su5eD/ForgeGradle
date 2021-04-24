@@ -19,7 +19,19 @@
  */
 package net.minecraftforge.gradle.tasks;
 
+import com.google.common.io.Files;
 import groovy.lang.Closure;
+import net.minecraftforge.gradle.common.Constants;
+import net.minecraftforge.gradle.util.delayed.DelayedFile;
+import net.minecraftforge.gradle.util.json.JsonFactory;
+import net.minecraftforge.gradle.util.json.version.AssetIndex;
+import net.minecraftforge.gradle.util.json.version.AssetIndex.AssetEntry;
+import org.gradle.api.DefaultTask;
+import org.gradle.api.tasks.InputDirectory;
+import org.gradle.api.tasks.InputFile;
+import org.gradle.api.tasks.TaskAction;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -33,21 +45,6 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
-
-import net.minecraftforge.gradle.common.Constants;
-import net.minecraftforge.gradle.util.delayed.DelayedFile;
-import net.minecraftforge.gradle.util.json.JsonFactory;
-import net.minecraftforge.gradle.util.json.version.AssetIndex;
-import net.minecraftforge.gradle.util.json.version.AssetIndex.AssetEntry;
-
-import org.gradle.api.DefaultTask;
-import org.gradle.api.tasks.InputDirectory;
-import org.gradle.api.tasks.InputFile;
-import org.gradle.api.tasks.TaskAction;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import com.google.common.io.Files;
 
 public class DownloadAssetsTask extends DefaultTask
 {
@@ -145,10 +142,7 @@ public class DownloadAssetsTask extends DefaultTask
         if (file.length() != size)
             return true;
 
-        if (!expectedHash.equalsIgnoreCase(Constants.hash(file, "SHA1")))
-            return true;
-
-        return false;
+        return !expectedHash.equalsIgnoreCase(Constants.hash(file, "SHA1"));
     }
 
     private static class GetAssetTask implements Callable<Boolean>

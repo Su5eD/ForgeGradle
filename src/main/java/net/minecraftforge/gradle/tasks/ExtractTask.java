@@ -20,32 +20,27 @@
 package net.minecraftforge.gradle.tasks;
 
 import groovy.lang.Closure;
-
-import java.io.File;
-import java.io.IOException;
-import java.util.LinkedHashSet;
-import java.util.Set;
-
 import net.minecraftforge.gradle.util.ExtractionVisitor;
 import net.minecraftforge.gradle.util.caching.Cached;
 import net.minecraftforge.gradle.util.caching.CachedTask;
-
 import org.gradle.api.file.FileCollection;
 import org.gradle.api.file.FileTreeElement;
 import org.gradle.api.specs.Spec;
-import org.gradle.api.tasks.Input;
-import org.gradle.api.tasks.InputFiles;
-import org.gradle.api.tasks.Optional;
-import org.gradle.api.tasks.OutputDirectory;
-import org.gradle.api.tasks.TaskAction;
+import org.gradle.api.tasks.*;
 import org.gradle.api.tasks.util.PatternFilterable;
 import org.gradle.api.tasks.util.PatternSet;
+
+import java.io.File;
+import java.io.IOException;
+import java.util.Arrays;
+import java.util.LinkedHashSet;
+import java.util.Set;
 
 public class ExtractTask extends CachedTask implements PatternFilterable
 {
 
     @InputFiles
-    private LinkedHashSet<Object> sourcePaths      = new LinkedHashSet<Object>();
+    private LinkedHashSet<Object> sourcePaths      = new LinkedHashSet<>();
 
     @Input
     private PatternSet            patternSet       = new PatternSet();
@@ -72,7 +67,7 @@ public class ExtractTask extends CachedTask implements PatternFilterable
         }
 
         dest.mkdirs();
-        
+
         ExtractionVisitor visitor = new ExtractionVisitor(dest, isIncludeEmptyDirs(), patternSet.getAsSpec());
 
         for (File source : getSourcePaths())
@@ -94,10 +89,7 @@ public class ExtractTask extends CachedTask implements PatternFilterable
 
     public ExtractTask from(Object... paths)
     {
-        for (Object path : paths)
-        {
-            sourcePaths.add(path);
-        }
+        sourcePaths.addAll(Arrays.asList(paths));
         return this;
     }
 

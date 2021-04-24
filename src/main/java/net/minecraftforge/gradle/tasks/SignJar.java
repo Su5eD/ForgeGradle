@@ -19,17 +19,11 @@
  */
 package net.minecraftforge.gradle.tasks;
 
-import static net.minecraftforge.gradle.common.Constants.resolveString;
-
-import java.io.*;
-import java.util.Collections;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
-import java.util.jar.JarOutputStream;
-import java.util.zip.ZipEntry;
-import java.util.zip.ZipFile;
-
+import com.google.common.base.Strings;
+import com.google.common.collect.Maps;
+import com.google.common.io.ByteStreams;
+import groovy.lang.Closure;
+import groovy.util.MapEntry;
 import org.gradle.api.DefaultTask;
 import org.gradle.api.file.FileTreeElement;
 import org.gradle.api.file.FileVisitDetails;
@@ -42,12 +36,16 @@ import org.gradle.api.tasks.TaskAction;
 import org.gradle.api.tasks.util.PatternFilterable;
 import org.gradle.api.tasks.util.PatternSet;
 
-import com.google.common.base.Strings;
-import com.google.common.collect.Maps;
-import com.google.common.io.ByteStreams;
+import java.io.*;
+import java.util.Collections;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
+import java.util.jar.JarOutputStream;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipFile;
 
-import groovy.lang.Closure;
-import groovy.util.MapEntry;
+import static net.minecraftforge.gradle.common.Constants.resolveString;
 
 public class SignJar extends DefaultTask implements PatternFilterable
 {

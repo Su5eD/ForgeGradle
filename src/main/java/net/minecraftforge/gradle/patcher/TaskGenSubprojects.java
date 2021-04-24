@@ -19,7 +19,19 @@
  */
 package net.minecraftforge.gradle.patcher;
 
-import static net.minecraftforge.gradle.common.Constants.NEWLINE;
+import com.google.common.base.Joiner;
+import com.google.common.base.Strings;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+import com.google.common.io.Files;
+import com.google.common.io.Resources;
+import groovy.lang.Closure;
+import net.minecraftforge.gradle.common.Constants;
+import org.gradle.api.DefaultTask;
+import org.gradle.api.Project;
+import org.gradle.api.tasks.Input;
+import org.gradle.api.tasks.OutputFiles;
+import org.gradle.api.tasks.TaskAction;
 
 import java.io.File;
 import java.io.IOException;
@@ -30,22 +42,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
-import net.minecraftforge.gradle.common.Constants;
-
-import org.gradle.api.DefaultTask;
-import org.gradle.api.Project;
-import org.gradle.api.tasks.Input;
-import org.gradle.api.tasks.OutputFiles;
-import org.gradle.api.tasks.TaskAction;
-
-import com.google.common.base.Joiner;
-import com.google.common.base.Strings;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
-import com.google.common.io.Files;
-import com.google.common.io.Resources;
-
-import groovy.lang.Closure;
+import static net.minecraftforge.gradle.common.Constants.NEWLINE;
 
 class TaskGenSubprojects extends DefaultTask
 {
@@ -90,7 +87,7 @@ class TaskGenSubprojects extends DefaultTask
     private void generateRootBuild(File output) throws IOException
     {
         StringBuilder builder = new StringBuilder();
-        int start = 0;
+        int start;
         int end = 0;
         while ((start = resource.indexOf("@@", end)) != -1)
         {
@@ -105,36 +102,31 @@ class TaskGenSubprojects extends DefaultTask
                 String id = resource.substring(start + 2, end);
                 end += 2;
 
-                if ("repositories".equals(id))
-                {
-                    for (Repo repo : repositories)
-                    {
-                        lines(builder, 2,
-                                "maven {",
-                                "    name '" + repo.name + "'",
-                                "    url '" + repo.url + "'",
-                                "}");
-                    }
-                }
-                else if ("dependencies".equals(id))
-                {
-                    for (String dep : dependencies)
-                    {
-                        if (this.depFilter != null && !this.depFilter.call(dep))
-                        {
-                            this.getProject().getLogger().debug("Filtering Dep: " + dep);
-                            continue;
+                switch (id) {
+                    case "repositories":
+                        for (Repo repo : repositories) {
+                            lines(builder, 2,
+                                    "maven {",
+                                    "    name '" + repo.name + "'",
+                                    "    url '" + repo.url + "'",
+                                    "}");
                         }
-                        append(builder, INDENT, INDENT, dep, NEWLINE);
-                    }
-                }
-                else if ("javaLevel".equals(id))
-                {
-                    builder.append(getJavaLevel());
-                }
-                else
-                {
-                    this.getProject().getLogger().lifecycle("Unknown subproject key: " + id);
+                        break;
+                    case "dependencies":
+                        for (String dep : dependencies) {
+                            if (this.depFilter != null && !this.depFilter.call(dep)) {
+                                this.getProject().getLogger().debug("Filtering Dep: " + dep);
+                                continue;
+                            }
+                            append(builder, INDENT, INDENT, dep, NEWLINE);
+                        }
+                        break;
+                    case "javaLevel":
+                        builder.append(getJavaLevel());
+                        break;
+                    default:
+                        this.getProject().getLogger().lifecycle("Unknown subproject key: " + id);
+                        break;
                 }
             }
         }
@@ -297,7 +289,7 @@ class TaskGenSubprojects extends DefaultTask
     @OutputFiles
     public List<File> getGeneratedFiles()
     {
-        List<File> files = new ArrayList<File>(2 + projects.size());
+        List<File> files = new ArrayList<>(2 + projects.size());
         File workspace = getWorkspaceDir();
         files.add(new File(workspace, "build.gradle"));
         files.add(new File(workspace, "settings.gradle"));

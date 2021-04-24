@@ -19,33 +19,26 @@
  */
 package net.minecraftforge.gradle.tasks;
 
+import com.google.common.io.ByteStreams;
+import com.google.common.io.Files;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import groovy.util.MapEntry;
-
-import java.io.*;
-import java.net.MalformedURLException;
-import java.net.URL;
-import java.net.URLConnection;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-
-import javax.xml.bind.DatatypeConverter;
-
 import net.minecraftforge.gradle.common.Constants;
-
 import org.gradle.api.DefaultTask;
 import org.gradle.api.tasks.Input;
 import org.gradle.api.tasks.OutputFile;
 import org.gradle.api.tasks.TaskAction;
 
-import com.google.common.io.ByteStreams;
-import com.google.common.io.Files;
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
+import javax.xml.bind.DatatypeConverter;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.net.URLConnection;
+import java.util.*;
+import java.util.Map.Entry;
 
 public class JenkinsChangelog extends DefaultTask
 {
@@ -121,7 +114,7 @@ public class JenkinsChangelog extends DefaultTask
 
     private String read(URL url) throws IOException
     {
-        URLConnection con = null;
+        URLConnection con;
         con = url.openConnection();
         con.setRequestProperty("User-Agent", Constants.USER_AGENT);
         if (auth != null)
@@ -166,26 +159,16 @@ public class JenkinsChangelog extends DefaultTask
             data = cleanJson(data, "{}"); //Empty entries, just for sanities sake
 
             List<Map<String, Object>> json = (List<Map<String, Object>>) new Gson().fromJson(data, Map.class).get("allBuilds");
-            Collections.sort(json, (o1, o2) -> (int) ((Double) o1.get("number") - (Double) o2.get("number")));
+            json.sort((o1, o2) -> (int) ((Double) o1.get("number") - (Double) o2.get("number")));
 
-            List<Entry<String, String>> items = new ArrayList<Entry<String, String>>();
+            List<Entry<String, String>> items = new ArrayList<>();
             Iterator<Map<String, Object>> bitr = json.iterator();
             while (bitr.hasNext())
             {
                 Map<String, Object> build = bitr.next();
 
                 List<Map<String, String>> actions = (List<Map<String, String>>) build.get("actions");
-                Iterator<Map<String, String>> itr = actions.iterator();
-                while (itr.hasNext())
-                {
-                    Map<String, String> map = itr.next();
-                    if (!map.containsKey("text") ||
-                        map.get("text").contains("http") ||
-                        map.get("text").contains("href="))
-                    {
-                        itr.remove();
-                    }
-                }
+                actions.removeIf(map -> !map.containsKey("text") || map.get("text").contains("http") || map.get("text").contains("href="));
 
                 if (actions.size() == 0)
                 {
@@ -207,7 +190,7 @@ public class JenkinsChangelog extends DefaultTask
                 {
                     if (items.size() == 0)
                         bitr.remove();
-                    items = new ArrayList<Entry<String, String>>();
+                    items = new ArrayList<>();
                 }
                 else
                 {
@@ -219,7 +202,7 @@ public class JenkinsChangelog extends DefaultTask
                 build.remove("actions");
             }
             //prettyPrint(json);
-            Collections.sort(json, (o1, o2) -> (int) ((Double) o2.get("number") - (Double) o1.get("number")));
+            json.sort((o1, o2) -> (int) ((Double) o2.get("number") - (Double) o1.get("number")));
             return json;
         }
         catch (Exception e)
@@ -227,7 +210,7 @@ public class JenkinsChangelog extends DefaultTask
             e.printStackTrace();
             getLogger().lifecycle(data);
         }
-        return new ArrayList<Map<String, Object>>();
+        return new ArrayList<>();
     }
 
     @SuppressWarnings("unchecked")
@@ -253,7 +236,7 @@ public class JenkinsChangelog extends DefaultTask
             }
             build.put("version", versioned ? "Build " + ((Double) build.get("number")).intValue() : getProject().getVersion());
 
-            List<Entry<String, String>> items = new ArrayList<Entry<String, String>>();
+            List<Entry<String, String>> items = new ArrayList<>();
             for (Map<String, Object> e : (List<Map<String, Object>>) ((Map<String, Object>) build.get("changeSet")).get("items"))
             {
                 items.add(new MapEntry(((Map<String, String>) e.get("author")).get("fullName"), e.get("comment")));

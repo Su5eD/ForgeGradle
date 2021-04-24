@@ -19,22 +19,18 @@
  */
 package net.minecraftforge.gradle.user;
 
-import java.io.File;
-import java.util.List;
-
-import org.gradle.api.Action;
+import com.google.common.base.Preconditions;
+import com.google.common.collect.Lists;
+import groovy.lang.Closure;
+import net.minecraftforge.gradle.common.Constants;
+import net.minecraftforge.gradle.util.GradleConfigurationException;
 import org.gradle.api.NamedDomainObjectFactory;
-import org.gradle.api.Project;
 import org.gradle.api.Task;
 import org.gradle.api.file.FileCollection;
 import org.gradle.api.tasks.bundling.Jar;
 
-import com.google.common.base.Preconditions;
-import com.google.common.collect.Lists;
-
-import groovy.lang.Closure;
-import net.minecraftforge.gradle.common.Constants;
-import net.minecraftforge.gradle.util.GradleConfigurationException;
+import java.io.File;
+import java.util.List;
 
 public class ReobfTaskFactory implements NamedDomainObjectFactory<IReobfuscator>
 {

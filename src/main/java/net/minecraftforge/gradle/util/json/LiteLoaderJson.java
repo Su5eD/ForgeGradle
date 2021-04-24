@@ -19,6 +19,8 @@
  */
 package net.minecraftforge.gradle.util.json;
 
+import com.google.gson.*;
+
 import java.lang.reflect.Type;
 import java.util.Collections;
 import java.util.LinkedList;
@@ -26,38 +28,32 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
-import com.google.gson.JsonDeserializationContext;
-import com.google.gson.JsonDeserializer;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParseException;
-
 public class LiteLoaderJson
 {
     public MetaObject meta;
     public Map<String, VersionObject> versions;
-    
+
     public static final class MetaObject
     {
         public String description, authors, url;
     }
-    
+
     public static final class RepoObject
     {
         public String stream, type, url, classifier;
-        
+
         @Override
         public String toString()
         {
             return String.format("Repository: %s:%s", type, url);
         }
-        
+
         String getClassifier()
         {
             return classifier == null || classifier.isEmpty() ? "" : ":" + classifier;
         }
     }
-    
+
     public static final class SnapshotsObject
     {
         public List<Map<String, String>> libraries;
@@ -70,19 +66,19 @@ public class LiteLoaderJson
         public RepoObject repo;
         public SnapshotsObject snapshots;
     }
-    
+
     public static final class Artifact
     {
         public static final String SNAPSHOT_STREAM = "SNAPSHOT";
         public static final String DEFAULT_TWEAKER = "com.mumfrey.liteloader.launch.LiteLoaderTweaker";
         public static final String DEFAULT_ARTEFACT = "com.mumfrey:liteloader";
-        
+
         public String group, md5, tweakClass, file, version, mcpJar, srcJar;
         public long timestamp;
         public List<Map<String, String>> libraries;
 
         public Artifact() {}
-        
+
         Artifact(String version, RepoObject repo, SnapshotsObject snapshots)
         {
             String suffix = Artifact.SNAPSHOT_STREAM.equals(repo.stream) ? "-" + Artifact.SNAPSHOT_STREAM : "";
@@ -92,31 +88,31 @@ public class LiteLoaderJson
             this.version = version + suffix;
             this.libraries = snapshots != null ? snapshots.libraries : null;
         }
-        
+
         public List<Map<String, String>> getLibraries()
         {
-            return this.libraries != null ? this.libraries : Collections.<Map<String, String>>emptyList();
+            return this.libraries != null ? this.libraries : Collections.emptyList();
         }
-        
+
         public boolean hasMcp()
         {
             return mcpJar != null;
         }
-        
+
         public String getDepString(RepoObject repo)
         {
             return group + ":" + version + repo.getClassifier();
         }
     }
-    
+
     public static final class VersionAdapter implements JsonDeserializer<VersionObject>
     {
         @Override
         public VersionObject deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context) throws JsonParseException
         {
             VersionObject obj = new VersionObject();
-            obj.artifacts = new LinkedList<Artifact>();
-            
+            obj.artifacts = new LinkedList<>();
+
             JsonObject repoData = json.getAsJsonObject().getAsJsonObject("repo");
             if (repoData != null)
             {
@@ -128,7 +124,7 @@ public class LiteLoaderJson
             {
                 obj.snapshots = context.deserialize(snapshotsData, SnapshotsObject.class);
             }
-            
+
             JsonObject groupLevel = json.getAsJsonObject().getAsJsonObject("artefacts");
             if (groupLevel != null)
             {
@@ -136,13 +132,13 @@ public class LiteLoaderJson
                 for (Entry<String, JsonElement> groupE : groupLevel.entrySet())
                 {
                     String group = groupE.getKey();
-                    
+
                     // itterate over the artefacts in the groups
                     for (Entry<String, JsonElement> artifactE : groupE.getValue().getAsJsonObject().entrySet())
                     {
                         Artifact artifact = context.deserialize(artifactE.getValue(), Artifact.class);
                         artifact.group = group;
-                        
+
                         if ("latest".equals(artifactE.getKey()))
                         {
                             obj.latest = artifact;
@@ -151,7 +147,7 @@ public class LiteLoaderJson
                         {
                             obj.artifacts.add(artifact);
                         }
-                        
+
                     }
                 }
             }
@@ -159,7 +155,7 @@ public class LiteLoaderJson
             return obj;
         }
     }
-    
+
     LiteLoaderJson addDefaultArtifacts()
     {
         for (Entry<String, VersionObject> versionEntry : this.versions.entrySet())
@@ -173,7 +169,7 @@ public class LiteLoaderJson
                 data.artifacts.add(data.latest);
             }
         }
-        
+
         return this;
     }
 

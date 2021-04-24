@@ -19,7 +19,7 @@ import java.lang.annotation.Target;
 
 
 /**
- * 
+ *
  * Stolen from FML for use with merging the jars.
  *
  * @author cpw
@@ -29,5 +29,5 @@ import java.lang.annotation.Target;
 @Target({ElementType.TYPE, ElementType.FIELD, ElementType.METHOD, ElementType.CONSTRUCTOR})
 public @interface SideOnly
 {
-    public Side value();
+    Side value();
 }

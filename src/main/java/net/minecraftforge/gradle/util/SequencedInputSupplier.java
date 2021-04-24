@@ -19,13 +19,13 @@
  */
 package net.minecraftforge.gradle.util;
 
+import net.minecraftforge.srg2source.util.io.InputSupplier;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
-
-import net.minecraftforge.srg2source.util.io.InputSupplier;
 
 public class SequencedInputSupplier extends ArrayList<InputSupplier> implements InputSupplier
 {
@@ -36,12 +36,12 @@ public class SequencedInputSupplier extends ArrayList<InputSupplier> implements 
         super();
         this.add(supp);
     }
-    
+
     public SequencedInputSupplier()
     {
         super();
     }
-    
+
     public SequencedInputSupplier(int size)
     {
         super(size);
@@ -65,7 +65,7 @@ public class SequencedInputSupplier extends ArrayList<InputSupplier> implements 
                 return out;
             }
         }
-        
+
         return null;
     }
 
@@ -80,14 +80,14 @@ public class SequencedInputSupplier extends ArrayList<InputSupplier> implements 
                 return out;
             }
         }
-        
+
         return null;
     }
 
     @Override
     public List<String> gatherAll(String endFilter)
     {
-        LinkedList<String> all = new LinkedList<String>();
+        LinkedList<String> all = new LinkedList<>();
         for (InputSupplier sup : this)
             all.addAll(sup.gatherAll(endFilter));
         return all;

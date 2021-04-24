@@ -19,12 +19,11 @@
  */
 package net.minecraftforge.gradle.patcher;
 
-import java.io.File;
-
-import org.gradle.api.NamedDomainObjectContainer;
-
 import groovy.lang.Closure;
 import net.minecraftforge.gradle.common.BaseExtension;
+import org.gradle.api.NamedDomainObjectContainer;
+
+import java.io.File;
 
 public class PatcherExtension extends BaseExtension
 {
@@ -86,18 +85,18 @@ public class PatcherExtension extends BaseExtension
     {
         projectContainer.configure(closure);
     }
-    
+
     @SuppressWarnings("rawtypes")
     public void project(String projName, Closure closure)
     {
         project.configure(projectContainer.maybeCreate(projName), closure);
     }
-    
+
     public File getVersionJson()
     {
         if (versionJson == null)
             return null;
-        
+
         return (File) (versionJson = project.file(versionJson));
     }
 
@@ -112,7 +111,7 @@ public class PatcherExtension extends BaseExtension
         {
             return null;
         }
-        
+
         return (File) (workspaceDir = project.file(workspaceDir));
     }
 
@@ -120,7 +119,7 @@ public class PatcherExtension extends BaseExtension
     {
         this.workspaceDir = workspaceDir;
     }
-    
+
     @SuppressWarnings("serial")
     protected Closure<File> getDelayedWorkspaceDir()
     {
@@ -131,7 +130,7 @@ public class PatcherExtension extends BaseExtension
             }
         };
     }
-    
+
     @SuppressWarnings("serial")
     protected Closure<File> getDelayedSubWorkspaceDir(final String path)
     {
@@ -142,7 +141,7 @@ public class PatcherExtension extends BaseExtension
             }
         };
     }
-    
+
     @SuppressWarnings("serial")
     protected Closure<File> getDelayedVersionJson()
     {

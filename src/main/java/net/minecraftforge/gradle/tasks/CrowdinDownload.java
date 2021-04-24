@@ -19,7 +19,21 @@
  */
 package net.minecraftforge.gradle.tasks;
 
+import com.google.common.base.Charsets;
+import com.google.common.base.Splitter;
+import com.google.common.base.Strings;
+import com.google.common.collect.Iterables;
+import com.google.common.io.CharStreams;
+import com.google.common.io.Files;
+import com.google.common.io.LineProcessor;
 import groovy.lang.Closure;
+import net.minecraftforge.gradle.common.Constants;
+import org.gradle.api.DefaultTask;
+import org.gradle.api.file.FileCollection;
+import org.gradle.api.specs.Spec;
+import org.gradle.api.tasks.Input;
+import org.gradle.api.tasks.OutputFiles;
+import org.gradle.api.tasks.TaskAction;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -30,23 +44,6 @@ import java.net.URL;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 import java.util.zip.ZipOutputStream;
-
-import net.minecraftforge.gradle.common.Constants;
-
-import org.gradle.api.DefaultTask;
-import org.gradle.api.file.FileCollection;
-import org.gradle.api.specs.Spec;
-import org.gradle.api.tasks.Input;
-import org.gradle.api.tasks.OutputFiles;
-import org.gradle.api.tasks.TaskAction;
-
-import com.google.common.base.Charsets;
-import com.google.common.base.Splitter;
-import com.google.common.base.Strings;
-import com.google.common.collect.Iterables;
-import com.google.common.io.CharStreams;
-import com.google.common.io.Files;
-import com.google.common.io.LineProcessor;
 
 public class CrowdinDownload extends DefaultTask
 {

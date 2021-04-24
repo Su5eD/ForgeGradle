@@ -19,13 +19,22 @@
  */
 package net.minecraftforge.gradle.user.patcherUser;
 
-import java.io.BufferedOutputStream;
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
+import com.google.common.base.Joiner;
+import com.google.common.collect.Maps;
+import com.google.common.io.ByteArrayDataInput;
+import com.google.common.io.ByteStreams;
+import com.nothome.delta.GDiffPatcher;
+import lzma.sdk.lzma.Decoder;
+import lzma.streams.LzmaInputStream;
+import net.minecraftforge.gradle.util.caching.Cached;
+import net.minecraftforge.gradle.util.caching.CachedTask;
+import org.gradle.api.file.FileVisitDetails;
+import org.gradle.api.file.FileVisitor;
+import org.gradle.api.tasks.InputFile;
+import org.gradle.api.tasks.OutputFile;
+import org.gradle.api.tasks.TaskAction;
+
+import java.io.*;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -34,28 +43,7 @@ import java.util.jar.JarInputStream;
 import java.util.jar.JarOutputStream;
 import java.util.jar.Pack200;
 import java.util.regex.Pattern;
-import java.util.zip.Adler32;
-import java.util.zip.ZipEntry;
-import java.util.zip.ZipFile;
-import java.util.zip.ZipInputStream;
-import java.util.zip.ZipOutputStream;
-
-import org.gradle.api.file.FileVisitDetails;
-import org.gradle.api.file.FileVisitor;
-import org.gradle.api.tasks.InputFile;
-import org.gradle.api.tasks.OutputFile;
-import org.gradle.api.tasks.TaskAction;
-
-import com.google.common.base.Joiner;
-import com.google.common.collect.Maps;
-import com.google.common.io.ByteArrayDataInput;
-import com.google.common.io.ByteStreams;
-import com.nothome.delta.GDiffPatcher;
-
-import lzma.sdk.lzma.Decoder;
-import lzma.streams.LzmaInputStream;
-import net.minecraftforge.gradle.util.caching.Cached;
-import net.minecraftforge.gradle.util.caching.CachedTask;
+import java.util.zip.*;
 
 public class TaskApplyBinPatches extends CachedTask
 {
@@ -83,7 +71,7 @@ public class TaskApplyBinPatches extends CachedTask
             getOutJar().delete();
         }
 
-        final HashSet<String> entries = new HashSet<String>();
+        final HashSet<String> entries = new HashSet<>();
 
         try (ZipFile in = new ZipFile(getInJar());
              ZipInputStream classesIn = new ZipInputStream(new FileInputStream(getClassJar()));
@@ -131,7 +119,7 @@ public class TaskApplyBinPatches extends CachedTask
             }
 
             // COPY DATA
-            ZipEntry entry = null;
+            ZipEntry entry;
             while ((entry = classesIn.getNextEntry()) != null)
             {
                 if (entries.contains(entry.getName()))
