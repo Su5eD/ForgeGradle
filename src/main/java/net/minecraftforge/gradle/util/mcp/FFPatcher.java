@@ -21,8 +21,7 @@ package net.minecraftforge.gradle.util.mcp;
 
 import net.minecraftforge.gradle.common.Constants;
 
-public class FFPatcher
-{
+public class FFPatcher {
     static final String MODIFIERS = "public|protected|private|static|abstract|final|native|synchronized|transient|volatile|strictfp";
 
     // Remove TRAILING whitespace
@@ -31,8 +30,7 @@ public class FFPatcher
     //Remove repeated blank lines
     private static final String NEWLINES = "(?m)^(\\r\\n|\\r|\\n){2,}";
 
-    public static String processFile(String text)
-    {
+    public static String processFile(String text) {
         text = text.replaceAll(TRAILING, "");
         text = text.replaceAll(NEWLINES, Constants.NEWLINE);
         return text;

@@ -40,13 +40,14 @@ class ArtifactSaver implements IResultSaver {
     private final Map<String, ZipOutputStream> mapArchiveStreams = new HashMap<>();
     private final Map<String, Set<String>> mapArchiveEntries = new HashMap<>();
     private final File root;
+
     public ArtifactSaver(File tempDir) {
         this.root = tempDir;
     }
 
     private String getAbsolutePath(String path) {
         return new File(root, path).getAbsolutePath();
-      }
+    }
 
 
     @Override
@@ -70,8 +71,7 @@ class ArtifactSaver implements IResultSaver {
     public void saveClassFile(String path, String qualifiedName, String entryName, String content, int[] mapping) {
         File file = new File(getAbsolutePath(path), entryName);
         try {
-            try (Writer out = new OutputStreamWriter(new FileOutputStream(file), Charsets.UTF_8))
-            {
+            try (Writer out = new OutputStreamWriter(new FileOutputStream(file), Charsets.UTF_8)) {
                 out.write(content);
             }
         } catch (IOException ex) {

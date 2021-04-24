@@ -45,35 +45,31 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 import java.util.zip.ZipOutputStream;
 
-public class MergeJars extends CachedTask
-{
+public class MergeJars extends CachedTask {
     @InputFile
-    private Object                client;
+    private Object client;
 
     @InputFile
-    private Object                server;
+    private Object server;
 
     @OutputFile
     @Cached
-    private Object                outJar;
+    private Object outJar;
 
-    private final Class<Side>     sideClass     = net.minecraftforge.fml.relauncher.Side.class;
+    private final Class<Side> sideClass = net.minecraftforge.fml.relauncher.Side.class;
     private final Class<SideOnly> sideOnlyClass = net.minecraftforge.fml.relauncher.SideOnly.class;
 
-    private static final boolean  DEBUG         = false;
+    private static final boolean DEBUG = false;
 
     @TaskAction
-    public void doTask() throws IOException
-    {
+    public void doTask() throws IOException {
         processJar(getClient(), getServer(), getOutJar());
     }
 
-    private void processJar(File clientInFile, File serverInFile, File outFile) throws IOException
-    {
+    private void processJar(File clientInFile, File serverInFile, File outFile) throws IOException {
         try (ZipFile cInJar = new ZipFile(clientInFile);
              ZipFile sInJar = new ZipFile(serverInFile);
-             ZipOutputStream outJar = new ZipOutputStream(new BufferedOutputStream(new FileOutputStream(outFile))))
-        {
+             ZipOutputStream outJar = new ZipOutputStream(new BufferedOutputStream(new FileOutputStream(outFile)))) {
             // read in the jars, and initalize some variables
             HashSet<String> resources = new HashSet<>();
             HashMap<String, ZipEntry> cClasses = getClassEntries(cInJar, outJar, resources);
@@ -81,14 +77,12 @@ public class MergeJars extends CachedTask
             HashSet<String> cAdded = new HashSet<>();
 
             // start processing
-            for (Entry<String, ZipEntry> entry : cClasses.entrySet())
-            {
+            for (Entry<String, ZipEntry> entry : cClasses.entrySet()) {
                 String name = entry.getKey();
                 ZipEntry cEntry = entry.getValue();
                 ZipEntry sEntry = sClasses.get(name);
 
-                if (sEntry == null)
-                {
+                if (sEntry == null) {
                     copyClass(cInJar, cEntry, outJar, true);
                     cAdded.add(name);
                     continue;
@@ -109,22 +103,18 @@ public class MergeJars extends CachedTask
                 cAdded.add(name);
             }
 
-            for (Entry<String, ZipEntry> entry : sClasses.entrySet())
-            {
-                if (DEBUG)
-                {
+            for (Entry<String, ZipEntry> entry : sClasses.entrySet()) {
+                if (DEBUG) {
                     System.out.println("Copy class s->c : " + entry.getKey());
                 }
                 copyClass(sInJar, entry.getValue(), outJar, false);
             }
 
-            for (String name : new String[] { sideOnlyClass.getName(), sideClass.getName() })
-            {
+            for (String name : new String[]{sideOnlyClass.getName(), sideClass.getName()}) {
                 String eName = name.replace(".", "/");
                 String classPath = eName + ".class";
                 ZipEntry newEntry = new ZipEntry(classPath);
-                if (!cAdded.contains(eName))
-                {
+                if (!cAdded.contains(eName)) {
                     try {
                         outJar.putNextEntry(newEntry);
                         outJar.write(getClassBytes(name));
@@ -134,22 +124,18 @@ public class MergeJars extends CachedTask
                 }
             }
 
-        }
-        catch (FileNotFoundException e)
-        {
+        } catch (FileNotFoundException e) {
             throw new FileNotFoundException("Could not open input/output file: " + e.getMessage());
         }
     }
 
-    private void copyClass(ZipFile inJar, ZipEntry entry, ZipOutputStream outJar, boolean isClientOnly) throws IOException
-    {
+    private void copyClass(ZipFile inJar, ZipEntry entry, ZipOutputStream outJar, boolean isClientOnly) throws IOException {
         ClassReader reader = new ClassReader(readEntry(inJar, entry));
         ClassNode classNode = new ClassNode();
 
         reader.accept(classNode, 0);
 
-        if (classNode.visibleAnnotations == null)
-        {
+        if (classNode.visibleAnnotations == null) {
             classNode.visibleAnnotations = new ArrayList<>();
         }
         classNode.visibleAnnotations.add(getSideAnn(isClientOnly));
@@ -159,51 +145,43 @@ public class MergeJars extends CachedTask
         byte[] data = writer.toByteArray();
 
         ZipEntry newEntry = new ZipEntry(entry.getName());
-        if (outJar != null)
-        {
+        if (outJar != null) {
             outJar.putNextEntry(newEntry);
             outJar.write(data);
         }
     }
 
-    private byte[] readEntry(ZipFile inFile, ZipEntry entry) throws IOException
-    {
-        try (InputStream is = inFile.getInputStream(entry))
-        {
+    private byte[] readEntry(ZipFile inFile, ZipEntry entry) throws IOException {
+        try (InputStream is = inFile.getInputStream(entry)) {
             return ByteStreams.toByteArray(is);
         }
     }
 
-    private AnnotationNode getSideAnn(boolean isClientOnly)
-    {
+    private AnnotationNode getSideAnn(boolean isClientOnly) {
         AnnotationNode ann = new AnnotationNode(Type.getDescriptor(sideOnlyClass));
         ann.values = new ArrayList<>();
         ann.values.add("value");
-        ann.values.add(new String[] { Type.getDescriptor(sideClass), isClientOnly ? "CLIENT" : "SERVER" });
+        ann.values.add(new String[]{Type.getDescriptor(sideClass), isClientOnly ? "CLIENT" : "SERVER"});
         return ann;
     }
 
     /**
-     * @param inFile From which to read classes and resources
-     * @param outFile The place to write resources and ignored classes
+     * @param inFile    From which to read classes and resources
+     * @param outFile   The place to write resources and ignored classes
      * @param resources The registry to add resources to, and to check against.
      * @return HashMap of all the desired Classes and their ZipEntrys
      * @throws IOException
      */
-    private HashMap<String, ZipEntry> getClassEntries(ZipFile inFile, ZipOutputStream outFile, HashSet<String> resources) throws IOException
-    {
+    private HashMap<String, ZipEntry> getClassEntries(ZipFile inFile, ZipOutputStream outFile, HashSet<String> resources) throws IOException {
         HashMap<String, ZipEntry> ret = new HashMap<>();
 
-        for (ZipEntry entry : Collections.list(inFile.entries()))
-        {
+        for (ZipEntry entry : Collections.list(inFile.entries())) {
             String entryName = entry.getName();
             // Always skip the manifest
-            if ("META-INF/MANIFEST.MF".equals(entryName))
-            {
+            if ("META-INF/MANIFEST.MF".equals(entryName)) {
                 continue;
             }
-            if (entry.isDirectory())
-            {
+            if (entry.isDirectory()) {
                 /*
                  * if (!resources.contains(entryName))
                  * {
@@ -213,33 +191,27 @@ public class MergeJars extends CachedTask
                 continue;
             }
 
-            if (!entryName.endsWith(".class") || entryName.startsWith("."))
-            {
-                if (!resources.contains(entryName))
-                {
+            if (!entryName.endsWith(".class") || entryName.startsWith(".")) {
+                if (!resources.contains(entryName)) {
                     ZipEntry newEntry = new ZipEntry(entryName);
                     outFile.putNextEntry(newEntry);
                     outFile.write(readEntry(inFile, entry));
                     resources.add(entryName);
                 }
-            }
-            else
-            {
+            } else {
                 ret.put(entryName.replace(".class", ""), entry);
             }
         }
         return ret;
     }
 
-    private byte[] getClassBytes(String name) throws IOException
-    {
+    private byte[] getClassBytes(String name) throws IOException {
         try (InputStream classStream = MergeJars.class.getResourceAsStream("/" + name.replace('.', '/').concat(".class"))) {
             return ByteStreams.toByteArray(classStream);
         }
     }
 
-    public byte[] processClass(byte[] cIn, byte[] sIn)
-    {
+    public byte[] processClass(byte[] cIn, byte[] sIn) {
         ClassNode cClassNode = getClassNode(cIn);
         ClassNode sClassNode = getClassNode(sIn);
 
@@ -252,8 +224,7 @@ public class MergeJars extends CachedTask
         return writer.toByteArray();
     }
 
-    private static boolean innerMatches(InnerClassNode o, InnerClassNode o2)
-    {
+    private static boolean innerMatches(InnerClassNode o, InnerClassNode o2) {
         if (o.innerName == null && o2.innerName != null) return false;
         if (o.innerName != null && !o.innerName.equals(o2.innerName)) return false;
         if (o.name == null && o2.name != null) return false;
@@ -262,79 +233,65 @@ public class MergeJars extends CachedTask
         if (o.outerName != null && o.outerName.equals(o2.outerName)) return false;
         return true;
     }
-    private static boolean contains(List<InnerClassNode> list, InnerClassNode node)
-    {
+
+    private static boolean contains(List<InnerClassNode> list, InnerClassNode node) {
         for (InnerClassNode n : list)
             if (innerMatches(n, node))
                 return true;
         return false;
     }
-    private static void processInners(ClassNode cClass, ClassNode sClass)
-    {
+
+    private static void processInners(ClassNode cClass, ClassNode sClass) {
         List<InnerClassNode> cIners = cClass.innerClasses;
         List<InnerClassNode> sIners = sClass.innerClasses;
 
-        for (InnerClassNode n : cIners)
-        {
+        for (InnerClassNode n : cIners) {
             if (!contains(sIners, n))
                 sIners.add(n);
         }
-        for (InnerClassNode n : sIners)
-        {
+        for (InnerClassNode n : sIners) {
             if (!contains(cIners, n))
                 cIners.add(n);
         }
     }
 
-    private ClassNode getClassNode(byte[] data)
-    {
+    private ClassNode getClassNode(byte[] data) {
         ClassReader reader = new ClassReader(data);
         ClassNode classNode = new ClassNode();
         reader.accept(classNode, 0);
         return classNode;
     }
 
-    private void processFields(ClassNode cClass, ClassNode sClass)
-    {
+    private void processFields(ClassNode cClass, ClassNode sClass) {
         List<FieldNode> cFields = cClass.fields;
         List<FieldNode> sFields = sClass.fields;
 
         int serverFieldIdx = 0;
         if (DEBUG)
             System.out.printf("B: Server List: %s\nB: Client List: %s\n", Lists.transform(sFields, FieldName.instance), Lists.transform(cFields, FieldName.instance));
-        for (int clientFieldIdx = 0; clientFieldIdx < cFields.size(); clientFieldIdx++)
-        {
+        for (int clientFieldIdx = 0; clientFieldIdx < cFields.size(); clientFieldIdx++) {
             FieldNode clientField = cFields.get(clientFieldIdx);
-            if (serverFieldIdx < sFields.size())
-            {
+            if (serverFieldIdx < sFields.size()) {
                 FieldNode serverField = sFields.get(serverFieldIdx);
-                if (!clientField.name.equals(serverField.name))
-                {
+                if (!clientField.name.equals(serverField.name)) {
                     boolean foundServerField = false;
-                    for (int serverFieldSearchIdx = serverFieldIdx + 1; serverFieldSearchIdx < sFields.size(); serverFieldSearchIdx++)
-                    {
-                        if (clientField.name.equals(sFields.get(serverFieldSearchIdx).name))
-                        {
+                    for (int serverFieldSearchIdx = serverFieldIdx + 1; serverFieldSearchIdx < sFields.size(); serverFieldSearchIdx++) {
+                        if (clientField.name.equals(sFields.get(serverFieldSearchIdx).name)) {
                             foundServerField = true;
                             break;
                         }
                     }
                     // Found a server field match ahead in the list - walk to it and add the missing server fields to the client
-                    if (foundServerField)
-                    {
+                    if (foundServerField) {
                         boolean foundClientField = false;
-                        for (int clientFieldSearchIdx = clientFieldIdx + 1; clientFieldSearchIdx < cFields.size(); clientFieldSearchIdx++)
-                        {
-                            if (serverField.name.equals(cFields.get(clientFieldSearchIdx).name))
-                            {
+                        for (int clientFieldSearchIdx = clientFieldIdx + 1; clientFieldSearchIdx < cFields.size(); clientFieldSearchIdx++) {
+                            if (serverField.name.equals(cFields.get(clientFieldSearchIdx).name)) {
                                 foundClientField = true;
                                 break;
                             }
                         }
-                        if (!foundClientField)
-                        {
-                            if (serverField.visibleAnnotations == null)
-                            {
+                        if (!foundClientField) {
+                            if (serverField.visibleAnnotations == null) {
                                 serverField.visibleAnnotations = new ArrayList<>();
                             }
                             serverField.visibleAnnotations.add(getSideAnn(false));
@@ -342,11 +299,8 @@ public class MergeJars extends CachedTask
                             if (DEBUG)
                                 System.out.printf("1. Server List: %s\n1. Client List: %s\nIdx: %d %d\n", Lists.transform(sFields, FieldName.instance), Lists.transform(cFields, FieldName.instance), serverFieldIdx, clientFieldIdx);
                         }
-                    }
-                    else
-                    {
-                        if (clientField.visibleAnnotations == null)
-                        {
+                    } else {
+                        if (clientField.visibleAnnotations == null) {
                             clientField.visibleAnnotations = new ArrayList<>();
                         }
                         clientField.visibleAnnotations.add(getSideAnn(true));
@@ -355,11 +309,8 @@ public class MergeJars extends CachedTask
                             System.out.printf("2. Server List: %s\n2. Client List: %s\nIdx: %d %d\n", Lists.transform(sFields, FieldName.instance), Lists.transform(cFields, FieldName.instance), serverFieldIdx, clientFieldIdx);
                     }
                 }
-            }
-            else
-            {
-                if (clientField.visibleAnnotations == null)
-                {
+            } else {
+                if (clientField.visibleAnnotations == null) {
                     clientField.visibleAnnotations = new ArrayList<>();
                 }
                 clientField.visibleAnnotations.add(getSideAnn(true));
@@ -371,13 +322,10 @@ public class MergeJars extends CachedTask
         }
         if (DEBUG)
             System.out.printf("A. Server List: %s\nA. Client List: %s\n", Lists.transform(sFields, FieldName.instance), Lists.transform(cFields, FieldName.instance));
-        if (sFields.size() != cFields.size())
-        {
-            for (int x = cFields.size(); x < sFields.size(); x++)
-            {
+        if (sFields.size() != cFields.size()) {
+            for (int x = cFields.size(); x < sFields.size(); x++) {
                 FieldNode sF = sFields.get(x);
-                if (sF.visibleAnnotations == null)
-                {
+                if (sF.visibleAnnotations == null) {
                     sF.visibleAnnotations = new ArrayList<>();
                 }
                 sF.visibleAnnotations.add(getSideAnn(true));
@@ -388,18 +336,15 @@ public class MergeJars extends CachedTask
             System.out.printf("E. Server List: %s\nE. Client List: %s\n", Lists.transform(sFields, FieldName.instance), Lists.transform(cFields, FieldName.instance));
     }
 
-    private static class FieldName implements Function<FieldNode, String>
-    {
+    private static class FieldName implements Function<FieldNode, String> {
         public static FieldName instance = new FieldName();
 
-        public String apply(FieldNode in)
-        {
+        public String apply(FieldNode in) {
             return in.name;
         }
     }
 
-    private void processMethods(ClassNode cClass, ClassNode sClass)
-    {
+    private void processMethods(ClassNode cClass, ClassNode sClass) {
         List<MethodNode> cMethods = cClass.methods;
         List<MethodNode> sMethods = sClass.methods;
         LinkedHashSet<MethodWrapper> allMethods = Sets.newLinkedHashSet();
@@ -411,20 +356,15 @@ public class MergeJars extends CachedTask
         String clientName = "";
         String lastName = clientName;
         String serverName = "";
-        while (cPos < cLen || sPos < sLen)
-        {
-            do
-            {
-                if (sPos >= sLen)
-                {
+        while (cPos < cLen || sPos < sLen) {
+            do {
+                if (sPos >= sLen) {
                     break;
                 }
                 MethodNode sM = sMethods.get(sPos);
                 serverName = sM.name;
-                if (!serverName.equals(lastName) && cPos != cLen)
-                {
-                    if (DEBUG)
-                    {
+                if (!serverName.equals(lastName) && cPos != cLen) {
+                    if (DEBUG) {
                         System.out.printf("Server -skip : %s %s %d (%s %d) %d [%s]\n", sClass.name, clientName, cLen - cPos, serverName, sLen - sPos, allMethods.size(), lastName);
                     }
                     break;
@@ -432,25 +372,20 @@ public class MergeJars extends CachedTask
                 MethodWrapper mw = new MethodWrapper(sM);
                 mw.server = true;
                 allMethods.add(mw);
-                if (DEBUG)
-                {
+                if (DEBUG) {
                     System.out.printf("Server *add* : %s %s %d (%s %d) %d [%s]\n", sClass.name, clientName, cLen - cPos, serverName, sLen - sPos, allMethods.size(), lastName);
                 }
                 sPos++;
             } while (sPos < sLen);
-            do
-            {
-                if (cPos >= cLen)
-                {
+            do {
+                if (cPos >= cLen) {
                     break;
                 }
                 MethodNode cM = cMethods.get(cPos);
                 lastName = clientName;
                 clientName = cM.name;
-                if (!clientName.equals(lastName) && sPos != sLen)
-                {
-                    if (DEBUG)
-                    {
+                if (!clientName.equals(lastName) && sPos != sLen) {
+                    if (DEBUG) {
                         System.out.printf("Client -skip : %s %s %d (%s %d) %d [%s]\n", cClass.name, clientName, cLen - cPos, serverName, sLen - sPos, allMethods.size(), lastName);
                     }
                     break;
@@ -458,8 +393,7 @@ public class MergeJars extends CachedTask
                 MethodWrapper mw = new MethodWrapper(cM);
                 mw.client = true;
                 allMethods.add(mw);
-                if (DEBUG)
-                {
+                if (DEBUG) {
                     System.out.printf("Client *add* : %s %s %d (%s %d) %d [%s]\n", cClass.name, clientName, cLen - cPos, serverName, sLen - sPos, allMethods.size(), lastName);
                 }
                 cPos++;
@@ -469,18 +403,14 @@ public class MergeJars extends CachedTask
         cMethods.clear();
         sMethods.clear();
 
-        for (MethodWrapper mw : allMethods)
-        {
-            if (DEBUG)
-            {
+        for (MethodWrapper mw : allMethods) {
+            if (DEBUG) {
                 System.out.println(mw);
             }
             cMethods.add(mw.node);
             sMethods.add(mw.node);
-            if (!(mw.server && mw.client))
-            {
-                if (mw.node.visibleAnnotations == null)
-                {
+            if (!(mw.server && mw.client)) {
+                if (mw.node.visibleAnnotations == null) {
                     mw.node.visibleAnnotations = Lists.newArrayListWithExpectedSize(1);
                 }
 
@@ -489,34 +419,28 @@ public class MergeJars extends CachedTask
         }
     }
 
-    private static class MethodWrapper
-    {
+    private static class MethodWrapper {
         private MethodNode node;
-        public boolean     client;
-        public boolean     server;
+        public boolean client;
+        public boolean server;
 
-        public MethodWrapper(MethodNode node)
-        {
+        public MethodWrapper(MethodNode node) {
             this.node = node;
         }
 
         @Override
-        public boolean equals(Object obj)
-        {
-            if (obj == null || !(obj instanceof MethodWrapper))
-            {
+        public boolean equals(Object obj) {
+            if (obj == null || !(obj instanceof MethodWrapper)) {
                 return false;
             }
             MethodWrapper mw = (MethodWrapper) obj;
             boolean eq = Objects.equal(node.name, mw.node.name) && Objects.equal(node.desc, mw.node.desc);
-            if (eq)
-            {
+            if (eq) {
                 mw.client = client | mw.client;
                 mw.server = server | mw.server;
                 client = client | mw.client;
                 server = server | mw.server;
-                if (DEBUG)
-                {
+                if (DEBUG) {
                     System.out.printf(" eq: %s %s\n", this, mw);
                 }
             }
@@ -524,45 +448,37 @@ public class MergeJars extends CachedTask
         }
 
         @Override
-        public int hashCode()
-        {
+        public int hashCode() {
             return Objects.hashCode(node.name, node.desc);
         }
 
         @Override
-        public String toString()
-        {
+        public String toString() {
             return MoreObjects.toStringHelper(this).add("name", node.name).add("desc", node.desc).add("server", server).add("client", client).toString();
         }
     }
 
-    public File getClient()
-    {
+    public File getClient() {
         return getProject().file(client);
     }
 
-    public void setClient(Closure<File> client)
-    {
+    public void setClient(Closure<File> client) {
         this.client = client;
     }
 
-    public File getOutJar()
-    {
+    public File getOutJar() {
         return getProject().file(outJar);
     }
 
-    public void setOutJar(Object outJar)
-    {
+    public void setOutJar(Object outJar) {
         this.outJar = outJar;
     }
 
-    public File getServer()
-    {
+    public File getServer() {
         return getProject().file(server);
     }
 
-    public void setServer(Object server)
-    {
+    public void setServer(Object server) {
         this.server = server;
     }
 }

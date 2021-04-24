@@ -31,14 +31,14 @@ import java.io.*;
 import java.util.List;
 import java.util.Map;
 
-public class SourceDirSetSupplier implements InputSupplier, OutputSupplier
-{
+public class SourceDirSetSupplier implements InputSupplier, OutputSupplier {
     Map<String, File> rootMap = Maps.newHashMap();
 
-    public SourceDirSetSupplier(SourceDirectorySet set)
-    {
+    public SourceDirSetSupplier(SourceDirectorySet set) {
         set.visit(new FileVisitor() {
-            @Override public void visitDir(FileVisitDetails fileVisitDetails) { }
+            @Override
+            public void visitDir(FileVisitDetails fileVisitDetails) {
+            }
 
             @Override
             public void visitFile(FileVisitDetails fileVisitDetails) {
@@ -51,53 +51,41 @@ public class SourceDirSetSupplier implements InputSupplier, OutputSupplier
     }
 
     @Override
-    public String getRoot(String resource)
-    {
+    public String getRoot(String resource) {
         return null;
     }
 
     @Override
-    public InputStream getInput(String relPath)
-    {
+    public InputStream getInput(String relPath) {
         File f = getFile(relPath);
-        try
-        {
+        try {
             return f == null ? null : new FileInputStream(f);
-        }
-        catch (IOException e)
-        {
+        } catch (IOException e) {
             return null;
         }
     }
 
     @Override
-    public List<String> gatherAll(String endFilter)
-    {
+    public List<String> gatherAll(String endFilter) {
         return Lists.newArrayList(rootMap.keySet());
     }
 
     @Override
-    public void close() throws IOException
-    {
+    public void close() throws IOException {
         // pointless
     }
 
     @Override
-    public OutputStream getOutput(String relPath)
-    {
+    public OutputStream getOutput(String relPath) {
         File f = getFile(relPath);
-        try
-        {
+        try {
             return f == null ? null : new FileOutputStream(f);
-        }
-        catch (IOException e)
-        {
+        } catch (IOException e) {
             return null;
         }
     }
 
-    private File getFile(String path)
-    {
+    private File getFile(String path) {
         File root = rootMap.get(path);
         if (root == null)
             return null;

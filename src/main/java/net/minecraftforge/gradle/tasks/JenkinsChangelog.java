@@ -40,28 +40,30 @@ import java.net.URLConnection;
 import java.util.*;
 import java.util.Map.Entry;
 
-public class JenkinsChangelog extends DefaultTask
-{
+public class JenkinsChangelog extends DefaultTask {
     //@formatter:off
-    @Input Object serverRoot;
-    @Input Object jobName;
-    @Input Object authName;
-    @Input Object authPassword;
-    @Input Object targetBuild;
+    @Input
+    Object serverRoot;
+    @Input
+    Object jobName;
+    @Input
+    Object authName;
+    @Input
+    Object authPassword;
+    @Input
+    Object targetBuild;
     //@formatter:on
 
     @OutputFile
-    Object         output;
+    Object output;
 
-    private int    targetBuildResolved = -1;
-    private String auth                = null;
+    private int targetBuildResolved = -1;
+    private String auth = null;
 
     @SuppressWarnings("unchecked")
     @TaskAction
-    public void doTask() throws IOException
-    {
-        if (getAuthName() != null && getAuthPassword() != null)
-        {
+    public void doTask() throws IOException {
+        if (getAuthName() != null && getAuthPassword() != null) {
             String raw = getAuthName() + ":" + getAuthPassword();
             auth = "Basic " + DatatypeConverter.printBase64Binary(raw.getBytes());
         }
@@ -71,8 +73,7 @@ public class JenkinsChangelog extends DefaultTask
 
         StringBuilder out = new StringBuilder();
         out.append("Changelog:\r\n");
-        for (Map<String, Object> build : builds)
-        {
+        for (Map<String, Object> build : builds) {
             int number = ((Double) build.get("number")).intValue();
             List<MapEntry> items = (List<MapEntry>) build.get("items");
 
@@ -83,18 +84,13 @@ public class JenkinsChangelog extends DefaultTask
             out.append(build.get("version") == null ? number : build.get("version"));
             out.append(':').append('\n');
 
-            for (MapEntry entry : items)
-            {
+            for (MapEntry entry : items) {
                 String[] lines = ((String) entry.getValue()).trim().split("\n");
-                if (lines.length == 1)
-                {
+                if (lines.length == 1) {
                     out.append('\t').append(entry.getKey()).append(": ").append(lines[0]).append('\n');
-                }
-                else
-                {
+                } else {
                     out.append('\t').append(entry.getKey()).append(':').append('\n');
-                    for (String line : lines)
-                    {
+                    for (String line : lines) {
                         out.append('\t').append('\t').append(line).append('\n');
                     }
                 }
@@ -107,29 +103,24 @@ public class JenkinsChangelog extends DefaultTask
         Files.write(out.toString().getBytes(), outFile);
     }
 
-    private String read(String url) throws MalformedURLException, IOException
-    {
+    private String read(String url) throws MalformedURLException, IOException {
         return read(new URL(getServerRoot() + "job/" + getJobName() + url));
     }
 
-    private String read(URL url) throws IOException
-    {
+    private String read(URL url) throws IOException {
         URLConnection con;
         con = url.openConnection();
         con.setRequestProperty("User-Agent", Constants.USER_AGENT);
-        if (auth != null)
-        {
+        if (auth != null) {
             getProject().getLogger().debug(auth);
             con.addRequestProperty("Authorization", auth);
         }
-        try (InputStream is = con.getInputStream())
-        {
+        try (InputStream is = con.getInputStream()) {
             return new String(ByteStreams.toByteArray(is));
         }
     }
 
-    private String cleanJson(String data, String part)
-    {
+    private String cleanJson(String data, String part) {
         data = data.replace("," + part + ",", ",");
         data = data.replace(part + ",", "");
         data = data.replace("," + part, "");
@@ -141,17 +132,14 @@ public class JenkinsChangelog extends DefaultTask
     private static final Gson GSON_FORMATTER = new GsonBuilder().setPrettyPrinting().create();
 
     @SuppressWarnings("unused")
-    private void prettyPrint(Object json)
-    {
+    private void prettyPrint(Object json) {
         getLogger().lifecycle(GSON_FORMATTER.toJson(json));
     }
 
     @SuppressWarnings("unchecked")
-    private List<Map<String, Object>> getBuildInfo()
-    {
+    private List<Map<String, Object>> getBuildInfo() {
         String data = null;
-        try
-        {
+        try {
             boolean versioned = false;
             data = read("/api/python?tree=allBuilds[result,number,actions[text],changeSet[items[author[fullName],comment]]]");//&pretty=true");
             data = data.replace("\"result\":None", "\"result\":\"\"");
@@ -163,37 +151,29 @@ public class JenkinsChangelog extends DefaultTask
 
             List<Entry<String, String>> items = new ArrayList<>();
             Iterator<Map<String, Object>> bitr = json.iterator();
-            while (bitr.hasNext())
-            {
+            while (bitr.hasNext()) {
                 Map<String, Object> build = bitr.next();
 
                 List<Map<String, String>> actions = (List<Map<String, String>>) build.get("actions");
                 actions.removeIf(map -> !map.containsKey("text") || map.get("text").contains("http") || map.get("text").contains("href="));
 
-                if (actions.size() == 0)
-                {
+                if (actions.size() == 0) {
                     build.put("version", versioned ? ((Double) build.get("number")).intValue() : getProject().getVersion());
                     versioned = true;
-                }
-                else
-                {
+                } else {
                     build.put("version", actions.get(0).get("text"));
                 }
 
-                for (Map<String, Object> e : (List<Map<String, Object>>) ((Map<String, Object>) build.get("changeSet")).get("items"))
-                {
+                for (Map<String, Object> e : (List<Map<String, Object>>) ((Map<String, Object>) build.get("changeSet")).get("items")) {
                     items.add(new MapEntry(((Map<String, String>) e.get("author")).get("fullName"), e.get("comment")));
                 }
                 build.put("items", items);
 
-                if (build.get("result").equals("SUCCESS"))
-                {
+                if (build.get("result").equals("SUCCESS")) {
                     if (items.size() == 0)
                         bitr.remove();
                     items = new ArrayList<>();
-                }
-                else
-                {
+                } else {
                     bitr.remove();
                 }
 
@@ -204,9 +184,7 @@ public class JenkinsChangelog extends DefaultTask
             //prettyPrint(json);
             json.sort((o1, o2) -> (int) ((Double) o2.get("number") - (Double) o1.get("number")));
             return json;
-        }
-        catch (Exception e)
-        {
+        } catch (Exception e) {
             e.printStackTrace();
             getLogger().lifecycle(data);
         }
@@ -214,14 +192,11 @@ public class JenkinsChangelog extends DefaultTask
     }
 
     @SuppressWarnings("unchecked")
-    private void getLatestBuild(List<Map<String, Object>> builds)
-    {
+    private void getLatestBuild(List<Map<String, Object>> builds) {
         String data = null;
-        try
-        {
+        try {
             Object ver = "";
-            if (builds.size() > 0)
-            {
+            if (builds.size() > 0) {
                 ver = builds.get(0).get("number");
             }
             boolean versioned = false;
@@ -230,15 +205,13 @@ public class JenkinsChangelog extends DefaultTask
             data = cleanJson(data, "{}"); //Empty entries, just for sanities sake
 
             Map<String, Object> build = (Map<String, Object>) new Gson().fromJson(data, Map.class);
-            if (build.get("number").equals(ver))
-            {
+            if (build.get("number").equals(ver)) {
                 return;
             }
             build.put("version", versioned ? "Build " + ((Double) build.get("number")).intValue() : getProject().getVersion());
 
             List<Entry<String, String>> items = new ArrayList<>();
-            for (Map<String, Object> e : (List<Map<String, Object>>) ((Map<String, Object>) build.get("changeSet")).get("items"))
-            {
+            for (Map<String, Object> e : (List<Map<String, Object>>) ((Map<String, Object>) build.get("changeSet")).get("items")) {
                 items.add(new MapEntry(((Map<String, String>) e.get("author")).get("fullName"), e.get("comment")));
             }
             build.put("items", items);
@@ -249,74 +222,57 @@ public class JenkinsChangelog extends DefaultTask
 
             builds.add(0, build);
             //prettyPrint(build);
-        }
-        catch (Exception e)
-        {
+        } catch (Exception e) {
             e.printStackTrace();
             getLogger().lifecycle(data);
         }
     }
 
-    public String getServerRoot()
-    {
+    public String getServerRoot() {
         return Constants.resolveString(serverRoot);
     }
 
-    public void setServerRoot(Object serverRoot)
-    {
+    public void setServerRoot(Object serverRoot) {
         this.serverRoot = serverRoot;
     }
 
-    public String getJobName()
-    {
+    public String getJobName() {
         return Constants.resolveString(jobName);
     }
 
-    public void setJobName(Object jobName)
-    {
+    public void setJobName(Object jobName) {
         this.jobName = jobName;
     }
 
-    public String getAuthName()
-    {
+    public String getAuthName() {
         return Constants.resolveString(authName);
     }
 
-    public void setAuthName(Object authName)
-    {
+    public void setAuthName(Object authName) {
         this.authName = authName;
     }
 
-    public String getAuthPassword()
-    {
+    public String getAuthPassword() {
         return Constants.resolveString(authPassword);
     }
 
-    public void setAuthPassword(Object authPassword)
-    {
+    public void setAuthPassword(Object authPassword) {
         this.authPassword = authPassword;
     }
 
-    public int getTargetBuild()
-    {
-        if (targetBuildResolved != -1)
-        {
+    public int getTargetBuild() {
+        if (targetBuildResolved != -1) {
             return targetBuildResolved;
         }
 
         targetBuildResolved = Integer.MAX_VALUE;
-        if (targetBuild != null)
-        {
-            try
-            {
+        if (targetBuild != null) {
+            try {
                 targetBuildResolved = Integer.parseInt(Constants.resolveString(targetBuild));
-                if (targetBuildResolved <= 0)
-                {
+                if (targetBuildResolved <= 0) {
                     targetBuildResolved = Integer.MAX_VALUE;
                 }
-            }
-            catch (NumberFormatException e)
-            {
+            } catch (NumberFormatException e) {
                 getProject().getLogger().debug("Error reading target build: " + e.getMessage());
             }
         }
@@ -324,18 +280,15 @@ public class JenkinsChangelog extends DefaultTask
         return targetBuildResolved;
     }
 
-    public void setTargetBuild(Object targetBuild)
-    {
+    public void setTargetBuild(Object targetBuild) {
         this.targetBuild = targetBuild;
     }
 
-    public File getOutput()
-    {
+    public File getOutput() {
         return getProject().file(output);
     }
 
-    public void setOutput(Object output)
-    {
+    public void setOutput(Object output) {
         this.output = output;
     }
 }

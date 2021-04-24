@@ -25,33 +25,28 @@ import org.gradle.api.InvalidUserDataException;
 import org.gradle.api.provider.Property;
 import org.gradle.jvm.tasks.Jar;
 
-public class LiteloaderExtension extends UserBaseExtension
-{
+public class LiteloaderExtension extends UserBaseExtension {
     private final LiteloaderPlugin plugin;
 
-    public LiteloaderExtension(LiteloaderPlugin plugin)
-    {
+    public LiteloaderExtension(LiteloaderPlugin plugin) {
         super(plugin);
         this.plugin = plugin;
     }
 
     @Override
-    public void setVersion(String version)
-    {
+    public void setVersion(String version) {
         super.setVersion(version);
         this.checkVersion(version);
 
-        Jar jar = (Jar)project.getTasks().getByName("jar");
+        Jar jar = (Jar) project.getTasks().getByName("jar");
         Property<String> classifier = jar.getArchiveClassifier();
         if (Strings.isNullOrEmpty(classifier.get())) {
             classifier.set("mc" + version);
         }
     }
 
-    private void checkVersion(String version)
-    {
-        if (this.plugin.getVersion(version) == null)
-        {
+    private void checkVersion(String version) {
+        if (this.plugin.getVersion(version) == null) {
             throw new InvalidUserDataException("No ForgeGradle-compatible LiteLoader version found for Minecraft" + version);
         }
     }

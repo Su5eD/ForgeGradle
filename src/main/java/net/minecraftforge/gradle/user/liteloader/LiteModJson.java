@@ -34,55 +34,44 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
-public class LiteModJson
-{
-    public static class Description extends HashMap<String, Object>
-    {
+public class LiteModJson {
+    public static class Description extends HashMap<String, Object> {
         public static final String BASE = "";
 
         private static final long serialVersionUID = 1L;
 
         @Override
-        public String toString()
-        {
+        public String toString() {
             Object value = this.get(Description.BASE);
             return value == null ? Description.BASE : value.toString();
         }
 
-        public void propertyMissing(String name, Object value)
-        {
+        public void propertyMissing(String name, Object value) {
             this.put(name, value);
         }
 
-        public Object propertyMissing(String name)
-        {
+        public Object propertyMissing(String name) {
             return this.get(name);
         }
 
-        static class JsonAdapter extends TypeAdapter<Description>
-        {
+        static class JsonAdapter extends TypeAdapter<Description> {
             @Override
-            public void write(JsonWriter out, Description value) throws IOException
-            {
-                if (value == null)
-                {
+            public void write(JsonWriter out, Description value) throws IOException {
+                if (value == null) {
                     out.nullValue();
                     return;
                 }
 
                 out.value(value.toString());
-                for (Entry<String, Object> entry : value.entrySet())
-                {
-                    if (!entry.getKey().equals(Description.BASE) && entry.getValue() != null)
-                    {
+                for (Entry<String, Object> entry : value.entrySet()) {
+                    if (!entry.getKey().equals(Description.BASE) && entry.getValue() != null) {
                         out.name("description." + entry.getKey()).value(entry.getValue().toString());
                     }
                 }
             }
 
             @Override
-            public Description read(JsonReader in) throws IOException
-            {
+            public Description read(JsonReader in) throws IOException {
                 return null;
             }
         }
@@ -104,8 +93,7 @@ public class LiteModJson
     private transient final Project project;
     private transient final String minecraftVersion;
 
-    LiteModJson(Project project, String minecraftVersion, String revision)
-    {
+    LiteModJson(Project project, String minecraftVersion, String revision) {
         this.project = project;
         this.mcversion = this.minecraftVersion = minecraftVersion;
         this.revision = revision;
@@ -115,68 +103,54 @@ public class LiteModJson
         this.version = project.getVersion().toString();
     }
 
-    public void setMcversion(String version)
-    {
+    public void setMcversion(String version) {
         this.mcversion = version;
     }
 
-    public void setRevision(String revision)
-    {
+    public void setRevision(String revision) {
         this.revision = revision;
     }
 
-    public List<String> getClassTransformerClasses()
-    {
-        if (this.classTransformerClasses == null)
-        {
+    public List<String> getClassTransformerClasses() {
+        if (this.classTransformerClasses == null) {
             this.classTransformerClasses = new ArrayList<>();
         }
         return this.classTransformerClasses;
     }
 
-    public List<String> getDependsOn()
-    {
-        if (this.dependsOn == null)
-        {
+    public List<String> getDependsOn() {
+        if (this.dependsOn == null) {
             this.dependsOn = new ArrayList<>();
         }
         return this.dependsOn;
     }
 
-    public List<String> getRequiredAPIs()
-    {
-        if (this.requiredAPIs == null)
-        {
+    public List<String> getRequiredAPIs() {
+        if (this.requiredAPIs == null) {
             this.requiredAPIs = new ArrayList<>();
         }
         return this.requiredAPIs;
     }
 
-    public List<String> getMixinConfigs()
-    {
-        if (this.mixinConfigs == null)
-        {
+    public List<String> getMixinConfigs() {
+        if (this.mixinConfigs == null) {
             this.mixinConfigs = new ArrayList<>();
         }
         return this.mixinConfigs;
     }
 
-    public Description getDescription()
-    {
-        if (this.description == null)
-        {
+    public Description getDescription() {
+        if (this.description == null) {
             this.description = new Description();
         }
         return this.description;
     }
 
-    public void setDescription(Object value)
-    {
+    public void setDescription(Object value) {
         this.getDescription().put(Description.BASE, value);
     }
 
-    public void toJsonFile(File outputFile) throws IOException
-    {
+    public void toJsonFile(File outputFile) throws IOException {
         this.validate();
 
         FileWriter writer = new FileWriter(outputFile);
@@ -185,8 +159,7 @@ public class LiteModJson
         writer.close();
     }
 
-    private void validate()
-    {
+    private void validate() {
         if (Strings.isNullOrEmpty(this.name))
             throw new InvalidUserDataException("litemod json is missing property [name]");
 
@@ -199,12 +172,9 @@ public class LiteModJson
         if (Strings.isNullOrEmpty(this.revision))
             throw new InvalidUserDataException("litemod json is missing property [revision]");
 
-        try
-        {
+        try {
             Float.parseFloat(this.revision);
-        }
-        catch (NumberFormatException ex)
-        {
+        } catch (NumberFormatException ex) {
             throw new InvalidUserDataException("invalid format for [revision] property in litemod.json, expected float");
         }
 

@@ -40,8 +40,7 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipException;
 import java.util.zip.ZipInputStream;
 
-public abstract class AbstractEditJarTask extends CachedTask
-{
+public abstract class AbstractEditJarTask extends CachedTask {
     private Object inJar;
     private Object outJar;
 
@@ -49,15 +48,13 @@ public abstract class AbstractEditJarTask extends CachedTask
     protected File resolvedOutJar;
 
     @TaskAction
-    public void doTask() throws Throwable
-    {
+    public void doTask() throws Throwable {
         resolvedInJar = getInJar();
         resolvedOutJar = getOutJar();
 
         doStuffBefore();
 
-        if (storeJarInRam())
-        {
+        if (storeJarInRam()) {
             getLogger().debug("Reading jar: " + resolvedInJar);
 
             Map<String, String> sourceMap = Maps.newHashMap();
@@ -70,9 +67,7 @@ public abstract class AbstractEditJarTask extends CachedTask
             saveJar(resolvedOutJar, sourceMap, resourceMap);
 
             getLogger().debug("Saving jar: " + resolvedOutJar);
-        }
-        else
-        {
+        } else {
             copyJar(resolvedInJar, resolvedOutJar);
         }
 
@@ -81,12 +76,14 @@ public abstract class AbstractEditJarTask extends CachedTask
 
     /**
      * Do Stuff before the jar is read
+     *
      * @throws Exception for convenience
      */
     public abstract void doStuffBefore() throws Exception;
 
     /**
      * Called as the .java files of the jar are read from the jar
+     *
      * @param name name of the current entry
      * @param file current contents of the entry
      * @return new new contents of the file
@@ -96,7 +93,8 @@ public abstract class AbstractEditJarTask extends CachedTask
 
     /**
      * Do Stuff after the jar is read, but before it is written.
-     * @param sourceMap name-&gt;contents for all java files in the jar
+     *
+     * @param sourceMap   name-&gt;contents for all java files in the jar
      * @param resourceMap name-&gt;contents for everything else
      * @throws Exception for convenience
      */
@@ -104,54 +102,53 @@ public abstract class AbstractEditJarTask extends CachedTask
 
     /**
      * Do Stuff after the jar is Written
+     *
      * @throws Exception for convenience
      */
     public abstract void doStuffAfter() throws Exception;
 
     /**
      * Called immediately after every file is written to the jar.
-     * @param jarOut The jar output stream
+     *
+     * @param jarOut    The jar output stream
      * @param entryName The path to the file in the jar
      * @throws IOException IOException
      */
-    protected void postWriteEntry(JarOutputStream jarOut, String entryName) throws IOException {}
+    protected void postWriteEntry(JarOutputStream jarOut, String entryName) throws IOException {
+    }
 
     /**
      * Called after all entries have been written to the jar. This can be useful for adding any additional entries
+     *
      * @param jarOut The jar output stream
      * @throws IOException IOException
      */
-    protected void postWrite(JarOutputStream jarOut) throws IOException {}
+    protected void postWrite(JarOutputStream jarOut) throws IOException {
+    }
 
     /**
      * Whether to store the contents of the jar in RAM.
      * If this returns false, then the doStuffMiddle method is not called.
+     *
      * @return store jar in ram
      */
     protected abstract boolean storeJarInRam();
 
-    final void readAndStoreJarInRam(File jar, Map<String, String> sourceMap, Map<String, byte[]> resourceMap) throws Exception
-    {
-        try (ZipInputStream zin = new ZipInputStream(new FileInputStream(jar)))
-        {
+    final void readAndStoreJarInRam(File jar, Map<String, String> sourceMap, Map<String, byte[]> resourceMap) throws Exception {
+        try (ZipInputStream zin = new ZipInputStream(new FileInputStream(jar))) {
             ZipEntry entry;
             String fileStr;
 
-            while ((entry = zin.getNextEntry()) != null)
-            {
+            while ((entry = zin.getNextEntry()) != null) {
                 // ignore META-INF, it shouldnt be here. If it is we remove it from the output jar.
-                if (entry.getName().contains("META-INF"))
-                {
+                if (entry.getName().contains("META-INF")) {
                     continue;
                 }
 
                 // resources or directories.
-                if (!isSourceFile(entry))
-                {
+                if (!isSourceFile(entry)) {
                     resourceMap.put(entry.getName(), ByteStreams.toByteArray(zin));
-                }
-                else
-                {
+                } else {
                     // source!
                     fileStr = new String(ByteStreams.toByteArray(zin), Constants.CHARSET);
 
@@ -163,16 +160,13 @@ public abstract class AbstractEditJarTask extends CachedTask
         }
     }
 
-    protected void saveJar(File output, Map<String, String> sourceMap, Map<String, byte[]> resourceMap) throws IOException
-    {
+    protected void saveJar(File output, Map<String, String> sourceMap, Map<String, byte[]> resourceMap) throws IOException {
         output.getParentFile().mkdirs();
 
-        try (JarOutputStream zout = new JarOutputStream(new FileOutputStream(output)))
-        {
+        try (JarOutputStream zout = new JarOutputStream(new FileOutputStream(output))) {
 
             // write in resources
-            for (Map.Entry<String, byte[]> entry : resourceMap.entrySet())
-            {
+            for (Map.Entry<String, byte[]> entry : resourceMap.entrySet()) {
                 zout.putNextEntry(new JarEntry(entry.getKey()));
                 zout.write(entry.getValue());
                 zout.closeEntry();
@@ -180,8 +174,7 @@ public abstract class AbstractEditJarTask extends CachedTask
             }
 
             // write in sources
-            for (Map.Entry<String, String> entry : sourceMap.entrySet())
-            {
+            for (Map.Entry<String, String> entry : sourceMap.entrySet()) {
                 zout.putNextEntry(new JarEntry(entry.getKey()));
                 zout.write(entry.getValue().getBytes());
                 zout.closeEntry();
@@ -194,7 +187,7 @@ public abstract class AbstractEditJarTask extends CachedTask
 
     /**
      * Checks whether the given entry should be treated as a source file
-     *
+     * <p>
      * This can be overridden to change the types your task treats as source files
      *
      * @param entry the entry to check
@@ -214,42 +207,32 @@ public abstract class AbstractEditJarTask extends CachedTask
         return false;
     }
 
-    private void copyJar(File input, File output) throws Exception
-    {
+    private void copyJar(File input, File output) throws Exception {
         // begin reading jar
         try (ZipInputStream zin = new ZipInputStream(new FileInputStream(input));
-             JarOutputStream zout = new JarOutputStream(new FileOutputStream(output)))
-        {
+             JarOutputStream zout = new JarOutputStream(new FileOutputStream(output))) {
             ZipEntry entry;
-            while ((entry = zin.getNextEntry()) != null)
-            {
+            while ((entry = zin.getNextEntry()) != null) {
                 // no META or dirs. wel take care of dirs later.
-                if (entry.getName().contains("META-INF"))
-                {
+                if (entry.getName().contains("META-INF")) {
                     continue;
                 }
 
                 // resources or directories.
-                try
-                {
-                    if (!isSourceFile(entry))
-                    {
+                try {
+                    if (!isSourceFile(entry)) {
                         zout.putNextEntry(new JarEntry(entry));
                         ByteStreams.copy(zin, zout);
                         zout.closeEntry();
                         postWriteEntry(zout, entry.getName());
-                    }
-                    else
-                    {
+                    } else {
                         // source
                         zout.putNextEntry(new JarEntry(entry.getName()));
                         zout.write(asRead(entry.getName(), new String(ByteStreams.toByteArray(zin), Constants.CHARSET)).getBytes());
                         zout.closeEntry();
                         postWriteEntry(zout, entry.getName());
                     }
-                }
-                catch (ZipException ex)
-                {
+                } catch (ZipException ex) {
                     getLogger().debug("Duplicate zip entry " + entry.getName() + " in " + input + " writing " + output);
                 }
             }
@@ -259,25 +242,21 @@ public abstract class AbstractEditJarTask extends CachedTask
     }
 
     @InputFile
-    public File getInJar()
-    {
+    public File getInJar() {
         return getProject().file(inJar);
     }
 
-    public void setInJar(Object inJar)
-    {
+    public void setInJar(Object inJar) {
         this.inJar = inJar;
     }
 
     @OutputFile
     @Cached
-    public File getOutJar()
-    {
+    public File getOutJar() {
         return getProject().file(outJar);
     }
 
-    public void setOutJar(Object outJar)
-    {
+    public void setOutJar(Object outJar) {
         this.outJar = outJar;
     }
 }

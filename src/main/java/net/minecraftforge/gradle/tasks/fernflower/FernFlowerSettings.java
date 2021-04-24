@@ -37,8 +37,7 @@ public class FernFlowerSettings implements Serializable {
     // should be entered.
     private final Map<String, Object> mapOptions;
 
-    public FernFlowerSettings(File cacheDirectory, File jarFrom, File jarTo, File taskLogFile, Set<File> classpath, Map<String, Object> mapOptions)
-    {
+    public FernFlowerSettings(File cacheDirectory, File jarFrom, File jarTo, File taskLogFile, Set<File> classpath, Map<String, Object> mapOptions) {
         this.cacheDirectory = cacheDirectory;
         this.jarFrom = jarFrom;
         this.jarTo = jarTo;
@@ -47,39 +46,32 @@ public class FernFlowerSettings implements Serializable {
         this.mapOptions = mapOptions;
     }
 
-    public File getCacheDirectory()
-    {
+    public File getCacheDirectory() {
         return cacheDirectory;
     }
 
-    public File getJarFrom()
-    {
+    public File getJarFrom() {
         return jarFrom;
     }
 
-    public File getJarTo()
-    {
+    public File getJarTo() {
         return jarTo;
     }
 
-    public File getTaskLogFile()
-    {
+    public File getTaskLogFile() {
         return taskLogFile;
     }
 
-    public Set<File> getClasspath()
-    {
+    public Set<File> getClasspath() {
         return classpath;
     }
 
-    public Map<String, Object> getMapOptions()
-    {
+    public Map<String, Object> getMapOptions() {
         return mapOptions;
     }
 
     @Override
-    public String toString()
-    {
+    public String toString() {
         return "FernFlowerSettings[cacheDirectory=" + cacheDirectory + ",jarFrom=" + jarFrom + ",jarTo=" + jarTo + ",taskLogFile=" + taskLogFile + ",classpath=" + classpath + ",mapOptions=" + mapOptions + "]";
     }
 

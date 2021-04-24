@@ -23,17 +23,15 @@ import com.google.gson.JsonObject;
 
 import java.util.Arrays;
 
-public class FGVersion
-{
-    public String        version, docUrl;
-    public String[]      changes, bugs;
+public class FGVersion {
+    public String version, docUrl;
+    public String[] changes, bugs;
     public FGBuildStatus status;
-    public int           index;
-    public JsonObject    ext;
+    public int index;
+    public JsonObject ext;
 
     @Override
-    public String toString()
-    {
+    public String toString() {
         return "FGVersion [version=" + version + ", docUrl=" + docUrl + ", changes=" + Arrays.toString(changes) + ", bugs=" + Arrays.toString(bugs) + ", status=" + status + ", index=" + index + ", ext=" + ext + "]";
     }
 }

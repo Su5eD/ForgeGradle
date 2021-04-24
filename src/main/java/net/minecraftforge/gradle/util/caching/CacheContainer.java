@@ -32,10 +32,8 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.List;
 
-public class CacheContainer
-{
-    public static CacheContainer getCache(ICachableTask task)
-    {
+public class CacheContainer {
+    public static CacheContainer getCache(ICachableTask task) {
         return pool.getUnchecked(task.getClass()).applyTo(task);
     }
 
@@ -44,50 +42,41 @@ public class CacheContainer
             .build(
                     new CacheLoader<Class<?>, CacheContainer>() {
                         @Override
-                        public CacheContainer load(Class<?> key) throws Exception
-                        {
+                        public CacheContainer load(Class<?> key) throws Exception {
                             return new CacheContainer(key);
                         }
                     });
 
     protected final List<Annotated> cachedList = Lists.newArrayList();
-    protected final List<Annotated> inputList  = Lists.newArrayList();
-    protected final List<WriteCacheAction> lastActions  = Lists.newArrayList();
+    protected final List<Annotated> inputList = Lists.newArrayList();
+    protected final List<WriteCacheAction> lastActions = Lists.newArrayList();
     //@formatter:on
 
-    private CacheContainer(Class<?> cacheable)
-    {
+    private CacheContainer(Class<?> cacheable) {
         Class<?> task = cacheable;
-        while (task != null && !task.getName().startsWith("org.gradle."))
-        {
-            for (Field f : task.getDeclaredFields())
-            {
-                if (f.isAnnotationPresent(Cached.class))
-                {
+        while (task != null && !task.getName().startsWith("org.gradle.")) {
+            for (Field f : task.getDeclaredFields()) {
+                if (f.isAnnotationPresent(Cached.class)) {
                     addCachedOutput(new Annotated(task, f.getName()));
                 }
 
                 if (f.isAnnotationPresent(InputFile.class) ||
                         f.isAnnotationPresent(InputFiles.class) ||
                         f.isAnnotationPresent(InputDirectory.class) ||
-                        f.isAnnotationPresent(Input.class))
-                {
+                        f.isAnnotationPresent(Input.class)) {
                     inputList.add(new Annotated(task, f.getName()));
                 }
             }
 
-            for (Method m : task.getDeclaredMethods())
-            {
-                if (m.isAnnotationPresent(Cached.class))
-                {
+            for (Method m : task.getDeclaredMethods()) {
+                if (m.isAnnotationPresent(Cached.class)) {
                     addCachedOutput(new Annotated(task, m.getName(), true));
                 }
 
                 if (m.isAnnotationPresent(InputFile.class) ||
                         m.isAnnotationPresent(InputFiles.class) ||
                         m.isAnnotationPresent(InputDirectory.class) ||
-                        m.isAnnotationPresent(Input.class))
-                {
+                        m.isAnnotationPresent(Input.class)) {
                     inputList.add(new Annotated(task, m.getName(), true));
                 }
             }
@@ -96,17 +85,14 @@ public class CacheContainer
         }
     }
 
-    private void addCachedOutput(final Annotated annot)
-    {
+    private void addCachedOutput(final Annotated annot) {
         cachedList.add(annot);
         lastActions.add(new WriteCacheAction(annot, inputList));
     }
 
-    public CacheContainer applyTo(ICachableTask task)
-    {
+    public CacheContainer applyTo(ICachableTask task) {
         task.onlyIf(new CacheCheckSpec(this));
-        for (WriteCacheAction a : lastActions)
-        {
+        for (WriteCacheAction a : lastActions) {
             task.doLast(a);
         }
 

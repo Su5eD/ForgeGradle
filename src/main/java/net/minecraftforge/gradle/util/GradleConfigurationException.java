@@ -19,23 +19,19 @@
  */
 package net.minecraftforge.gradle.util;
 
-public class GradleConfigurationException extends RuntimeException
-{
+public class GradleConfigurationException extends RuntimeException {
     // because compiler complaints
     private static final long serialVersionUID = 1L;
 
-    public GradleConfigurationException(String message, Throwable cause)
-    {
+    public GradleConfigurationException(String message, Throwable cause) {
         super(message, cause);
     }
 
-    public GradleConfigurationException(String message)
-    {
+    public GradleConfigurationException(String message) {
         super(message);
     }
 
-    public GradleConfigurationException(Throwable cause)
-    {
+    public GradleConfigurationException(Throwable cause) {
         super(cause);
     }
 }

@@ -34,34 +34,32 @@ import java.io.IOException;
 import java.util.Map;
 import java.util.Map.Entry;
 
-class TaskProcessJson extends DefaultTask
-{
+class TaskProcessJson extends DefaultTask {
     private Map<String, Object> replacements = Maps.newHashMap();
 
     @InputFile
-    private Object              releaseJson;
+    private Object releaseJson;
 
     @OutputFile
-    private Object              installerJson;
+    private Object installerJson;
 
     @OutputFile
-    private Object              universalJson;
+    private Object universalJson;
 
     //@formatter:off
-    public TaskProcessJson() {}
+    public TaskProcessJson() {
+    }
     //@formatter:on
 
     @TaskAction
-    public void doTask() throws IOException
-    {
+    public void doTask() throws IOException {
         File inputFile = getReleaseJson();
         File outFile = getInstallerJson();
         File truncatedFile = getUniversalJson();
 
         String input = Files.asCharSource(inputFile, Constants.CHARSET).read();
 
-        for (Entry<String, Object> e : replacements.entrySet())
-        {
+        for (Entry<String, Object> e : replacements.entrySet()) {
             input = input.replace(e.getKey(), Constants.resolveString(e.getValue()));
         }
 
@@ -76,53 +74,43 @@ class TaskProcessJson extends DefaultTask
         Files.write(input.getBytes(Constants.CHARSET), truncatedFile);
     }
 
-    public Map<String, Object> getReplacements()
-    {
+    public Map<String, Object> getReplacements() {
         return replacements;
     }
 
-    public void addReplacement(Object key, Object value)
-    {
+    public void addReplacement(Object key, Object value) {
         replacements.put(Constants.resolveString(key), value);
     }
 
-    public void addReplacements(Map<String, Object> things)
-    {
+    public void addReplacements(Map<String, Object> things) {
         replacements.putAll(things);
     }
 
-    public File getReleaseJson()
-    {
+    public File getReleaseJson() {
         return getProject().file(releaseJson);
     }
 
-    public void setReleaseJson(Object releaseJson)
-    {
+    public void setReleaseJson(Object releaseJson) {
         this.releaseJson = releaseJson;
     }
 
-    protected boolean isReleaseJsonNull()
-    {
+    protected boolean isReleaseJsonNull() {
         return releaseJson == null;
     }
 
-    protected File getInstallerJson()
-    {
+    protected File getInstallerJson() {
         return getProject().file(installerJson);
     }
 
-    protected void setInstallerJson(Object installerJson)
-    {
+    protected void setInstallerJson(Object installerJson) {
         this.installerJson = installerJson;
     }
 
-    protected File getUniversalJson()
-    {
+    protected File getUniversalJson() {
         return getProject().file(universalJson);
     }
 
-    protected void setUniversalJson(Object universalJson)
-    {
+    protected void setUniversalJson(Object universalJson) {
         this.universalJson = universalJson;
     }
 }

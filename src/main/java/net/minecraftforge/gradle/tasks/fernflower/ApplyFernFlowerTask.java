@@ -56,8 +56,7 @@ public class ApplyFernFlowerTask extends CachedTask {
     private FileCollection forkedClasspath;
 
     @TaskAction
-    public void applyFernFlower() throws IOException
-    {
+    public void applyFernFlower() throws IOException {
         final File in = getInJar();
         final File out = getOutJar();
 
@@ -84,8 +83,7 @@ public class ApplyFernFlowerTask extends CachedTask {
         Constants.copyFile(tempJar, out);
     }
 
-    private void runFernFlower(FernFlowerSettings settings) throws IOException
-    {
+    private void runFernFlower(FernFlowerSettings settings) throws IOException {
         // forking allowed if the property is not present or it is "true" ("true" is the default)
         boolean forkAllowed = !getProject().hasProperty(FORK_FLAG) || Boolean.parseBoolean(getProject().property(FORK_FLAG).toString());
         if (!forkAllowed || Runtime.getRuntime().maxMemory() >= REQUIRED_MEMORY) {
@@ -106,13 +104,11 @@ public class ApplyFernFlowerTask extends CachedTask {
     }
 
     @SuppressWarnings("serial")
-    private void writeSettings(final FernFlowerSettings settings, File data) throws IOException
-    {
+    private void writeSettings(final FernFlowerSettings settings, File data) throws IOException {
         ResourceGroovyMethods.withObjectOutputStream(data, new Closure<Void>(this, this) {
 
             @Override
-            public Void call(Object... args)
-            {
+            public Void call(Object... args) {
                 ObjectOutputStream out = (ObjectOutputStream) args[0];
                 try {
                     out.writeObject(settings);
@@ -124,8 +120,7 @@ public class ApplyFernFlowerTask extends CachedTask {
         });
     }
 
-    private void runForkedFernFlower(final File data)
-    {
+    private void runForkedFernFlower(final File data) {
         ExecResult result = getProject().javaexec(exec -> {
             exec.classpath(forkedClasspath);
             exec.setMain(FernFlowerInvoker.class.getName());
@@ -141,43 +136,35 @@ public class ApplyFernFlowerTask extends CachedTask {
         result.assertNormalExitValue();
     }
 
-    public File getInJar()
-    {
+    public File getInJar() {
         return getProject().file(inJar);
     }
 
-    public void setInJar(Object inJar)
-    {
+    public void setInJar(Object inJar) {
         this.inJar = inJar;
     }
 
-    public File getOutJar()
-    {
+    public File getOutJar() {
         return getProject().file(outJar);
     }
 
-    public void setOutJar(Object outJar)
-    {
+    public void setOutJar(Object outJar) {
         this.outJar = outJar;
     }
 
-    public FileCollection getClasspath()
-    {
+    public FileCollection getClasspath() {
         return classpath;
     }
 
-    public void setClasspath(FileCollection classpath)
-    {
+    public void setClasspath(FileCollection classpath) {
         this.classpath = classpath;
     }
 
-    public FileCollection getForkedClasspath()
-    {
+    public FileCollection getForkedClasspath() {
         return forkedClasspath;
     }
 
-    public void setForkedClasspath(FileCollection forkedClasspath)
-    {
+    public void setForkedClasspath(FileCollection forkedClasspath) {
         this.forkedClasspath = forkedClasspath;
     }
 

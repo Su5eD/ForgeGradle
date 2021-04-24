@@ -34,8 +34,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Properties;
 
-public class LiteModTask extends DefaultTask
-{
+public class LiteModTask extends DefaultTask {
     private String buildNumber;
 
     private Object fileName;
@@ -45,43 +44,35 @@ public class LiteModTask extends DefaultTask
     @OutputFile
     private File output;
 
-    public LiteModTask()
-    {
+    public LiteModTask() {
         this.setFileName("litemod.json");
         this.getOutputs().upToDateWhen(arg0 -> false);
     }
 
     @TaskAction
-    public void doTask() throws IOException
-    {
+    public void doTask() throws IOException {
         File outputFile = this.getOutput();
         outputFile.delete();
         this.getJson().toJsonFile(outputFile);
     }
 
-    public Object getFileName()
-    {
+    public Object getFileName() {
         return this.fileName;
     }
 
-    public void setFileName(Object fileName)
-    {
+    public void setFileName(Object fileName) {
         this.fileName = fileName;
     }
 
-    public File getOutput()
-    {
-        if (this.output == null)
-        {
+    public File getOutput() {
+        if (this.output == null) {
             this.output = getProject().file(new File(this.getTemporaryDir(), this.getFileName().toString()));
         }
         return this.output;
     }
 
-    public LiteModJson getJson() throws IOException
-    {
-        if (this.json == null)
-        {
+    public LiteModJson getJson() throws IOException {
+        if (this.json == null) {
             Project project = this.getProject();
             String version = project.getExtensions().findByType(LiteloaderExtension.class).getVersion();
             String revision = this.getBuildNumber();
@@ -91,19 +82,16 @@ public class LiteModTask extends DefaultTask
         return this.json;
     }
 
-    public void json(Closure<?> configureClosure) throws IOException
-    {
+    public void json(Closure<?> configureClosure) throws IOException {
         ClosureBackedAction.execute(this.getJson(), configureClosure);
     }
 
-    public String getBuildNumber() throws IOException
-    {
-        if (this.buildNumber == null)
-        {
+    public String getBuildNumber() throws IOException {
+        if (this.buildNumber == null) {
             AntBuilder ant = getProject().getAnt();
 
             File buildNumberFile = new File(this.getTemporaryDir(), "build.number");
-            BuildNumber buildNumber = (BuildNumber)ant.invokeMethod("buildnumber");
+            BuildNumber buildNumber = (BuildNumber) ant.invokeMethod("buildnumber");
             buildNumber.setFile(buildNumberFile);
             buildNumber.execute();
 

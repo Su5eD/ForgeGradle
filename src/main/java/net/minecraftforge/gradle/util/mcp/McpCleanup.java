@@ -25,13 +25,11 @@ import java.io.StringWriter;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public class McpCleanup
-{
+public class McpCleanup {
     public static final Pattern COMMENTS_TRAILING = Pattern.compile("(?m)[ \\t]+$");
     public static final Pattern COMMENTS_NEWLINES = Pattern.compile("(?m)^(?:\\r\\n|\\r|\\n){2,}");
 
-    enum CommentState
-    {
+    enum CommentState {
         CODE,
         STRING,
         CHARACTER,
@@ -39,95 +37,69 @@ public class McpCleanup
         MULTI_LINE_COMMENT,
     }
 
-    public static String stripComments(String text)
-    {
+    public static String stripComments(String text) {
         CommentState state = CommentState.CODE;
         int i = 0;
-        try (StringWriter out = new StringWriter(text.length()))
-        {
-            while (i < text.length())
-            {
-                if (state == CommentState.CODE)
-                {
+        try (StringWriter out = new StringWriter(text.length())) {
+            while (i < text.length()) {
+                if (state == CommentState.CODE) {
                     out.write(text.charAt(i++));
-                }
-                else if (state == CommentState.STRING || state == CommentState.CHARACTER)
-                {
+                } else if (state == CommentState.STRING || state == CommentState.CHARACTER) {
                     // write the first quote
                     out.write(text.charAt(i++));
                     char end = state == CommentState.STRING ? '"' : '\'';
-                    while (i < text.length() && text.charAt(i) != end)
-                    {
+                    while (i < text.length() && text.charAt(i) != end) {
                         // escape characters
-                        if (text.charAt(i) == '\\')
-                        {
+                        if (text.charAt(i) == '\\') {
                             out.write(text.charAt(i++));
                         }
                         // the slash might have been the last character
-                        if (i >= text.length())
-                        {
+                        if (i >= text.length()) {
                             break;
                         }
                         out.write(text.charAt(i++));
                     }
                     // write the second quote
                     // check because the text might not have ended
-                    if (i < text.length())
-                    {
+                    if (i < text.length()) {
                         out.write(text.charAt(i++));
                     }
-                }
-                else if (state == CommentState.SINGLE_LINE_COMMENT)
-                {
+                } else if (state == CommentState.SINGLE_LINE_COMMENT) {
                     i += 2; // skip "//"
-                    while (i < text.length() && text.charAt(i) != '\n' && text.charAt(i) != '\r')
-                    {
+                    while (i < text.length() && text.charAt(i) != '\n' && text.charAt(i) != '\r') {
                         i++;
                     }
                     //i += 1; // skip the ending newline
                     // Successive new lines will be fixed by our regex below.
-                }
-                else // state == CommentState.MULTI_LINE_COMMENT
+                } else // state == CommentState.MULTI_LINE_COMMENT
                 {
                     i += 2; // skip "/*"
-                    while (i < text.length() && (text.charAt(i) != '*' || text.charAt(i + 1) != '/'))
-                    {
+                    while (i < text.length() && (text.charAt(i) != '*' || text.charAt(i + 1) != '/')) {
                         i++;
                     }
                     i += 2; //skip "*/"
                 }
                 state = null;
-                if (i < text.length())
-                {
-                    if (text.charAt(i) == '"')
-                    {
+                if (i < text.length()) {
+                    if (text.charAt(i) == '"') {
                         state = CommentState.STRING;
-                    }
-                    else if (text.charAt(i) == '\'')
-                    {
+                    } else if (text.charAt(i) == '\'') {
                         state = CommentState.CHARACTER;
                     }
                 }
-                if (i + 1 < text.length() && state == null)
-                {
-                    if (text.charAt(i) == '/' && text.charAt(i + 1) == '/')
-                    {
+                if (i + 1 < text.length() && state == null) {
+                    if (text.charAt(i) == '/' && text.charAt(i + 1) == '/') {
                         state = CommentState.SINGLE_LINE_COMMENT;
-                    }
-                    else if (text.charAt(i) == '/' && text.charAt(i + 1) == '*')
-                    {
+                    } else if (text.charAt(i) == '/' && text.charAt(i + 1) == '*') {
                         state = CommentState.MULTI_LINE_COMMENT;
                     }
                 }
-                if (state == null)
-                {
+                if (state == null) {
                     state = CommentState.CODE;
                 }
             }
             text = out.toString();
-        }
-        catch (Exception e)
-        {
+        } catch (Exception e) {
             throw new RuntimeException(e);
         }
 
@@ -251,8 +223,7 @@ public class McpCleanup
     // 5.8119...F to ((float)Math.PI * 185F / 100F)
     public static final Pattern CLEANUP_185pi100F = Pattern.compile("0\\.8119[0-9]*[Ff]");
 
-    public static String cleanup(String text)
-    {
+    public static String cleanup(String text) {
         // simple replacements
         text = CLEANUP_header.matcher(text).replaceAll("");
         text = CLEANUP_footer.matcher(text).replaceAll("");
@@ -270,12 +241,10 @@ public class McpCleanup
             int val;
             StringBuffer buffer = new StringBuffer(text.length());
 
-            while (matcher.find())
-            {
+            while (matcher.find()) {
                 val = Integer.parseInt(matcher.group(1), 16);
                 // work around the replace('\u00a7', '$') call in MinecraftServer and a couple of '\u0000'
-                if (val > 255)
-                {
+                if (val > 255) {
                     matcher.appendReplacement(buffer, Matcher.quoteReplacement("" + val));
                 }
             }
@@ -321,18 +290,14 @@ public class McpCleanup
      * @param text Full file as a string
      * @return Full file as a string with imports fixed.
      */
-    public static String fixImports(String text)
-    {
+    public static String fixImports(String text) {
         Matcher match = CLEANUP_package.matcher(text);
-        if (match.find())
-        {
+        if (match.find()) {
             String pack = match.group(1);
 
             Matcher match2 = CLEANUP_import.matcher(text);
-            while (match2.find())
-            {
-                if (match2.group(1).equals(pack))
-                {
+            while (match2.find()) {
+                if (match2.group(1).equals(pack)) {
                     text = text.replace(match2.group(), "");
                 }
             }

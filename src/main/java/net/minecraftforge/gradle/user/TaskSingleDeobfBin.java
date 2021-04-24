@@ -44,8 +44,7 @@ import java.util.jar.Manifest;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
-public class TaskSingleDeobfBin extends CachedTask
-{
+public class TaskSingleDeobfBin extends CachedTask {
     @InputFile
     private Object methodCsv;
 
@@ -60,24 +59,19 @@ public class TaskSingleDeobfBin extends CachedTask
     private Object outJar;
 
     @TaskAction
-    public void doTask() throws IOException
-    {
+    public void doTask() throws IOException {
         final Map<String, String> methods = Maps.newHashMap();
         final Map<String, String> fields = Maps.newHashMap();
 
         // read CSV files
-        try (CSVReader reader = Constants.getReader(getMethodCsv()))
-        {
-            for (String[] s : reader.readAll())
-            {
+        try (CSVReader reader = Constants.getReader(getMethodCsv())) {
+            for (String[] s : reader.readAll()) {
                 methods.put(s[0], s[1]);
             }
         }
 
-        try (CSVReader reader = Constants.getReader(getFieldCsv()))
-        {
-            for (String[] s : reader.readAll())
-            {
+        try (CSVReader reader = Constants.getReader(getFieldCsv())) {
+            for (String[] s : reader.readAll()) {
                 fields.put(s[0], s[1]);
             }
         }
@@ -93,18 +87,14 @@ public class TaskSingleDeobfBin extends CachedTask
              JarOutputStream zout = new JarOutputStream(new FileOutputStream(output))) {
             ZipEntry entry;
 
-            while ((entry = zin.getNextEntry()) != null)
-            {
-                if (entry.getName().contains("META-INF"))
-                {
+            while ((entry = zin.getNextEntry()) != null) {
+                if (entry.getName().contains("META-INF")) {
                     // Skip signature files
-                    if (entry.getName().endsWith(".SF") || entry.getName().endsWith(".DSA"))
-                    {
+                    if (entry.getName().endsWith(".SF") || entry.getName().endsWith(".DSA")) {
                         continue;
                     }
                     // Strip out file signatures from manifest
-                    else if (entry.getName().equals("META-INF/MANIFEST.MF"))
-                    {
+                    else if (entry.getName().equals("META-INF/MANIFEST.MF")) {
                         Manifest mf = new Manifest(zin);
                         mf.getEntries().clear();
                         zout.putNextEntry(new JarEntry(entry.getName()));
@@ -115,14 +105,11 @@ public class TaskSingleDeobfBin extends CachedTask
                 }
 
                 // resources or directories.
-                if (entry.isDirectory() || !entry.getName().endsWith(".class"))
-                {
+                if (entry.isDirectory() || !entry.getName().endsWith(".class")) {
                     zout.putNextEntry(new JarEntry(entry));
                     ByteStreams.copy(zin, zout);
                     zout.closeEntry();
-                }
-                else
-                {
+                } else {
                     // classes
                     zout.putNextEntry(new JarEntry(entry.getName()));
                     zout.write(deobfClass(ByteStreams.toByteArray(zin), methods, fields));
@@ -132,28 +119,24 @@ public class TaskSingleDeobfBin extends CachedTask
         }
     }
 
-    private static byte[] deobfClass(byte[] classData, final Map<String, String> methods, final Map<String, String> fields)
-    {
+    private static byte[] deobfClass(byte[] classData, final Map<String, String> methods, final Map<String, String> fields) {
         ClassReader reader = new ClassReader(classData);
         ClassWriter writer = new ClassWriter(0);
         Remapper remapper = new Remapper() {
             @Override
-            public String mapFieldName(final String owner, final String name, final String desc)
-            {
+            public String mapFieldName(final String owner, final String name, final String desc) {
                 String mappedName = fields.get(name);
                 return mappedName != null ? mappedName : name;
             }
 
             @Override
-            public String mapMethodName(final String owner, final String name, final String desc)
-            {
+            public String mapMethodName(final String owner, final String name, final String desc) {
                 String mappedName = methods.get(name);
                 return mappedName != null ? mappedName : name;
             }
 
             @Override
-            public String mapInvokeDynamicMethodName(final String name, final String desc)
-            {
+            public String mapInvokeDynamicMethodName(final String name, final String desc) {
                 String mappedName = methods.get(name);
                 return mappedName != null ? mappedName : name;
             }
@@ -163,43 +146,35 @@ public class TaskSingleDeobfBin extends CachedTask
         return writer.toByteArray();
     }
 
-    public File getMethodCsv()
-    {
+    public File getMethodCsv() {
         return getProject().file(methodCsv);
     }
 
-    public void setMethodCsv(Object methodCsv)
-    {
+    public void setMethodCsv(Object methodCsv) {
         this.methodCsv = methodCsv;
     }
 
-    public File getFieldCsv()
-    {
+    public File getFieldCsv() {
         return getProject().file(fieldCsv);
     }
 
-    public void setFieldCsv(Object fieldCsv)
-    {
+    public void setFieldCsv(Object fieldCsv) {
         this.fieldCsv = fieldCsv;
     }
 
-    public File getInJar()
-    {
+    public File getInJar() {
         return getProject().file(inJar);
     }
 
-    public void setInJar(Object inJar)
-    {
+    public void setInJar(Object inJar) {
         this.inJar = inJar;
     }
 
-    public File getOutJar()
-    {
+    public File getOutJar() {
         return getProject().file(outJar);
     }
 
-    public void setOutJar(Object outJar)
-    {
+    public void setOutJar(Object outJar) {
         this.outJar = outJar;
     }
 }

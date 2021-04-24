@@ -26,34 +26,28 @@ import org.gradle.api.specs.Spec;
 
 import java.io.File;
 
-public class ExtractionVisitor implements FileVisitor
-{
-    private final File                  outputDir;
-    private final boolean               emptyDirs;
+public class ExtractionVisitor implements FileVisitor {
+    private final File outputDir;
+    private final boolean emptyDirs;
     private final Spec<FileTreeElement> spec;
 
-    public ExtractionVisitor(File outDir, boolean emptyDirs, Spec<FileTreeElement> spec)
-    {
+    public ExtractionVisitor(File outDir, boolean emptyDirs, Spec<FileTreeElement> spec) {
         this.outputDir = outDir;
         this.emptyDirs = emptyDirs;
         this.spec = spec;
     }
 
     @Override
-    public void visitDir(FileVisitDetails details)
-    {
-        if (emptyDirs && spec.isSatisfiedBy(details))
-        {
+    public void visitDir(FileVisitDetails details) {
+        if (emptyDirs && spec.isSatisfiedBy(details)) {
             File dir = new File(outputDir, details.getPath());
             dir.mkdirs();
         }
     }
 
     @Override
-    public void visitFile(FileVisitDetails details)
-    {
-        if (!spec.isSatisfiedBy(details))
-        {
+    public void visitFile(FileVisitDetails details) {
+        if (!spec.isSatisfiedBy(details)) {
             return;
         }
 

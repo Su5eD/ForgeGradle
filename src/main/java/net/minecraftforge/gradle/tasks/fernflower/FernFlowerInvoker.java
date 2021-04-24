@@ -30,7 +30,7 @@ import java.io.ObjectInputStream;
 import java.io.PrintStream;
 
 public class FernFlowerInvoker {
-    
+
     public static void main(String[] args) throws Exception {
         // Data file is the first argument
         File data = new File(args[0]);
@@ -40,14 +40,12 @@ public class FernFlowerInvoker {
         FernFlowerSettings settings = readSettings(data);
         runFernFlower(settings);
     }
-    
+
     @SuppressWarnings("serial")
-    private static FernFlowerSettings readSettings(File data) throws IOException
-    {
+    private static FernFlowerSettings readSettings(File data) throws IOException {
         return ResourceGroovyMethods.withObjectInputStream(data, new Closure<FernFlowerSettings>(FernFlowerInvoker.class, FernFlowerInvoker.class) {
             @Override
-            public FernFlowerSettings call(Object... args)
-            {
+            public FernFlowerSettings call(Object... args) {
                 ObjectInputStream in = (ObjectInputStream) args[0];
                 try {
                     return (FernFlowerSettings) in.readObject();

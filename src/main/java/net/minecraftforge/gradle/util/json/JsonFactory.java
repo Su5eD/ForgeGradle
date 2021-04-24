@@ -37,12 +37,10 @@ import java.util.*;
 import java.util.Map.Entry;
 
 @SuppressWarnings("serial")
-public class JsonFactory
-{
+public class JsonFactory {
     public static final Gson GSON;
 
-    static
-    {
+    static {
         GsonBuilder builder = new GsonBuilder();
         builder.registerTypeAdapterFactory(new EnumAdaptorFactory());
         builder.registerTypeAdapter(Date.class, new DateAdapter());
@@ -50,33 +48,28 @@ public class JsonFactory
         builder.registerTypeAdapter(VersionObject.class, new LiteLoaderJson.VersionAdapter());
         builder.registerTypeAdapter(FGVersionWrapper.class, new FGVersionDeserializer());
         builder.registerTypeAdapter(FGVersionWrapper.class, new FGVersionDeserializer());
-        builder.registerTypeAdapter(new TypeToken<Map<String, ManifestVersion>>() {}.getType(), new MojangManifestAdapter());
+        builder.registerTypeAdapter(new TypeToken<Map<String, ManifestVersion>>() {
+        }.getType(), new MojangManifestAdapter());
         builder.enableComplexMapKeySerialization();
         builder.setPrettyPrinting();
         GSON = builder.create();
     }
 
-    public static Version loadVersion(File json, String mcVersion, File... inheritanceDirs) throws JsonSyntaxException, JsonIOException, IOException
-    {
+    public static Version loadVersion(File json, String mcVersion, File... inheritanceDirs) throws JsonSyntaxException, JsonIOException, IOException {
         FileReader reader = new FileReader(json);
         Version v = GSON.fromJson(reader, Version.class);
         reader.close();
 
-        if (!Strings.isNullOrEmpty(v.inheritsFrom))
-        {
+        if (!Strings.isNullOrEmpty(v.inheritsFrom)) {
             boolean found = false;
 
-            for (File inheritDir : inheritanceDirs)
-            {
+            for (File inheritDir : inheritanceDirs) {
                 File parentFile = new File(inheritDir, v.inheritsFrom + ".json");
 
-                if (parentFile.exists())
-                {
+                if (parentFile.exists()) {
                     List<File> dirs = new ArrayList<>(inheritanceDirs.length - 1);
-                    for (File toAdd : inheritanceDirs)
-                    {
-                        if (toAdd != inheritDir)
-                        {
+                    for (File toAdd : inheritanceDirs) {
+                        if (toAdd != inheritDir) {
                             dirs.add(toAdd);
                         }
                     }
@@ -89,26 +82,20 @@ public class JsonFactory
             }
 
             // still didnt find the inherited
-            if (!found)
-            {
+            if (!found) {
                 throw new FileNotFoundException("Inherited json file (" + v.inheritsFrom + ") not found! Maybe you are running in offline mode?");
             }
-        }
-        else if (v.assetIndex == null) // inherit if the assetIndex is missing
+        } else if (v.assetIndex == null) // inherit if the assetIndex is missing
         {
             boolean found = false;
 
-            for (File inheritDir : inheritanceDirs)
-            {
+            for (File inheritDir : inheritanceDirs) {
                 File parentFile = new File(inheritDir, mcVersion + ".json");
 
-                if (parentFile.exists())
-                {
+                if (parentFile.exists()) {
                     List<File> dirs = new ArrayList<>(inheritanceDirs.length - 1);
-                    for (File toAdd : inheritanceDirs)
-                    {
-                        if (toAdd != inheritDir)
-                        {
+                    for (File toAdd : inheritanceDirs) {
+                        if (toAdd != inheritDir) {
                             dirs.add(toAdd);
                         }
                     }
@@ -121,8 +108,7 @@ public class JsonFactory
             }
 
             // still didnt find the inherited
-            if (!found)
-            {
+            if (!found) {
                 throw new FileNotFoundException("Inherited json file (" + v.inheritsFrom + ") not found! Maybe you are running in offline mode?");
             }
         }
@@ -130,29 +116,25 @@ public class JsonFactory
         return v;
     }
 
-    public static AssetIndex loadAssetsIndex(File json) throws JsonSyntaxException, JsonIOException, IOException
-    {
+    public static AssetIndex loadAssetsIndex(File json) throws JsonSyntaxException, JsonIOException, IOException {
         FileReader reader = new FileReader(json);
         AssetIndex a = GSON.fromJson(reader, AssetIndex.class);
         reader.close();
         return a;
     }
 
-    public static LiteLoaderJson loadLiteLoaderJson(String json) throws JsonSyntaxException, JsonIOException
-    {
+    public static LiteLoaderJson loadLiteLoaderJson(String json) throws JsonSyntaxException, JsonIOException {
         return GSON.fromJson(json, LiteLoaderJson.class).addDefaultArtifacts();
     }
 
-    public static Map<String, MCInjectorStruct> loadMCIJson(File json) throws IOException
-    {
+    public static Map<String, MCInjectorStruct> loadMCIJson(File json) throws IOException {
         FileReader reader = new FileReader(json);
         Map<String, MCInjectorStruct> ret = new LinkedHashMap<>();
 
         JsonObject object = (JsonObject) new JsonParser().parse(reader);
         reader.close();
 
-        for (Entry<String, JsonElement> entry : object.entrySet())
-        {
+        for (Entry<String, JsonElement> entry : object.entrySet()) {
             ret.put(entry.getKey(), GSON.fromJson(entry.getValue(), MCInjectorStruct.class));
         }
         return ret;

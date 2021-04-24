@@ -45,38 +45,34 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 import java.util.zip.ZipOutputStream;
 
-public class CrowdinDownload extends DefaultTask
-{
+public class CrowdinDownload extends DefaultTask {
     @Input
-    private Object              projectId;
+    private Object projectId;
     @Input
-    private Object              apiKey;
+    private Object apiKey;
     @Input
-    private boolean             extract      = true;
-    private Object              output;
+    private boolean extract = true;
+    private Object output;
 
     // format these with the projectId and apiKey
-    private static final String EXPORT_URL   = "https://api.crowdin.com/api/project/%s/export?key=%s";
+    private static final String EXPORT_URL = "https://api.crowdin.com/api/project/%s/export?key=%s";
     private static final String DOWNLOAD_URL = "https://api.crowdin.com/api/project/%s/download/all.zip?key=%s";
 
-    @SuppressWarnings({ "unchecked", "rawtypes" })
-    public CrowdinDownload()
-    {
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    public CrowdinDownload() {
         super();
 
         this.onlyIf((Spec) arg0 -> {
             CrowdinDownload task = (CrowdinDownload) arg0;
 
             // no API key? skip
-            if (Strings.isNullOrEmpty(task.getApiKey()))
-            {
+            if (Strings.isNullOrEmpty(task.getApiKey())) {
                 getLogger().lifecycle("Crowdin api key is null, skipping task.");
                 return false;
             }
 
             // offline? skip.
-            if (getProject().getGradle().getStartParameter().isOffline())
-            {
+            if (getProject().getGradle().getStartParameter().isOffline()) {
                 getLogger().lifecycle("Gradle is in offline mode, skipping task.");
                 return false;
             }
@@ -86,8 +82,7 @@ public class CrowdinDownload extends DefaultTask
     }
 
     @TaskAction
-    public void doTask() throws IOException
-    {
+    public void doTask() throws IOException {
         String project = getProjectId();
         String key = getApiKey();
 
@@ -95,8 +90,7 @@ public class CrowdinDownload extends DefaultTask
         getLocalizations(project, key, getOutput());
     }
 
-    private void exportLocalizations(String projectId, String key) throws IOException
-    {
+    private void exportLocalizations(String projectId, String key) throws IOException {
         getLogger().debug("Exporting crowdin localizations.");
         URL url = new URL(String.format(EXPORT_URL, projectId, key));
 
@@ -104,12 +98,9 @@ public class CrowdinDownload extends DefaultTask
         con.setRequestProperty("User-Agent", Constants.USER_AGENT);
         con.setInstanceFollowRedirects(true);
 
-        try
-        {
+        try {
             con.connect();
-        }
-        catch (IOException e)
-        {
+        } catch (IOException e) {
             // just in case people dont have internet at the moment.
             throw new RuntimeException(e);
         }
@@ -121,8 +112,7 @@ public class CrowdinDownload extends DefaultTask
             throw new RuntimeException("Invalid Crowdin API-Key!");
     }
 
-    private void getLocalizations(String projectId, String key, File output) throws IOException
-    {
+    private void getLocalizations(String projectId, String key, File output) throws IOException {
         getLogger().info("Downloading crowdin localizations.");
         URL url = new URL(String.format(DOWNLOAD_URL, projectId, key));
 
@@ -131,74 +121,58 @@ public class CrowdinDownload extends DefaultTask
         con.setInstanceFollowRedirects(true);
 
         ZipOutputStream zOut = null;
-        try (ZipInputStream zStream = new ZipInputStream(con.getInputStream()))
-        {
-            if (!extract)
-            {
+        try (ZipInputStream zStream = new ZipInputStream(con.getInputStream())) {
+            if (!extract) {
                 Files.createParentDirs(output);
                 Files.touch(output);
                 zOut = new ZipOutputStream(new FileOutputStream(output));
             }
 
             ZipEntry entry;
-            while ((entry = zStream.getNextEntry()) != null)
-            {
-                try
-                {
-                    if (entry.isDirectory() || entry.getSize() == 0)
-                    {
+            while ((entry = zStream.getNextEntry()) != null) {
+                try {
+                    if (entry.isDirectory() || entry.getSize() == 0) {
                         continue;
                     }
 
-                    String data = CharStreams.readLines(new InputStreamReader(zStream), new LineProcessor<String>()
-                    {
+                    String data = CharStreams.readLines(new InputStreamReader(zStream), new LineProcessor<String>() {
                         StringBuilder out = new StringBuilder();
                         Splitter SPLITTER = Splitter.on('=').limit(2);
 
                         @Override
-                        public boolean processLine(String line) throws IOException
-                        {
+                        public boolean processLine(String line) throws IOException {
                             String[] pts = Iterables.toArray(SPLITTER.split(line), String.class);
-                            if (pts.length == 2)
-                            {
+                            if (pts.length == 2) {
                                 out.append(pts[0]).append('=').append(
                                         pts[1].replace("\\!", "!")
                                                 .replace("\\:", ":"))
                                         .append('\n');
-                            }
-                            else
+                            } else
                                 out.append(line).append('\n');
                             return true;
                         }
 
                         @Override
-                        public String getResult()
-                        {
+                        public String getResult() {
                             return out.toString();
                         }
                     });
 
-                    if (extract)
-                    {
+                    if (extract) {
                         getLogger().debug("Extracting file: " + entry.getName());
                         File out = new File(output, entry.getName());
                         Files.createParentDirs(out);
                         Files.touch(out);
                         Files.write(data.getBytes(Charsets.UTF_8), out);
-                    }
-                    else
-                    {
+                    } else {
                         zOut.putNextEntry(new ZipEntry(entry.getName()));
                         zOut.write(data.getBytes(Charsets.UTF_8));
                     }
-                } finally
-                {
+                } finally {
                     zStream.closeEntry();
                 }
             }
-        }
-        finally
-        {
+        } finally {
             if (zOut != null)
                 zOut.close();
         }
@@ -207,8 +181,7 @@ public class CrowdinDownload extends DefaultTask
     }
 
     @SuppressWarnings("rawtypes")
-    public String getProjectId()
-    {
+    public String getProjectId() {
         if (projectId == null)
             throw new NullPointerException("ProjectID must be set for crowdin!");
 
@@ -218,14 +191,12 @@ public class CrowdinDownload extends DefaultTask
         return projectId.toString();
     }
 
-    public void setProjectId(Object projectId)
-    {
+    public void setProjectId(Object projectId) {
         this.projectId = projectId;
     }
 
     @SuppressWarnings("rawtypes")
-    public String getApiKey()
-    {
+    public String getApiKey() {
         while (apiKey instanceof Closure)
             apiKey = ((Closure) apiKey).call();
 
@@ -235,37 +206,31 @@ public class CrowdinDownload extends DefaultTask
         return apiKey.toString();
     }
 
-    public void setApiKey(Object apiKey)
-    {
+    public void setApiKey(Object apiKey) {
         this.apiKey = apiKey;
     }
 
     @OutputFiles
-    public FileCollection getOutputFiles()
-    {
+    public FileCollection getOutputFiles() {
         if (isExtract())
             return getProject().fileTree(getOutput());
         else
             return getProject().files(getOutput());
     }
 
-    public File getOutput()
-    {
+    public File getOutput() {
         return getProject().file(output);
     }
 
-    public void setOutput(Object output)
-    {
+    public void setOutput(Object output) {
         this.output = output;
     }
 
-    public boolean isExtract()
-    {
+    public boolean isExtract() {
         return extract;
     }
 
-    public void setExtract(boolean extract)
-    {
+    public void setExtract(boolean extract) {
         this.extract = extract;
     }
 }

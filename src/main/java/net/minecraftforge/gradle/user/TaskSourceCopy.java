@@ -42,24 +42,22 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.regex.Pattern;
 
-public class TaskSourceCopy extends DefaultTask
-{
+public class TaskSourceCopy extends DefaultTask {
     @InputFiles
-    SourceDirectorySet      source;
+    SourceDirectorySet source;
 
     @Input
     HashMap<String, Object> replacements = new HashMap<>();
 
     @Input
-    ArrayList<String>       includes     = new ArrayList<>();
+    ArrayList<String> includes = new ArrayList<>();
 
     @OutputDirectory
-    Object             output;
+    Object output;
 
     @SuppressWarnings("unchecked")
     @TaskAction
-    public void doTask() throws IOException
-    {
+    public void doTask() throws IOException {
         // get the include/exclude patterns from the source (this is different than what's returned by getFilter)
         PatternSet patterns = new PatternSet();
         patterns.setIncludes(source.getIncludes());
@@ -75,8 +73,7 @@ public class TaskSourceCopy extends DefaultTask
 
         // resolve replacements
         HashMap<String, String> repl = new HashMap<>(replacements.size());
-        for (Entry<String, Object> e : replacements.entrySet())
-        {
+        for (Entry<String, Object> e : replacements.entrySet()) {
             if (e.getKey() == null || e.getValue() == null)
                 continue; // we dont deal with nulls.
 
@@ -90,8 +87,7 @@ public class TaskSourceCopy extends DefaultTask
         getLogger().debug("REPLACE >> " + repl);
 
         // start traversing tree
-        for (DirectoryTree dirTree : source.getSrcDirTrees())
-        {
+        for (DirectoryTree dirTree : source.getSrcDirTrees()) {
             File dir = dirTree.getDir();
             getLogger().debug("PARSING DIR >> " + dir);
 
@@ -105,14 +101,12 @@ public class TaskSourceCopy extends DefaultTask
             // because later on gradle casts it directly to PatternSet and crashes
             FileTree tree = getProject().fileTree(dir).matching(source.getFilter()).matching(patterns);
 
-            for (File file : tree)
-            {
+            for (File file : tree) {
                 File dest = getDest(file, dir, out);
                 dest.getParentFile().mkdirs();
                 dest.createNewFile();
 
-                if (isIncluded(file))
-                {
+                if (isIncluded(file)) {
                     getLogger().debug("PARSING FILE IN >> " + file);
                     String text = Files.asCharSource(file, Charsets.UTF_8).read();
 
@@ -121,29 +115,24 @@ public class TaskSourceCopy extends DefaultTask
 
                     getLogger().debug("PARSING FILE OUT >> " + dest);
                     Files.asCharSink(dest, Charsets.UTF_8).write(text);
-                }
-                else
-                {
+                } else {
                     Files.copy(file, dest);
                 }
             }
         }
     }
 
-    private File getDest(File in, File base, File baseOut) throws IOException
-    {
+    private File getDest(File in, File base, File baseOut) throws IOException {
         String relative = in.getCanonicalPath().replace(base.getCanonicalPath(), "");
         return new File(baseOut, relative);
     }
 
-    private boolean isIncluded(File file) throws IOException
-    {
+    private boolean isIncluded(File file) throws IOException {
         if (includes.isEmpty())
             return true;
 
         String path = file.getCanonicalPath().replace('\\', '/');
-        for (String include : includes)
-        {
+        for (String include : includes) {
             if (path.endsWith(include.replace('\\', '/')))
                 return true;
         }
@@ -151,13 +140,10 @@ public class TaskSourceCopy extends DefaultTask
         return false;
     }
 
-    private boolean deleteDir(File dir)
-    {
-        if (dir.exists())
-        {
+    private boolean deleteDir(File dir) {
+        if (dir.exists()) {
             File[] files = dir.listFiles();
-            if (null != files)
-            {
+            if (null != files) {
                 for (File file : files) {
                     if (file.isDirectory()) {
                         deleteDir(file);
@@ -170,53 +156,43 @@ public class TaskSourceCopy extends DefaultTask
         return (dir.delete());
     }
 
-    public File getOutput()
-    {
+    public File getOutput() {
         return getProject().file(output);
     }
 
-    public void setOutput(Object output)
-    {
+    public void setOutput(Object output) {
         this.output = output;
     }
 
-    public void setSource(SourceDirectorySet source)
-    {
+    public void setSource(SourceDirectorySet source) {
         this.source = source;
     }
 
-    public FileCollection getSource()
-    {
+    public FileCollection getSource() {
         return source;
     }
 
-    public void replace(String key, Object val)
-    {
+    public void replace(String key, Object val) {
         replacements.put(key, val);
     }
 
-    public void replace(Map<String, Object> map)
-    {
+    public void replace(Map<String, Object> map) {
         replacements.putAll(map);
     }
 
-    public HashMap<String, Object> getReplacements()
-    {
+    public HashMap<String, Object> getReplacements() {
         return replacements;
     }
 
-    public void include(String str)
-    {
+    public void include(String str) {
         includes.add(str);
     }
 
-    public void include(List<String> strs)
-    {
+    public void include(List<String> strs) {
         includes.addAll(strs);
     }
 
-    public ArrayList<String> getIncludes()
-    {
+    public ArrayList<String> getIncludes() {
         return includes;
     }
 }

@@ -39,8 +39,7 @@ import java.util.zip.ZipInputStream;
 
 import static org.objectweb.asm.Opcodes.*;
 
-public class ReobfExceptor
-{
+public class ReobfExceptor {
     // info supplied.
     public File toReobfJar;
     public File deobfJar;
@@ -53,8 +52,7 @@ public class ReobfExceptor
     Map<String, String> access = Maps.newHashMap();
 
 
-    public void buildSrg(File inSrg, File outSrg) throws IOException
-    {
+    public void buildSrg(File inSrg, File outSrg) throws IOException {
         // build the SRG
 
         // delete if existing
@@ -69,10 +67,10 @@ public class ReobfExceptor
     /**
      * reads the Old jar, the EXC, and the CSVS
      * Hopefully, these things wont change.
+     *
      * @throws IOException because it reads the srg and jar files
      */
-    public void doFirstThings() throws IOException
-    {
+    public void doFirstThings() throws IOException {
         Map<String, String> csvData = readCSVs();
         JarInfo oldInfo = readJar(deobfJar);
         JarInfo newInfo = readJar(toReobfJar);
@@ -84,29 +82,29 @@ public class ReobfExceptor
 
     // Preliminary things here
 
-    private Map<String, String> readCSVs() throws IOException
-    {
+    private Map<String, String> readCSVs() throws IOException {
         final Map<String, String> csvData = Maps.newHashMap();
         File[] csvs = new File[]
-        {
-            fieldCSV == null ? null : fieldCSV,
-            methodCSV == null ? null : methodCSV
-        };
+                {
+                        fieldCSV == null ? null : fieldCSV,
+                        methodCSV == null ? null : methodCSV
+                };
 
-        for (File f : csvs)
-        {
+        for (File f : csvs) {
             if (f == null) continue;
 
-            Files.asCharSource(f, Charset.defaultCharset()).readLines(new LineProcessor<Object>()
-            {
+            Files.asCharSource(f, Charset.defaultCharset()).readLines(new LineProcessor<Object>() {
                 @Override
-                public boolean processLine(String line) throws IOException
-                {
+                public boolean processLine(String line) throws IOException {
                     String[] s = line.split(",");
                     csvData.put(s[0], s[1]);
                     return true;
                 }
-                @Override public Object getResult() { return null; }
+
+                @Override
+                public Object getResult() {
+                    return null;
+                }
             });
         }
 
@@ -115,54 +113,41 @@ public class ReobfExceptor
 
     // ACTUAL things here...
 
-    private void renameAccess(Map<String, AccessInfo> data, Map<String, String> csvData) throws IOException
-    {
-        for (AccessInfo info : data.values())
-        {
-            for (Insn i : info.insns)
-            {
+    private void renameAccess(Map<String, AccessInfo> data, Map<String, String> csvData) throws IOException {
+        for (AccessInfo info : data.values()) {
+            for (Insn i : info.insns) {
                 String tmp = csvData.get(i.name);
                 i.name = tmp == null ? i.name : tmp;
             }
         }
     }
 
-    private JarInfo readJar(File inJar) throws IOException
-    {
-        try (ZipInputStream zip = new ZipInputStream(new BufferedInputStream(new FileInputStream(inJar))))
-        {
+    private JarInfo readJar(File inJar) throws IOException {
+        try (ZipInputStream zip = new ZipInputStream(new BufferedInputStream(new FileInputStream(inJar)))) {
             JarInfo reader = new JarInfo();
-            while (true)
-            {
+            while (true) {
                 ZipEntry entry = zip.getNextEntry();
                 if (entry == null) break;
-                try
-                {
+                try {
                     if (entry.isDirectory() ||
                             !entry.getName().endsWith(".class")) continue;
                     (new ClassReader(ByteStreams.toByteArray(zip))).accept(reader, 0);
-                } finally
-                {
+                } finally {
                     zip.closeEntry();
                 }
             }
             return reader;
-        }
-        catch (FileNotFoundException e)
-        {
+        } catch (FileNotFoundException e) {
             throw new FileNotFoundException("Could not open input file: " + e.getMessage());
         }
     }
 
-    private Map<String, String> createClassMap(Map<String, String> markerMap, final List<String> interfaces) throws IOException
-    {
-        Map<String, String> excMap = Files.asCharSource(excConfig, Charset.defaultCharset()).readLines(new LineProcessor<Map<String, String>>()
-        {
+    private Map<String, String> createClassMap(Map<String, String> markerMap, final List<String> interfaces) throws IOException {
+        Map<String, String> excMap = Files.asCharSource(excConfig, Charset.defaultCharset()).readLines(new LineProcessor<Map<String, String>>() {
             Map<String, String> tmp = Maps.newHashMap();
 
             @Override
-            public boolean processLine(String line) throws IOException
-            {
+            public boolean processLine(String line) throws IOException {
                 if (line.contains(".") ||
                         !line.contains("=") ||
                         line.startsWith("#")) return true;
@@ -174,36 +159,30 @@ public class ReobfExceptor
             }
 
             @Override
-            public Map<String, String> getResult()
-            {
+            public Map<String, String> getResult() {
                 return tmp;
             }
         });
 
         Map<String, String> map = Maps.newHashMap();
-        for (Entry<String, String> e : excMap.entrySet())
-        {
+        for (Entry<String, String> e : excMap.entrySet()) {
             String renamed = markerMap.get(e.getValue());
-            if (renamed != null)
-            {
+            if (renamed != null) {
                 map.put(e.getKey(), renamed);
             }
         }
         return map;
     }
 
-    private Map<String, String> mergeAccess(Map<String, AccessInfo> old_data, Map<String, AccessInfo> new_data)
-    {
+    private Map<String, String> mergeAccess(Map<String, AccessInfo> old_data, Map<String, AccessInfo> new_data) {
         // Lets remove things that are mapped exactly right:
         //System.out.println("Matches:");
         Iterator<Entry<String, AccessInfo>> itr = old_data.entrySet().iterator();
-        while(itr.hasNext())
-        {
+        while (itr.hasNext()) {
             Entry<String, AccessInfo> e = itr.next();
             String key = e.getKey();
             AccessInfo n = new_data.get(key);
-            if (n != null && e.getValue().targetEquals(n))
-            {
+            if (n != null && e.getValue().targetEquals(n)) {
                 //System.out.println("  " + n.toString());
                 itr.remove();
                 new_data.remove(key);
@@ -214,18 +193,15 @@ public class ReobfExceptor
 
         //System.out.println("Matched: ");
         itr = old_data.entrySet().iterator();
-        while (itr.hasNext())
-        {
+        while (itr.hasNext()) {
             AccessInfo _old = itr.next().getValue();
-            Iterator<Entry<String, AccessInfo>> itr2  = new_data.entrySet().iterator();
-            while (itr2.hasNext())
-            {
+            Iterator<Entry<String, AccessInfo>> itr2 = new_data.entrySet().iterator();
+            while (itr2.hasNext()) {
                 Entry<String, AccessInfo> e2 = itr2.next();
                 AccessInfo _new = e2.getValue();
                 if (_old.targetEquals(_new) &&
-                    _old.owner.equals(_new.owner) &&
-                    _old.desc.equals(_new.desc))
-                {
+                        _old.owner.equals(_new.owner) &&
+                        _old.desc.equals(_new.desc)) {
                     //System.out.println("  " + _old.name + " -> " + _new.name + " " + _old.toString());
                     matched.put(_old.owner + "/" + _old.name, _new.owner + "/" + _new.name);
                     itr.remove();
@@ -238,38 +214,33 @@ public class ReobfExceptor
         return matched;
     }
 
-    private static class SrgLineProcessor implements LineProcessor<String>
-    {
+    private static class SrgLineProcessor implements LineProcessor<String> {
         Map<String, String> map;
         Map<String, String> access;
         StringBuilder out = new StringBuilder();
         Pattern reg = Pattern.compile("L([^;]+);");
 
-        private SrgLineProcessor(Map<String, String> map, Map<String, String> access)
-        {
+        private SrgLineProcessor(Map<String, String> map, Map<String, String> access) {
             this.map = map;
             this.access = access;
         }
 
-        private String rename(String cls)
-        {
+        private String rename(String cls) {
             String rename = map.get(cls);
             return rename == null ? cls : rename;
         }
 
-        private String[] rsplit(String value, String delim)
-        {
+        private String[] rsplit(String value, String delim) {
             int idx = value.lastIndexOf(delim);
             return new String[]
-            {
-                value.substring(0, idx),
-                value.substring(idx + 1)
-            };
+                    {
+                            value.substring(0, idx),
+                            value.substring(idx + 1)
+                    };
         }
 
         @Override
-        public boolean processLine(String line) throws IOException
-        {
+        public boolean processLine(String line) throws IOException {
             String[] split = line.split(" ");
             switch (split[0]) {
                 case "CL:":
@@ -303,45 +274,37 @@ public class ReobfExceptor
         }
 
         @Override
-        public String getResult()
-        {
+        public String getResult() {
             return out.toString();
         }
 
     }
 
-    private static class JarInfo extends ClassVisitor
-    {
+    private static class JarInfo extends ClassVisitor {
         private final Map<String, String> map = Maps.newHashMap();
         private final List<String> interfaces = Lists.newArrayList();
         private final Map<String, AccessInfo> access = Maps.newHashMap();
 
-        public JarInfo()
-        {
+        public JarInfo() {
             super(Opcodes.ASM4, null);
         }
 
         private String className;
 
         @Override
-        public void visit(int version, int access, String name, String signature, String superName, String[] ints)
-        {
+        public void visit(int version, int access, String name, String signature, String superName, String[] ints) {
             //System.out.println("Class: " + name);
             this.className = name;
-            if ((access & ACC_INTERFACE) == ACC_INTERFACE)
-            {
+            if ((access & ACC_INTERFACE) == ACC_INTERFACE) {
                 interfaces.add(className);
                 //System.out.println("  Interface: True");
             }
         }
 
         @Override
-        public FieldVisitor visitField(int access, String name, String desc, String signature, Object value)
-        {
-            if (name.equals("__OBFID"))
-            {
-                if (!className.startsWith("net/minecraft/"))
-                {
+        public FieldVisitor visitField(int access, String name, String desc, String signature, Object value) {
+            if (name.equals("__OBFID")) {
+                if (!className.startsWith("net/minecraft/")) {
                     throw new RuntimeException("Modder stupidity detected, DO NOT USE __OBFID, Copy pasting code you don't understand is bad: " + className);
                 }
                 map.put(value + "_", className);
@@ -351,28 +314,23 @@ public class ReobfExceptor
         }
 
         @Override
-        public MethodVisitor visitMethod(int acc, String name, String desc, String signature, String[] exceptions)
-        {
-            if (className.startsWith("net/minecraft/") && name.startsWith("access$"))
-            {
+        public MethodVisitor visitMethod(int acc, String name, String desc, String signature, String[] exceptions) {
+            if (className.startsWith("net/minecraft/") && name.startsWith("access$")) {
                 String path = className + "/" + name + desc;
                 final AccessInfo info = new AccessInfo(className, name, desc);
                 info.access = acc;
                 access.put(path, info);
 
-                return new MethodVisitor(Opcodes.ASM5)
-                {
+                return new MethodVisitor(Opcodes.ASM5) {
                     // GETSTATIC, PUTSTATIC, GETFIELD or PUTFIELD.
                     @Override
-                    public void visitFieldInsn(int opcode, String owner, String name, String desc)
-                    {
+                    public void visitFieldInsn(int opcode, String owner, String name, String desc) {
                         info.add(opcode, owner, name, desc);
                     }
 
                     // INVOKEVIRTUAL, INVOKESPECIAL, INVOKESTATIC or INVOKEINTERFACE.
                     @Override
-                    public void visitMethodInsn(int opcode, String owner, String name, String desc, boolean itf)
-                    {
+                    public void visitMethodInsn(int opcode, String owner, String name, String desc, boolean itf) {
                         info.add(opcode, owner, name, desc);
                     }
                 };
@@ -382,8 +340,7 @@ public class ReobfExceptor
     }
 
     @SuppressWarnings("unused")
-    private static class AccessInfo
-    {
+    private static class AccessInfo {
         public String owner;
         public String name;
         public String desc;
@@ -391,25 +348,21 @@ public class ReobfExceptor
         public List<Insn> insns = new ArrayList<>();
         private String cache = null;
 
-        public AccessInfo(String owner, String name, String desc)
-        {
+        public AccessInfo(String owner, String name, String desc) {
             this.owner = owner;
             this.name = name;
             this.desc = desc;
         }
 
-        public void add(int opcode, String owner, String name, String desc)
-        {
+        public void add(int opcode, String owner, String name, String desc) {
             insns.add(new Insn(opcode, owner, name, desc));
             cache = null;
         }
 
 
         @Override
-        public String toString()
-        {
-            if (cache == null)
-            {
+        public String toString() {
+            if (cache == null) {
                 if (insns.size() < 1)
                     throw new RuntimeException("Empty Intruction!!!  IMPOSSIBURU");
 
@@ -418,21 +371,18 @@ public class ReobfExceptor
             return cache;
         }
 
-        public boolean targetEquals(AccessInfo o)
-        {
+        public boolean targetEquals(AccessInfo o) {
             return toString().equals(o.toString());
         }
     }
 
-    private static class Insn
-    {
+    private static class Insn {
         public int opcode;
         public String owner;
         public String name;
         public String desc;
 
-        Insn(int opcode, String owner, String name, String desc)
-        {
+        Insn(int opcode, String owner, String name, String desc) {
             this.opcode = opcode;
             this.owner = owner;
             this.name = name;
@@ -440,19 +390,33 @@ public class ReobfExceptor
         }
 
         @Override
-        public String toString()
-        {
+        public String toString() {
             String op = "UNKNOWN_" + opcode;
-            switch (opcode)
-            {
-                case GETSTATIC:       op = "GETSTATIC";       break;
-                case PUTSTATIC:       op = "PUTSTATIC";       break;
-                case GETFIELD:        op = "GETFIELD";        break;
-                case PUTFIELD:        op = "PUTFIELD";        break;
-                case INVOKEVIRTUAL:   op = "INVOKEVIRTUAL";   break;
-                case INVOKESPECIAL:   op = "INVOKESPECIAL";   break;
-                case INVOKESTATIC:    op = "INVOKESTATIC";    break;
-                case INVOKEINTERFACE: op = "INVOKEINTERFACE"; break;
+            switch (opcode) {
+                case GETSTATIC:
+                    op = "GETSTATIC";
+                    break;
+                case PUTSTATIC:
+                    op = "PUTSTATIC";
+                    break;
+                case GETFIELD:
+                    op = "GETFIELD";
+                    break;
+                case PUTFIELD:
+                    op = "PUTFIELD";
+                    break;
+                case INVOKEVIRTUAL:
+                    op = "INVOKEVIRTUAL";
+                    break;
+                case INVOKESPECIAL:
+                    op = "INVOKESPECIAL";
+                    break;
+                case INVOKESTATIC:
+                    op = "INVOKESTATIC";
+                    break;
+                case INVOKEINTERFACE:
+                    op = "INVOKEINTERFACE";
+                    break;
             }
             return op + " " + owner + "/" + name + " " + desc;
         }

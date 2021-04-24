@@ -27,41 +27,33 @@ import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 
-public class SequencedInputSupplier extends ArrayList<InputSupplier> implements InputSupplier
-{
+public class SequencedInputSupplier extends ArrayList<InputSupplier> implements InputSupplier {
     private static final long serialVersionUID = 1L;
 
-    public SequencedInputSupplier(InputSupplier supp)
-    {
+    public SequencedInputSupplier(InputSupplier supp) {
         super();
         this.add(supp);
     }
 
-    public SequencedInputSupplier()
-    {
+    public SequencedInputSupplier() {
         super();
     }
 
-    public SequencedInputSupplier(int size)
-    {
+    public SequencedInputSupplier(int size) {
         super(size);
     }
 
     @Override
-    public void close() throws IOException
-    {
+    public void close() throws IOException {
         for (InputSupplier sup : this)
             sup.close();
     }
 
     @Override
-    public String getRoot(String resource)
-    {
-        for (InputSupplier sup : this)
-        {
-            String out =  sup.getRoot(resource);
-            if (out != null)
-            {
+    public String getRoot(String resource) {
+        for (InputSupplier sup : this) {
+            String out = sup.getRoot(resource);
+            if (out != null) {
                 return out;
             }
         }
@@ -70,13 +62,10 @@ public class SequencedInputSupplier extends ArrayList<InputSupplier> implements 
     }
 
     @Override
-    public InputStream getInput(String relPath)
-    {
-        for (InputSupplier sup : this)
-        {
-            InputStream out =  sup.getInput(relPath);
-            if (out != null)
-            {
+    public InputStream getInput(String relPath) {
+        for (InputSupplier sup : this) {
+            InputStream out = sup.getInput(relPath);
+            if (out != null) {
                 return out;
             }
         }
@@ -85,8 +74,7 @@ public class SequencedInputSupplier extends ArrayList<InputSupplier> implements 
     }
 
     @Override
-    public List<String> gatherAll(String endFilter)
-    {
+    public List<String> gatherAll(String endFilter) {
         LinkedList<String> all = new LinkedList<>();
         for (InputSupplier sup : this)
             all.addAll(sup.gatherAll(endFilter));

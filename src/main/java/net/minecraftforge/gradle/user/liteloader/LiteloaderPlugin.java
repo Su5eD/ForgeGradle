@@ -39,8 +39,7 @@ import java.util.Map;
 import static net.minecraftforge.gradle.common.Constants.*;
 import static net.minecraftforge.gradle.user.UserConstants.CONFIG_DC_RESOLVED;
 
-public class LiteloaderPlugin extends UserVanillaBasePlugin<LiteloaderExtension>
-{
+public class LiteloaderPlugin extends UserVanillaBasePlugin<LiteloaderExtension> {
     public static final String CONFIG_LL_DEOBF_COMPILE = "liteloaderDeobfCompile";
     public static final String CONFIG_LL_DC_RESOLVED = "liteloaderResolvedDeobfCompile";
 
@@ -65,8 +64,7 @@ public class LiteloaderPlugin extends UserVanillaBasePlugin<LiteloaderExtension>
     private Artifact artifact;
 
     @Override
-    protected void applyVanillaUserPlugin()
-    {
+    protected void applyVanillaUserPlugin() {
         final ConfigurationContainer configs = this.project.getConfigurations();
         configs.maybeCreate(CONFIG_LL_DEOBF_COMPILE);
         configs.maybeCreate(CONFIG_LL_DC_RESOLVED);
@@ -80,25 +78,24 @@ public class LiteloaderPlugin extends UserVanillaBasePlugin<LiteloaderExtension>
         String baseName = MODFILE_PREFIX + this.project.property("archivesBaseName").toString().toLowerCase();
 
         TaskContainer tasks = this.project.getTasks();
-        final Jar jar = (Jar)tasks.getByName("jar");
+        final Jar jar = (Jar) tasks.getByName("jar");
         jar.getArchiveExtension().set(MODFILE_EXTENSION);
         jar.getArchiveBaseName().set(baseName);
 
-        final Jar sourceJar = (Jar)tasks.getByName("sourceJar");
+        final Jar sourceJar = (Jar) tasks.getByName("sourceJar");
         sourceJar.getArchiveBaseName().set(baseName);
 
         makeTask(TASK_LITEMOD, LiteModTask.class);
     }
 
     @Override
-    protected void afterEvaluate()
-    {
+    protected void afterEvaluate() {
         super.afterEvaluate();
         this.applyJson();
 
         // If user has changed extension back to .jar, write the ModType
         // manifest attribute
-        final Jar jar = (Jar)this.project.getTasks().getByName("jar");
+        final Jar jar = (Jar) this.project.getTasks().getByName("jar");
         if ("jar".equals(jar.getArchiveExtension().get())) {
             Attributes attributes = jar.getManifest().getAttributes();
             attributes.putIfAbsent(MFATT_MODTYPE, MODSYSTEM);
@@ -106,8 +103,7 @@ public class LiteloaderPlugin extends UserVanillaBasePlugin<LiteloaderExtension>
     }
 
     @Override
-    protected void setupDevTimeDeobf(final Task compileDummy, final Task providedDummy)
-    {
+    protected void setupDevTimeDeobf(final Task compileDummy, final Task providedDummy) {
         super.setupDevTimeDeobf(compileDummy, providedDummy);
 
         // die with error if I find invalid types...
@@ -119,159 +115,131 @@ public class LiteloaderPlugin extends UserVanillaBasePlugin<LiteloaderExtension>
         });
     }
 
-    private void applyJson()
-    {
-        if (this.json == null)
-        {
+    private void applyJson() {
+        if (this.json == null) {
             return;
         }
 
         VersionObject version = this.json.versions.get(this.getExtension().getVersion());
-        if (version != null)
-        {
+        if (version != null) {
             this.setRepo(version.repo);
             this.setArtifact(version.latest);
             this.applyDependenciesFromJson();
         }
     }
 
-    private void applyDependenciesFromJson()
-    {
+    private void applyDependenciesFromJson() {
         final RepoObject repo = this.getRepo();
-        if (repo == null)
-        {
+        if (repo == null) {
             return;
         }
 
         this.project.allprojects(proj -> addMavenRepo(proj, MAVEN_REPO_NAME, repo.url));
 
         Artifact artifact = this.getArtifact();
-        if (artifact == null)
-        {
+        if (artifact == null) {
             return;
         }
         addDependency(this.project, CONFIG_LL_DEOBF_COMPILE, artifact.getDepString(repo));
 
-        for (Map<String, String> library : artifact.getLibraries())
-        {
+        for (Map<String, String> library : artifact.getLibraries()) {
             String name = library.get("name");
-            if (name != null && !name.isEmpty())
-            {
+            if (name != null && !name.isEmpty()) {
                 addDependency(this.project, CONFIG_MC_DEPS, name);
             }
 
             String url = library.get("url");
-            if (url != null && !url.isEmpty())
-            {
+            if (url != null && !url.isEmpty()) {
                 addMavenRepo(this.project, url, url);
             }
         }
     }
 
-    public VersionObject getVersion(String version)
-    {
+    public VersionObject getVersion(String version) {
         return this.json != null ? this.json.versions.get(version) : null;
     }
 
-    public LiteLoaderJson getJson()
-    {
+    public LiteLoaderJson getJson() {
         return this.json;
     }
 
-    public void setJson(LiteLoaderJson json)
-    {
+    public void setJson(LiteLoaderJson json) {
         this.json = json;
     }
 
-    public RepoObject getRepo()
-    {
+    public RepoObject getRepo() {
         return this.repo;
     }
 
-    public void setRepo(RepoObject repo)
-    {
+    public void setRepo(RepoObject repo) {
         this.repo = repo;
     }
 
-    public Artifact getArtifact()
-    {
+    public Artifact getArtifact() {
         return this.artifact;
     }
 
-    public void setArtifact(Artifact artifact)
-    {
+    public void setArtifact(Artifact artifact) {
         this.artifact = artifact;
     }
 
     @Override
-    protected String getJarName()
-    {
+    protected String getJarName() {
         return "minecraft";
     }
 
     @Override
-    protected void createDecompTasks(String globalPattern, String localPattern)
-    {
+    protected void createDecompTasks(String globalPattern, String localPattern) {
         super.makeDecompTasks(globalPattern, localPattern, delayedFile(JAR_CLIENT_FRESH), TASK_DL_CLIENT, delayedFile(MCP_PATCHES_CLIENT), delayedFile(MCP_INJECT));
     }
 
     @Override
-    protected boolean hasServerRun()
-    {
+    protected boolean hasServerRun() {
         return false;
     }
 
     @Override
-    protected boolean hasClientRun()
-    {
+    protected boolean hasClientRun() {
         return true;
     }
 
     @Override
-    protected Object getStartDir()
-    {
+    protected Object getStartDir() {
         return delayedFile(REPLACE_CACHE_DIR + "/net/minecraft/" + getJarName() + "/" + REPLACE_MC_VERSION + "/start");
     }
 
     @Override
-    protected String getClientTweaker(LiteloaderExtension ext)
-    {
+    protected String getClientTweaker(LiteloaderExtension ext) {
         return "com.mumfrey.liteloader.launch.LiteLoaderTweaker";
     }
 
     @Override
-    protected String getClientRunClass(LiteloaderExtension ext)
-    {
+    protected String getClientRunClass(LiteloaderExtension ext) {
         return "com.mumfrey.liteloader.debug.Start";
     }
 
     @Override
-    protected String getServerTweaker(LiteloaderExtension ext)
-    {
+    protected String getServerTweaker(LiteloaderExtension ext) {
         return "";// never run on server.. so...
     }
 
     @Override
-    protected String getServerRunClass(LiteloaderExtension ext)
-    {
+    protected String getServerRunClass(LiteloaderExtension ext) {
         // irrelevant..
         return "";
     }
 
     @Override
-    protected List<String> getClientJvmArgs(LiteloaderExtension ext)
-    {
+    protected List<String> getClientJvmArgs(LiteloaderExtension ext) {
         return ext.getResolvedClientJvmArgs();
     }
 
     @Override
-    protected List<String> getServerJvmArgs(LiteloaderExtension ext)
-    {
+    protected List<String> getServerJvmArgs(LiteloaderExtension ext) {
         return ext.getResolvedServerJvmArgs();
     }
 
-    protected void addDependency(Project proj, String configuration, String dependency)
-    {
+    protected void addDependency(Project proj, String configuration, String dependency) {
         proj.getDependencies().add(configuration, dependency);
     }
 }

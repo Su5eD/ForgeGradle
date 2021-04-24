@@ -43,20 +43,26 @@ import java.io.IOException;
 
 import static net.minecraftforge.gradle.common.Constants.addXml;
 
-public class GenEclipseRunTask extends DefaultTask
-{
+public class GenEclipseRunTask extends DefaultTask {
     //@formatter:off
-    @Input           private Object projectName;
-    @Input           private Object mainClass;
-    @Input           private Object runDir;
-    @Input @Optional private Object runArgs;
-    @Input @Optional private Object jvmArgs;
-    @OutputFile      private Object outputFile;
+    @Input
+    private Object projectName;
+    @Input
+    private Object mainClass;
+    @Input
+    private Object runDir;
+    @Input
+    @Optional
+    private Object runArgs;
+    @Input
+    @Optional
+    private Object jvmArgs;
+    @OutputFile
+    private Object outputFile;
     //@formatter:on
 
     @TaskAction
-    public void doTask() throws IOException, ParserConfigurationException, TransformerException
-    {
+    public void doTask() throws IOException, ParserConfigurationException, TransformerException {
         DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
         DocumentBuilder docBuilder = docFactory.newDocumentBuilder();
 
@@ -68,15 +74,13 @@ public class GenEclipseRunTask extends DefaultTask
         addXml(root, "stringAttribute", ImmutableMap.of("key", "org.eclipse.jdt.launching.PROJECT_ATTR", "value", getProjectName()));
         addXml(root, "stringAttribute", ImmutableMap.of("key", "org.eclipse.jdt.launching.WORKING_DIRECTORY", "value", getRunDir()));
 
-        if (!Strings.isNullOrEmpty(getArguments()))
-        {
+        if (!Strings.isNullOrEmpty(getArguments())) {
             addXml(root, "stringAttribute", ImmutableMap.of("key", "org.eclipse.jdt.launching.PROGRAM_ARGUMENTS", "value", getArguments()));
         }
 
         String jvm = getJvmArguments() == null ? "" : getJvmArguments();
-        jvm  += " -DFORGE_FORCE_FRAME_RECALC=true"; //Add a flag to work around Eclipse compiler issues.
-        if (!Strings.isNullOrEmpty(jvm))
-        {
+        jvm += " -DFORGE_FORCE_FRAME_RECALC=true"; //Add a flag to work around Eclipse compiler issues.
+        if (!Strings.isNullOrEmpty(jvm)) {
             addXml(root, "stringAttribute", ImmutableMap.of("key", "org.eclipse.jdt.launching.VM_ARGUMENTS", "value", jvm));
         }
 
@@ -94,63 +98,51 @@ public class GenEclipseRunTask extends DefaultTask
         new File(getRunDir()).mkdirs();
     }
 
-    public String getProjectName()
-    {
+    public String getProjectName() {
         return Constants.resolveString(projectName);
     }
 
-    public void setProjectName(Object projectName)
-    {
+    public void setProjectName(Object projectName) {
         this.projectName = projectName;
     }
 
-    public String getArguments()
-    {
+    public String getArguments() {
         return Constants.resolveString(runArgs);
     }
 
-    public void setArguments(Object arguments)
-    {
+    public void setArguments(Object arguments) {
         this.runArgs = arguments;
     }
 
-    public String getJvmArguments()
-    {
+    public String getJvmArguments() {
         return Constants.resolveString(jvmArgs);
     }
 
-    public void setJvmArguments(Object arguments)
-    {
+    public void setJvmArguments(Object arguments) {
         this.jvmArgs = arguments;
     }
 
-    public String getRunDir()
-    {
+    public String getRunDir() {
         return Constants.resolveString(runDir);
     }
 
-    public void setRunDir(Object runDir)
-    {
+    public void setRunDir(Object runDir) {
         this.runDir = runDir;
     }
 
-    public File getOutputFile()
-    {
+    public File getOutputFile() {
         return getProject().file(outputFile);
     }
 
-    public void setOutputFile(Object outputFile)
-    {
+    public void setOutputFile(Object outputFile) {
         this.outputFile = outputFile;
     }
 
-    public String getMainClass()
-    {
+    public String getMainClass() {
         return Constants.resolveString(mainClass);
     }
 
-    public void setMainClass(Object mainClass)
-    {
+    public void setMainClass(Object mainClass) {
         this.mainClass = mainClass;
     }
 }

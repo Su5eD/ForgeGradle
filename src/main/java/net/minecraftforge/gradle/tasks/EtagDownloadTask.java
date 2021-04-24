@@ -37,24 +37,21 @@ import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
 
-public class EtagDownloadTask extends DefaultTask
-{
+public class EtagDownloadTask extends DefaultTask {
     @Input
     private Object url;
     @OutputFile
     private Object file;
     @Input
-    boolean        dieWithError;
+    boolean dieWithError;
 
-    public EtagDownloadTask()
-    {
+    public EtagDownloadTask() {
         super();
         this.getOutputs().upToDateWhen(Constants.CALL_FALSE);
     }
 
     @TaskAction
-    public void doTask() throws IOException
-    {
+    public void doTask() throws IOException {
         URL url = getUrl();
         File outFile = getFile();
         File etagFile = getProject().file(getFile().getPath() + ".etag");
@@ -63,17 +60,13 @@ public class EtagDownloadTask extends DefaultTask
         outFile.getParentFile().mkdirs();
 
         String etag;
-        if (etagFile.exists())
-        {
+        if (etagFile.exists()) {
             etag = Files.asCharSource(etagFile, Charsets.UTF_8).read();
-        }
-        else
-        {
+        } else {
             etag = "";
         }
 
-        try
-        {
+        try {
             HttpURLConnection con = (HttpURLConnection) url.openConnection();
             con.setInstanceFollowRedirects(true);
             con.setRequestProperty("User-Agent", Constants.USER_AGENT);
@@ -81,90 +74,74 @@ public class EtagDownloadTask extends DefaultTask
 
             con.connect();
 
-            switch (con.getResponseCode())
-                {
-                    case 404: // file not found.... duh...
-                        error("" + url + "  404'ed!");
-                        break;
-                    case 304: // content is the same.
-                        this.setDidWork(false);
-                        break;
-                    case 200: // worked
+            switch (con.getResponseCode()) {
+                case 404: // file not found.... duh...
+                    error("" + url + "  404'ed!");
+                    break;
+                case 304: // content is the same.
+                    this.setDidWork(false);
+                    break;
+                case 200: // worked
 
-                        // write file
-                        try (InputStream stream = con.getInputStream())
-                        {
-                            Files.write(ByteStreams.toByteArray(stream), outFile);
-                        }
+                    // write file
+                    try (InputStream stream = con.getInputStream()) {
+                        Files.write(ByteStreams.toByteArray(stream), outFile);
+                    }
 
-                        // write etag
-                        etag = con.getHeaderField("ETag");
-                        if (!Strings.isNullOrEmpty(etag))
-                        {
-                            Files.asCharSink(etagFile, Charsets.UTF_8).write(etag);
-                        }
+                    // write etag
+                    etag = con.getHeaderField("ETag");
+                    if (!Strings.isNullOrEmpty(etag)) {
+                        Files.asCharSink(etagFile, Charsets.UTF_8).write(etag);
+                    }
 
-                        break;
-                    default: // another code?? uh..
-                        error("Unexpected reponse " + con.getResponseCode() + " from " + url);
-                        break;
-                }
+                    break;
+                default: // another code?? uh..
+                    error("Unexpected reponse " + con.getResponseCode() + " from " + url);
+                    break;
+            }
 
             con.disconnect();
-        }
-        catch (Throwable e)
-        {
+        } catch (Throwable e) {
             // just in case people dont have internet at the moment.
             error(e.getLocalizedMessage());
         }
     }
 
-    private void error(String error)
-    {
-        if (dieWithError)
-        {
+    private void error(String error) {
+        if (dieWithError) {
             throw new RuntimeException(error);
-        }
-        else
-        {
+        } else {
             this.setDidWork(false);
             getLogger().error(error);
         }
     }
 
     @SuppressWarnings("rawtypes")
-    public URL getUrl() throws MalformedURLException
-    {
-        while (url instanceof Closure)
-        {
+    public URL getUrl() throws MalformedURLException {
+        while (url instanceof Closure) {
             url = ((Closure) url).call();
         }
 
         return new URL(url.toString());
     }
 
-    public void setUrl(Object url)
-    {
+    public void setUrl(Object url) {
         this.url = url;
     }
 
-    public File getFile()
-    {
+    public File getFile() {
         return getProject().file(file);
     }
 
-    public void setFile(Object file)
-    {
+    public void setFile(Object file) {
         this.file = file;
     }
 
-    public boolean isDieWithError()
-    {
+    public boolean isDieWithError() {
         return dieWithError;
     }
 
-    public void setDieWithError(boolean dieWithError)
-    {
+    public void setDieWithError(boolean dieWithError) {
         this.dieWithError = dieWithError;
     }
 }

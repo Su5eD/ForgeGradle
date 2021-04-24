@@ -29,33 +29,28 @@ import java.io.IOException;
 import java.util.jar.JarEntry;
 import java.util.jar.JarOutputStream;
 
-public class TaskDepDummy extends DefaultTask
-{
+public class TaskDepDummy extends DefaultTask {
     @OutputFile
     private Object outputFile;
 
     @TaskAction
-    public void makeEmptyJar() throws IOException
-    {
+    public void makeEmptyJar() throws IOException {
         File out = getOutputFile();
         out.getParentFile().mkdirs();
 
         // yup.. a dummy jar....
-        try (JarOutputStream stream = new JarOutputStream(new FileOutputStream(out)))
-        {
+        try (JarOutputStream stream = new JarOutputStream(new FileOutputStream(out))) {
             stream.putNextEntry(new JarEntry("dummyThing"));
             stream.write(0xffffffff);
             stream.closeEntry();
         }
     }
 
-    public File getOutputFile()
-    {
+    public File getOutputFile() {
         return getProject().file(outputFile);
     }
 
-    public void setOutputFile(Object outputFile)
-    {
+    public void setOutputFile(Object outputFile) {
         this.outputFile = outputFile;
     }
 }

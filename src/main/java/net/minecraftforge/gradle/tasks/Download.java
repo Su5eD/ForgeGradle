@@ -35,8 +35,7 @@ import java.nio.channels.Channels;
 import java.nio.channels.FileChannel;
 import java.nio.channels.ReadableByteChannel;
 
-public class Download extends CachedTask
-{
+public class Download extends CachedTask {
     @Input
     private Object url;
 
@@ -45,8 +44,7 @@ public class Download extends CachedTask
     private Object output;
 
     @TaskAction
-    public void doTask() throws IOException
-    {
+    public void doTask() throws IOException {
         File outputFile = getProject().file(getOutput());
         outputFile.getParentFile().mkdirs();
         outputFile.createNewFile();
@@ -57,10 +55,9 @@ public class Download extends CachedTask
         connect.setRequestProperty("User-Agent", Constants.USER_AGENT);
         connect.setInstanceFollowRedirects(true);
 
-        try (ReadableByteChannel  inChannel  = Channels.newChannel(connect.getInputStream());
-             FileOutputStream     outFile = new FileOutputStream(outputFile);
-             FileChannel          outChannel = outFile.getChannel())
-        {
+        try (ReadableByteChannel inChannel = Channels.newChannel(connect.getInputStream());
+             FileOutputStream outFile = new FileOutputStream(outputFile);
+             FileChannel outChannel = outFile.getChannel()) {
             // If length is longer than what is available, it copies what is available according to java docs.
             // Therefore, I use Long.MAX_VALUE which is a theoretical maximum.
             outChannel.transferFrom(inChannel, 0, Long.MAX_VALUE);
@@ -69,23 +66,19 @@ public class Download extends CachedTask
         getLogger().info("Download complete");
     }
 
-    public File getOutput()
-    {
+    public File getOutput() {
         return getProject().file(output);
     }
 
-    public void setOutput(Object output)
-    {
+    public void setOutput(Object output) {
         this.output = output;
     }
 
-    public String getUrl()
-    {
+    public String getUrl() {
         return Constants.resolveString(url);
     }
 
-    public void setUrl(Object url)
-    {
+    public void setUrl(Object url) {
         this.url = url;
     }
 }

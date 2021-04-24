@@ -2,8 +2,7 @@ package net.minecraftforge.gradle.util.json.version;
 
 import java.util.Locale;
 
-public enum OS
-{
+public enum OS {
     LINUX("linux", "bsd", "unix"),
     WINDOWS("windows", "win"),
     OSX("osx", "mac"),
@@ -15,20 +14,16 @@ public enum OS
     public static final OS CURRENT = getCurrentPlatform();
     public static final String VERSION = System.getProperty("os.version");
 
-    OS(String name, String... aliases)
-    {
+    OS(String name, String... aliases) {
         this.name = name;
         this.aliases = aliases;
     }
 
-    public static OS getCurrentPlatform()
-    {
+    public static OS getCurrentPlatform() {
         String osName = System.getProperty("os.name").toLowerCase(Locale.US);
-        for (OS os : values())
-        {
+        for (OS os : values()) {
             if (osName.contains(os.name)) return os;
-            for (String alias : os.aliases)
-            {
+            for (String alias : os.aliases) {
                 if (osName.contains(alias)) return os;
             }
         }
@@ -36,8 +31,7 @@ public enum OS
     }
 
     @Override
-    public String toString()
-    {
+    public String toString() {
         return name;
     }
 }

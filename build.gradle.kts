@@ -67,11 +67,11 @@ configurations {
     create("deployerJars")
     create("shade")
     compileOnly.get().extendsFrom(getByName("shade"))
-            all {
-                resolutionStrategy {
-                    force("org.ow2.asm:asm-commons:6.0", "org.ow2.asm:asm-tree:6.0", "org.ow2.asm:asm:6.0")
-                }
-            }
+    all {
+        resolutionStrategy {
+            force("org.ow2.asm:asm-commons:6.0", "org.ow2.asm:asm-tree:6.0", "org.ow2.asm:asm:6.0")
+        }
+    }
 }
 
 dependencies {
@@ -170,13 +170,23 @@ tasks {
 
             }
             */
-            from(project.zipTree(dep)){
-                exclude("META-INF", "META-INF/**", ".api_description", ".options", "about.html", "module-info.class", "plugin.properties", "plugin.xml", "about_files/**")
+            from(project.zipTree(dep)) {
+                exclude(
+                    "META-INF",
+                    "META-INF/**",
+                    ".api_description",
+                    ".options",
+                    "about.html",
+                    "module-info.class",
+                    "plugin.properties",
+                    "plugin.xml",
+                    "about_files/**"
+                )
                 duplicatesStrategy = DuplicatesStrategy.WARN
             }
         }
 
-        from(zipTree(named<PatchJDTClasses>("patchJDT").get().output)){
+        from(zipTree(named<PatchJDTClasses>("patchJDT").get().output)) {
             duplicatesStrategy = DuplicatesStrategy.INCLUDE
         }
 
@@ -225,7 +235,7 @@ license {
     }
     header = rootProject.file("HEADER")
     include("**net/minecraftforge/gradle/**/*.java")
-    excludes (
+    excludes(
         mutableSetOf(
             "**net/minecraftforge/gradle/util/ZipFileTree.java",
             "**net/minecraftforge/gradle/util/json/version/*",
@@ -333,7 +343,7 @@ fun getGitHash(): String {
 }
 
 //TODO: Eclipse complains about unused messages. Find a way to make it shut up.
-open class PatchJDTClasses: DefaultTask() {
+open class PatchJDTClasses : DefaultTask() {
     companion object {
         const val compilationUnitResolver = "org/eclipse/jdt/core/dom/CompilationUnitResolver"
         const val rangeExtractor = "net/minecraftforge/srg2source/ast/RangeExtractor"
@@ -344,8 +354,10 @@ open class PatchJDTClasses: DefaultTask() {
 
     @Input
     val targets: MutableSet<String> = HashSet()
+
     @Input
     val libraries: MutableSet<File> = HashSet()
+
     @OutputFile
     lateinit var output: File
 
@@ -361,8 +373,8 @@ open class PatchJDTClasses: DefaultTask() {
     fun patchClass() {
         val toProcess: MutableSet<String> = targets.toMutableSet()
         ZipOutputStream(FileOutputStream(output)).use { zout ->
-            libraries.stream().filter{ !it.isDirectory }.forEach { lib ->
-                ZipFile(lib).use useZip@ { zin ->
+            libraries.stream().filter { !it.isDirectory }.forEach { lib ->
+                ZipFile(lib).use useZip@{ zin ->
                     val remove: MutableSet<String> = HashSet()
                     toProcess.forEach { target ->
                         val entry = zin.getEntry("$target.class") ?: return@useZip
@@ -375,7 +387,8 @@ open class PatchJDTClasses: DefaultTask() {
                         //So we patch this call to redirect to us, so we can get the contents from our InputSupplier
                         if (compilationUnitResolver == target) {
                             logger.lifecycle("Transforming: $target From: $lib")
-                            val resolve = node.methods.find { resolveMethod == it.name + it.desc } ?: throw RuntimeException("Failed to patch $target: Could not find method $resolveMethod")
+                            val resolve = node.methods.find { resolveMethod == it.name + it.desc }
+                                ?: throw RuntimeException("Failed to patch $target: Could not find method $resolveMethod")
 
                             for (i in 1..resolve.instructions.size()) {
                                 val insn: MethodInsnNode = resolve.instructions.get(i) as MethodInsnNode
@@ -402,7 +415,7 @@ open class PatchJDTClasses: DefaultTask() {
                             }
                         } else if (rangeExtractor == target) {
                             logger.lifecycle("Tansforming: $target From: $lib")
-                            val marker = node.methods.find{ "hasBeenASMPatched()Z" == it.name + it.desc } ?: throw RuntimeException("Failed to patch $target: Could not find method hasBeenASMPatched()Z")
+                            val marker = node.methods.find { "hasBeenASMPatched()Z" == it.name + it.desc } ?: throw RuntimeException("Failed to patch $target: Could not find method hasBeenASMPatched()Z")
                             marker.instructions.clear()
                             marker.instructions.add(InsnNode(Opcodes.ICONST_1))
                             marker.instructions.add(InsnNode(Opcodes.IRETURN))

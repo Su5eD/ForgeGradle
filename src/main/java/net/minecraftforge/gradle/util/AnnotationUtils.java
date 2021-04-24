@@ -30,17 +30,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-public class AnnotationUtils
-{
-    public static ASMInfo processClass(byte[] data)
-    {
+public class AnnotationUtils {
+    public static ASMInfo processClass(byte[] data) {
         final ASMInfo info = new ASMInfo();
         ClassReader reader = new ClassReader(data);
-        reader.accept(new ClassVisitor(Opcodes.ASM6)
-        {
+        reader.accept(new ClassVisitor(Opcodes.ASM6) {
             @Override
-            public void visit(int version, int access, String name, String signature, String superName, String[] interfaces)
-            {
+            public void visit(int version, int access, String name, String signature, String superName, String[] interfaces) {
                 info.name = name;
                 info.version = version;
                 //info.super_type = Strings.isNullOrEmpty(superName) ? null : superName;
@@ -48,32 +44,25 @@ public class AnnotationUtils
             }
 
             @Override
-            public AnnotationVisitor visitAnnotation(String annotationName, boolean runtimeVisible)
-            {
+            public AnnotationVisitor visitAnnotation(String annotationName, boolean runtimeVisible) {
                 return new ModAnnotationVisitor(info, new Annotation(TargetType.CLASS, annotationName, info.name));
             }
 
             @Override
-            public FieldVisitor visitField(int access, final String name, String desc, String signature, Object value)
-            {
-                return new FieldVisitor(Opcodes.ASM6)
-                {
+            public FieldVisitor visitField(int access, final String name, String desc, String signature, Object value) {
+                return new FieldVisitor(Opcodes.ASM6) {
                     @Override
-                    public AnnotationVisitor visitAnnotation(String annotationName, boolean runtimeVisible)
-                    {
+                    public AnnotationVisitor visitAnnotation(String annotationName, boolean runtimeVisible) {
                         return new ModAnnotationVisitor(info, new Annotation(TargetType.FIELD, annotationName, name));
                     }
                 };
             }
 
             @Override
-            public MethodVisitor visitMethod(int access, final String name, final String desc, String signature, String[] exceptions)
-            {
-                return new MethodVisitor(Opcodes.ASM6)
-                {
+            public MethodVisitor visitMethod(int access, final String name, final String desc, String signature, String[] exceptions) {
+                return new MethodVisitor(Opcodes.ASM6) {
                     @Override
-                    public AnnotationVisitor visitAnnotation(String annotationName, boolean runtimeVisible)
-                    {
+                    public AnnotationVisitor visitAnnotation(String annotationName, boolean runtimeVisible) {
                         return new ModAnnotationVisitor(info, new Annotation(TargetType.METHOD, annotationName, name + desc));
                     }
                 };
@@ -83,51 +72,48 @@ public class AnnotationUtils
         return info;
     }
 
-    public static class ASMInfo
-    {
+    public static class ASMInfo {
         public String name;
         public Integer version = -1; //Used this to pass up, will be nulled out so it doesn't actually make it to the json
         //public String super_type; // Was used for looking for ModLoader mods, but not used anymore.
         public String[] interfaces;
         public List<Annotation> annotations;
 
-        public void add(Annotation anno)
-        {
+        public void add(Annotation anno) {
             if (annotations == null)
                 this.annotations = Lists.newArrayList();
             this.annotations.add(anno);
         }
     }
 
-    public enum TargetType { CLASS, FIELD, METHOD, SUBTYPE }
+    public enum TargetType {CLASS, FIELD, METHOD, SUBTYPE}
 
-    public static class ValueHolder
-    {
-        public enum ValueType { BOOL, BYTE, CHAR, SHORT, INT, LONG, FLOAT, DOUBLE, STRING, CLASS, ENUM, ANNOTATION, NULL}
+    public static class ValueHolder {
+        public enum ValueType {BOOL, BYTE, CHAR, SHORT, INT, LONG, FLOAT, DOUBLE, STRING, CLASS, ENUM, ANNOTATION, NULL}
 
         private static final Map<Class<?>, ValueType> byClass = ImmutableMap.<Class<?>, ValueType>builder()
-            .put(Boolean.class,   ValueType.BOOL  )
-            .put(boolean[].class, ValueType.BOOL  )
-            .put(Byte.class,      ValueType.BYTE  )
-            .put(byte[].class,    ValueType.BYTE  )
-            .put(Character.class, ValueType.CHAR  )
-            .put(char[].class,    ValueType.CHAR  )
-            .put(Short.class,     ValueType.SHORT )
-            .put(short[].class,   ValueType.SHORT )
-            .put(Integer.class,   ValueType.INT   )
-            .put(int[].class,     ValueType.INT   )
-            .put(Long.class,      ValueType.LONG  )
-            .put(long[].class,    ValueType.LONG  )
-            .put(Float.class,     ValueType.FLOAT )
-            .put(float[].class,   ValueType.FLOAT )
-            .put(Double.class,    ValueType.DOUBLE)
-            .put(double[].class,  ValueType.DOUBLE)
-            //.put(String.class,    ValueType.STRING)
-            //.put(String[].class,  ValueType.STRING)
-            .put(Type.class,      ValueType.CLASS)
-            .put(Type[].class,    ValueType.CLASS)
-            // We deal with enums and annotations elseware
-            .build();
+                .put(Boolean.class, ValueType.BOOL)
+                .put(boolean[].class, ValueType.BOOL)
+                .put(Byte.class, ValueType.BYTE)
+                .put(byte[].class, ValueType.BYTE)
+                .put(Character.class, ValueType.CHAR)
+                .put(char[].class, ValueType.CHAR)
+                .put(Short.class, ValueType.SHORT)
+                .put(short[].class, ValueType.SHORT)
+                .put(Integer.class, ValueType.INT)
+                .put(int[].class, ValueType.INT)
+                .put(Long.class, ValueType.LONG)
+                .put(long[].class, ValueType.LONG)
+                .put(Float.class, ValueType.FLOAT)
+                .put(float[].class, ValueType.FLOAT)
+                .put(Double.class, ValueType.DOUBLE)
+                .put(double[].class, ValueType.DOUBLE)
+                //.put(String.class,    ValueType.STRING)
+                //.put(String[].class,  ValueType.STRING)
+                .put(Type.class, ValueType.CLASS)
+                .put(Type[].class, ValueType.CLASS)
+                // We deal with enums and annotations elseware
+                .build();
 
         private static final ValueHolder NULL = new ValueHolder();
         private static final ValueHolder EMPTY_LIST = new ValueHolder(null, null, Lists.newArrayList());
@@ -136,59 +122,49 @@ public class AnnotationUtils
         public final String value;
         public final List<String> values;
 
-        private ValueHolder(Object value)
-        {
+        private ValueHolder(Object value) {
             Class<?> cls = value.getClass();
-            if (cls.isArray())
-            {
+            if (cls.isArray()) {
                 this.value = null;
                 this.values = Lists.newArrayList();
                 for (int x = 0; x < Array.getLength(value); x++)
                     this.values.add(Array.get(value, x).toString());
-            }
-            else
-            {
+            } else {
                 this.value = value.toString();
                 this.values = null;
             }
             this.type = ValueHolder.byClass.get(value.getClass());
         }
 
-        private ValueHolder(String type, String value)
-        {
+        private ValueHolder(String type, String value) {
             this(ValueType.ENUM, type + "/" + value, null);
         }
 
-        private ValueHolder()
-        {
+        private ValueHolder() {
             this(ValueType.NULL, null, null);
         }
 
-        private ValueHolder(ValueType type, String value, List<String> values)
-        {
+        private ValueHolder(ValueType type, String value, List<String> values) {
             this.type = type;
             this.value = value;
             this.values = values;
         }
 
-        public static ValueHolder of(Object value)
-        {
+        public static ValueHolder of(Object value) {
             if (value == null)
                 return NULL;
 
             if (value instanceof Annotation)
-                return new ValueHolder(ValueType.ANNOTATION, ((Annotation)value).id.toString(), null);
+                return new ValueHolder(ValueType.ANNOTATION, ((Annotation) value).id.toString(), null);
 
             return new ValueHolder(value);
         }
 
-        public static ValueHolder of(String type, String value)
-        {
+        public static ValueHolder of(String type, String value) {
             return new ValueHolder(type, value);
         }
 
-        public static ValueHolder of(List<ValueHolder> values)
-        {
+        public static ValueHolder of(List<ValueHolder> values) {
             if (values.isEmpty())
                 return EMPTY_LIST;
 
@@ -196,8 +172,7 @@ public class AnnotationUtils
         }
     }
 
-    public static class Annotation
-    {
+    public static class Annotation {
         private static int SUB_COUNT = 1;
         public final TargetType type;
         public final String name;
@@ -206,8 +181,7 @@ public class AnnotationUtils
         public ValueHolder value;
         public Map<String, ValueHolder> values;
 
-        public Annotation(TargetType type, String name, String target)
-        {
+        public Annotation(TargetType type, String name, String target) {
             this.type = type;
             this.name = name;
             this.target = target;
@@ -217,78 +191,65 @@ public class AnnotationUtils
         // Possible Types: boolean, byte, char, short, int, long, float, double, String, Class, Enum, and annotation.
         // It's also possible to be an array of any of those types.
         // Writing to JSON is lossy... so.. we need to write a custom parser?
-        public void addProperty(String name, ValueHolder value)
-        {
+        public void addProperty(String name, ValueHolder value) {
             if (values == null)
                 values = Maps.newTreeMap();
             values.put(name, value);
         }
     }
 
-    private static class ModAnnotationVisitor extends AnnotationVisitor
-    {
+    private static class ModAnnotationVisitor extends AnnotationVisitor {
         protected final Annotation anno;
         private final ASMInfo info;
 
-        public ModAnnotationVisitor(ASMInfo info, Annotation annon)
-        {
+        public ModAnnotationVisitor(ASMInfo info, Annotation annon) {
             super(Opcodes.ASM6);
             this.info = info;
             this.anno = annon;
         }
 
         @Override
-        public void visit(String name, Object value)
-        {
+        public void visit(String name, Object value) {
             anno.addProperty(name, ValueHolder.of(value));
         }
 
         @Override
-        public void visitEnum(String name, String desc, String value)
-        {
+        public void visitEnum(String name, String desc, String value) {
             anno.addProperty(name, ValueHolder.of(desc, value));
         }
 
         @Override
-        public AnnotationVisitor visitArray(String name)
-        {
+        public AnnotationVisitor visitArray(String name) {
             final List<ValueHolder> array = Lists.newArrayList();
-            Annotation holder = new Annotation(null, null, null)
-            {
+            Annotation holder = new Annotation(null, null, null) {
                 @Override
-                public void addProperty(String name, ValueHolder value)
-                {
+                public void addProperty(String name, ValueHolder value) {
                     array.add(value);
                 }
             };
 
-            return new ModAnnotationVisitor(info, holder)
-            {
+            return new ModAnnotationVisitor(info, holder) {
                 @Override
-                public void visitEnd()
-                {
+                public void visitEnd() {
                     ModAnnotationVisitor.this.anno.addProperty(name, ValueHolder.of(array));
                 }
             };
         }
 
         @Override
-        public AnnotationVisitor visitAnnotation(String name, String desc)
-        {
+        public AnnotationVisitor visitAnnotation(String name, String desc) {
             Annotation child = new Annotation(TargetType.SUBTYPE, desc, null);
             anno.addProperty(name, ValueHolder.of(child));
             return new ModAnnotationVisitor(info, child);
         }
 
         @Override
-        public void visitEnd()
-        {
+        public void visitEnd() {
             if (!filterAnnotation(this.anno))
                 info.add(this.anno);
         }
 
-        private boolean filterAnnotation(Annotation anno)
-        {
+        private boolean filterAnnotation(Annotation anno) {
             //TODO: Actually load the annotation and filter anything with a special annotation?
             //For now we just filter 'java.*' annotations. And a couple of Forge ones.
             return anno.name.startsWith("Ljava/lang/") ||

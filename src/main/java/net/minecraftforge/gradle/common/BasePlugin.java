@@ -70,21 +70,73 @@ import java.util.List;
 import java.util.Map;
 
 import static net.minecraftforge.gradle.common.Constants.*;
-public abstract class BasePlugin<K extends BaseExtension> implements Plugin<Project>
-{
-    private static final Logger LOGGER = Logging.getLogger(BasePlugin.class);
 
-    public Project       project;
+public abstract class BasePlugin<K extends BaseExtension> implements Plugin<Project> {
+    private static final Logger LOGGER = Logging.getLogger(BasePlugin.class);
+    private static boolean displayBanner = true;
+    public Project project;
     public BasePlugin<?> otherPlugin;
     public ReplacementProvider replacer = new ReplacementProvider();
-
     private Map<String, ManifestVersion> mcManifest;
-    private Version                      mcVersionJson;
+    private Version mcVersionJson;
+    // DELAYED STUFF ONLY ------------------------------------------------------------------------
+    private LoadingCache<String, TokenReplacer> replacerCache = CacheBuilder.newBuilder()
+            .weakValues()
+            .build(
+                    new CacheLoader<String, TokenReplacer>() {
+                        public TokenReplacer load(String key) {
+                            return new TokenReplacer(replacer, key);
+                        }
+                    });
+    private LoadingCache<String, DelayedString> stringCache = CacheBuilder.newBuilder()
+            .weakValues()
+            .build(
+                    new CacheLoader<String, DelayedString>() {
+                        public DelayedString load(String key) {
+                            return new DelayedString(CacheLoader.class, replacerCache.getUnchecked(key));
+                        }
+                    });
+    private LoadingCache<String, DelayedFile> fileCache = CacheBuilder.newBuilder()
+            .weakValues()
+            .build(
+                    new CacheLoader<String, DelayedFile>() {
+                        public DelayedFile load(String key) {
+                            return new DelayedFile(CacheLoader.class, project, replacerCache.getUnchecked(key));
+                        }
+                    });
 
-    @SuppressWarnings({ "rawtypes", "unchecked" })
+    public static <T extends Task> T maybeMakeTask(Project proj, String name, Class<T> type) {
+        return proj.getTasks().maybeCreate(name, type);
+    }
+
+    public static <T extends Task> T makeTask(Project proj, String name, Class<T> type) {
+        return proj.getTasks().create(name, type);
+    }
+
+    public static Project buildProject(File buildFile, Project parent) {
+        ProjectBuilder builder = ProjectBuilder.builder();
+        if (buildFile != null) {
+            builder = builder.withProjectDir(buildFile.getParentFile()).withName(buildFile.getParentFile().getName());
+        } else {
+            builder = builder.withProjectDir(new File("."));
+        }
+
+        if (parent != null) {
+            builder = builder.withParent(parent);
+        }
+
+        Project project = builder.build();
+
+        if (buildFile != null) {
+            project.apply(ImmutableMap.of("from", buildFile.getAbsolutePath()));
+        }
+
+        return project;
+    }
+
+    @SuppressWarnings({"rawtypes", "unchecked"})
     @Override
-    public final void apply(Project arg)
-    {
+    public final void apply(Project arg) {
         project = arg;
 
         // check for gradle version
@@ -104,8 +156,7 @@ public abstract class BasePlugin<K extends BaseExtension> implements Plugin<Proj
                 throw new RuntimeException("ForgeGradle does not currently support Java 9");
         }
 
-        if (project.getBuildDir().getAbsolutePath().contains("!"))
-        {
+        if (project.getBuildDir().getAbsolutePath().contains("!")) {
             LOGGER.error("Build path has !, This will screw over a lot of java things as ! is used to denote archive paths, REMOVE IT if you want to continue");
             throw new RuntimeException("Build path contains !");
         }
@@ -132,8 +183,7 @@ public abstract class BasePlugin<K extends BaseExtension> implements Plugin<Proj
         {
             Type t = getClass().getGenericSuperclass();
 
-            while (t instanceof Class)
-            {
+            while (t instanceof Class) {
                 t = ((Class) t).getGenericSuperclass();
             }
 
@@ -197,27 +247,24 @@ public abstract class BasePlugin<K extends BaseExtension> implements Plugin<Proj
 
     public abstract void applyPlugin();
 
-    private static boolean displayBanner = true;
-
-    private void getRemoteJsons()
-    {
+    private void getRemoteJsons() {
         // MCP json
         File jsonCache = cacheFile("McpMappings.json");
         File etagFile = new File(jsonCache.getAbsolutePath() + ".etag");
         String mcpJson = getWithEtag(URLS_MCP_JSON, jsonCache, etagFile);
-        getExtension().mcpJson = JsonFactory.GSON.fromJson(mcpJson, new TypeToken<Map<String, Map<String, int[]>>>() {}.getType());
+        getExtension().mcpJson = JsonFactory.GSON.fromJson(mcpJson, new TypeToken<Map<String, Map<String, int[]>>>() {
+        }.getType());
 
         // MC manifest json
         jsonCache = cacheFile("McManifest.json");
         etagFile = new File(jsonCache.getAbsolutePath() + ".etag");
-        mcManifest = JsonFactory.GSON.fromJson(getWithEtag(URL_MC_MANIFEST, jsonCache, etagFile), new TypeToken<Map<String, ManifestVersion>>() {}.getType());
+        mcManifest = JsonFactory.GSON.fromJson(getWithEtag(URL_MC_MANIFEST, jsonCache, etagFile), new TypeToken<Map<String, ManifestVersion>>() {
+        }.getType());
     }
 
-    protected void afterEvaluate()
-    {
+    protected void afterEvaluate() {
         // validate MC version
-        if (Strings.isNullOrEmpty(getExtension().getVersion()))
-        {
+        if (Strings.isNullOrEmpty(getExtension().getVersion())) {
             throw new GradleConfigurationException("You must set the Minecraft version!");
         }
 //        JavaPluginConvention javaConv = (JavaPluginConvention) project.getConvention().getPlugins().get("java");
@@ -230,7 +277,7 @@ public abstract class BasePlugin<K extends BaseExtension> implements Plugin<Proj
                 "name", delayedString("mcp_" + REPLACE_MCP_CHANNEL).call(),
                 "version", delayedString(REPLACE_MCP_VERSION + "-" + REPLACE_MCP_MCVERSION).call(),
                 "ext", "zip"
-                ));
+        ));
 
         project.getDependencies().add(CONFIG_MCP_DATA, ImmutableMap.of(
                 "group", "de.oceanlabs.mcp",
@@ -238,13 +285,12 @@ public abstract class BasePlugin<K extends BaseExtension> implements Plugin<Proj
                 "version", delayedString(REPLACE_MC_VERSION).call(),
                 "classifier", "srg",
                 "ext", "zip"
-                ));
+        ));
 
         // Check FG Version, unless its disabled
         List<String> lines = Lists.newArrayListWithExpectedSize(5);
         Object disableUpdateCheck = project.getProperties().get("net.minecraftforge.gradle.disableUpdateChecker");
-        if (!"true".equals(disableUpdateCheck) && !"yes".equals(disableUpdateCheck) && !Boolean.TRUE.equals(disableUpdateCheck))
-        {
+        if (!"true".equals(disableUpdateCheck) && !"yes".equals(disableUpdateCheck) && !Boolean.TRUE.equals(disableUpdateCheck)) {
             doFGVersionCheck(lines);
         }
 
@@ -267,23 +313,19 @@ public abstract class BasePlugin<K extends BaseExtension> implements Plugin<Proj
         displayBanner = false;
     }
 
-    private String getVersionString()
-    {
+    private String getVersionString() {
         String version = this.getClass().getPackage().getImplementationVersion();
-        if (Strings.isNullOrEmpty(version))
-        {
+        if (Strings.isNullOrEmpty(version)) {
             version = this.getExtension().forgeGradleVersion + "-unknown";
         }
 
         return version;
     }
 
-    protected void doFGVersionCheck(List<String> outLines)
-    {
+    protected void doFGVersionCheck(List<String> outLines) {
         String version = getExtension().forgeGradleVersion;
 
-        if (version.endsWith("-SNAPSHOT"))
-        {
+        if (version.endsWith("-SNAPSHOT")) {
             // no version checking necessary if the are on the snapshot already
             return;
         }
@@ -294,35 +336,28 @@ public abstract class BasePlugin<K extends BaseExtension> implements Plugin<Proj
 
         FGVersionWrapper wrapper = JsonFactory.GSON.fromJson(getWithEtag(checkUrl, jsonCache, etagFile), FGVersionWrapper.class);
         FGVersion webVersion = wrapper.versionObjects.get(version);
-        String latestVersion = wrapper.versions.get(wrapper.versions.size()-1);
+        String latestVersion = wrapper.versions.get(wrapper.versions.size() - 1);
 
-        if (webVersion == null || webVersion.status == FGBuildStatus.FINE)
-        {
+        if (webVersion == null || webVersion.status == FGBuildStatus.FINE) {
             return;
         }
 
         // broken implies outdated
-        if (webVersion.status == FGBuildStatus.BROKEN)
-        {
-            outLines.add("ForgeGradle "+webVersion.version+" HAS " + (webVersion.bugs.length > 1 ? "SERIOUS BUGS" : "a SERIOUS BUG") + "!");
-            outLines.add("UPDATE TO "+latestVersion+" IMMEDIATELY!");
+        if (webVersion.status == FGBuildStatus.BROKEN) {
+            outLines.add("ForgeGradle " + webVersion.version + " HAS " + (webVersion.bugs.length > 1 ? "SERIOUS BUGS" : "a SERIOUS BUG") + "!");
+            outLines.add("UPDATE TO " + latestVersion + " IMMEDIATELY!");
             outLines.add(" Bugs:");
-            for (String str : webVersion.bugs)
-            {
-                outLines.add(" -- "+str);
+            for (String str : webVersion.bugs) {
+                outLines.add(" -- " + str);
             }
             outLines.add("****************************");
             return;
-        }
-        else if (webVersion.status == FGBuildStatus.OUTDATED)
-        {
-            outLines.add("ForgeGradle "+latestVersion + " is out! You should update!");
+        } else if (webVersion.status == FGBuildStatus.OUTDATED) {
+            outLines.add("ForgeGradle " + latestVersion + " is out! You should update!");
             outLines.add(" Features:");
 
-            for (int i = webVersion.index; i < wrapper.versions.size(); i++)
-            {
-                for (String feature : wrapper.versionObjects.get(wrapper.versions.get(i)).changes)
-                {
+            for (int i = webVersion.index; i < wrapper.versions.size(); i++) {
+                for (String feature : wrapper.versionObjects.get(wrapper.versions.get(i)).changes) {
                     outLines.add(" -- " + feature);
                 }
             }
@@ -338,13 +373,11 @@ public abstract class BasePlugin<K extends BaseExtension> implements Plugin<Proj
      * @param version The ForgeGradle version
      * @param wrapper Version wrapper
      */
-    protected void onVersionCheck(FGVersion version, FGVersionWrapper wrapper)
-    {
+    protected void onVersionCheck(FGVersion version, FGVersionWrapper wrapper) {
         // not required.. but you probably wanan implement this
     }
 
-    private void addFernFlowerInvokerDeps()
-    {
+    private void addFernFlowerInvokerDeps() {
         DependencyHandler deps = project.getDependencies();
         // Get dependencies from current FG
         Project parent = project;
@@ -368,14 +401,12 @@ public abstract class BasePlugin<K extends BaseExtension> implements Plugin<Proj
     }
 
     @SuppressWarnings("serial")
-    private void makeCommonTasks()
-    {
+    private void makeCommonTasks() {
         EtagDownloadTask getVersionJson = makeTask(TASK_DL_VERSION_JSON, EtagDownloadTask.class);
         {
             getVersionJson.setUrl(new Closure<String>(BasePlugin.class) {
                 @Override
-                public String call()
-                {
+                public String call() {
                     return mcManifest.get(getExtension().getVersion()).url;
                 }
             });
@@ -384,10 +415,8 @@ public abstract class BasePlugin<K extends BaseExtension> implements Plugin<Proj
             getVersionJson.doLast(new Closure<Boolean>(BasePlugin.class) // normalizes to linux endings
             {
                 @Override
-                public Boolean call()
-                {
-                    try
-                    {
+                public Boolean call() {
+                    try {
                         // normalize the line endings...
                         File json = delayedFile(JSON_VERSION).call();
                         if (!json.exists())
@@ -395,15 +424,13 @@ public abstract class BasePlugin<K extends BaseExtension> implements Plugin<Proj
 
                         List<String> lines = Files.readLines(json, Charsets.UTF_8);
                         StringBuilder buf = new StringBuilder();
-                        for (String line : lines)
-                        {
+                        for (String line : lines) {
                             buf = buf.append(line).append('\n');
                         }
                         Files.write(buf.toString().getBytes(Charsets.UTF_8), json);
 
                         // grab the AssetIndex if it isnt already there
-                        if (!replacer.hasReplacement(REPLACE_ASSET_INDEX))
-                        {
+                        if (!replacer.hasReplacement(REPLACE_ASSET_INDEX)) {
                             parseAndStoreVersion(json, json.getParentFile());
                         }
 
@@ -413,9 +440,7 @@ public abstract class BasePlugin<K extends BaseExtension> implements Plugin<Proj
                         {
                             Files.write(buf.toString().getBytes(Charsets.UTF_8), delayedFile("jsons/" + Constants.REPLACE_MC_VERSION + ".json").call());
                         }
-                    }
-                    catch (IOException e)
-                    {
+                    } catch (IOException e) {
                         throw new RuntimeException(e);
                     }
                     return true;
@@ -436,8 +461,7 @@ public abstract class BasePlugin<K extends BaseExtension> implements Plugin<Proj
         {
             getAssetsIndex.setUrl(new Closure<String>(BasePlugin.class) {
                 @Override
-                public String call()
-                {
+                public String call() {
                     return mcVersionJson.assetIndex.url;
                 }
             });
@@ -458,8 +482,7 @@ public abstract class BasePlugin<K extends BaseExtension> implements Plugin<Proj
             dlClient.setOutput(delayedFile(JAR_CLIENT_FRESH));
             dlClient.setUrl(new Closure<String>(BasePlugin.class) {
                 @Override
-                public String call()
-                {
+                public String call() {
                     return mcVersionJson.getClientUrl();
                 }
             });
@@ -472,8 +495,7 @@ public abstract class BasePlugin<K extends BaseExtension> implements Plugin<Proj
             dlServer.setOutput(delayedFile(JAR_SERVER_FRESH));
             dlServer.setUrl(new Closure<String>(BasePlugin.class) {
                 @Override
-                public String call()
-                {
+                public String call() {
                     return mcVersionJson.getServerUrl();
                 }
             });
@@ -557,100 +579,51 @@ public abstract class BasePlugin<K extends BaseExtension> implements Plugin<Proj
      * @see Constants#EXT_NAME_MC
      */
     @SuppressWarnings("unchecked")
-    public final K getExtension()
-    {
+    public final K getExtension() {
         return (K) project.getExtensions().getByName(EXT_NAME_MC);
     }
 
-    public DefaultTask makeTask(String name)
-    {
+    public DefaultTask makeTask(String name) {
         return makeTask(name, DefaultTask.class);
     }
 
-    public DefaultTask maybeMakeTask(String name)
-    {
+    public DefaultTask maybeMakeTask(String name) {
         return maybeMakeTask(name, DefaultTask.class);
     }
 
-    public <T extends Task> T makeTask(String name, Class<T> type)
-    {
+    public <T extends Task> T makeTask(String name, Class<T> type) {
         return makeTask(project, name, type);
     }
 
-    public <T extends Task> T maybeMakeTask(String name, Class<T> type)
-    {
+    public <T extends Task> T maybeMakeTask(String name, Class<T> type) {
         return maybeMakeTask(project, name, type);
     }
 
-    public static <T extends Task> T maybeMakeTask(Project proj, String name, Class<T> type)
-    {
-        return proj.getTasks().maybeCreate(name, type);
-    }
-
-    public static <T extends Task> T makeTask(Project proj, String name, Class<T> type)
-    {
-        return proj.getTasks().create(name, type);
-    }
-
-    public static Project buildProject(File buildFile, Project parent)
-    {
-        ProjectBuilder builder = ProjectBuilder.builder();
-        if (buildFile != null)
-        {
-            builder = builder.withProjectDir(buildFile.getParentFile()).withName(buildFile.getParentFile().getName());
-        }
-        else
-        {
-            builder = builder.withProjectDir(new File("."));
-        }
-
-        if (parent != null)
-        {
-            builder = builder.withParent(parent);
-        }
-
-        Project project = builder.build();
-
-        if (buildFile != null)
-        {
-            project.apply(ImmutableMap.of("from", buildFile.getAbsolutePath()));
-        }
-
-        return project;
-    }
-
-    public void applyExternalPlugin(String plugin)
-    {
+    public void applyExternalPlugin(String plugin) {
         project.apply(ImmutableMap.of("plugin", plugin));
     }
 
-    public MavenArtifactRepository addMavenRepo(Project proj, final String name, final String url)
-    {
+    public MavenArtifactRepository addMavenRepo(Project proj, final String name, final String url) {
         return proj.getRepositories().maven(repo -> {
             repo.setName(name);
             repo.setUrl(url);
         });
     }
 
-    public FlatDirectoryArtifactRepository addFlatRepo(Project proj, final String name, final Object... dirs)
-    {
+    public FlatDirectoryArtifactRepository addFlatRepo(Project proj, final String name, final Object... dirs) {
         return proj.getRepositories().flatDir(repo -> {
             repo.setName(name);
             repo.dirs(dirs);
         });
     }
 
-    protected String getWithEtag(String strUrl, File cache, File etagFile)
-    {
+    protected String getWithEtag(String strUrl, File cache, File etagFile) {
         return getWithEtag(Collections.singletonList(strUrl), cache, etagFile);
     }
 
-    protected String getWithEtag(List<String> strUrls, File cache, File etagFile)
-    {
-        for (String strUrl : strUrls)
-        {
-            try
-            {
+    protected String getWithEtag(List<String> strUrls, File cache, File etagFile) {
+        for (String strUrl : strUrls) {
+            try {
                 if (project.getGradle().getStartParameter().isOffline()) // dont even try the internet
                     return Files.asCharSource(cache, Charsets.UTF_8).read();
 
@@ -659,12 +632,9 @@ public abstract class BasePlugin<K extends BaseExtension> implements Plugin<Proj
                     return Files.asCharSource(cache, Charsets.UTF_8).read();
 
                 String etag;
-                if (etagFile.exists())
-                {
+                if (etagFile.exists()) {
                     etag = Files.asCharSource(etagFile, Charsets.UTF_8).read();
-                }
-                else
-                {
+                } else {
                     etagFile.getParentFile().mkdirs();
                     etag = "";
                 }
@@ -676,62 +646,46 @@ public abstract class BasePlugin<K extends BaseExtension> implements Plugin<Proj
                 con.setRequestProperty("User-Agent", USER_AGENT);
                 con.setIfModifiedSince(cache.lastModified());
 
-                if (!Strings.isNullOrEmpty(etag))
-                {
+                if (!Strings.isNullOrEmpty(etag)) {
                     con.setRequestProperty("If-None-Match", etag);
                 }
 
                 con.connect();
 
-                if (con.getResponseCode() == 304)
-                {
+                if (con.getResponseCode() == 304) {
                     // the existing file is good
                     Files.touch(cache); // touch it to update last-modified time, to wait another minute
                     return Files.asCharSource(cache, Charsets.UTF_8).read();
-                }
-                else if (con.getResponseCode() == 200)
-                {
+                } else if (con.getResponseCode() == 200) {
                     byte[] data;
-                    try (InputStream stream = con.getInputStream())
-                    {
+                    try (InputStream stream = con.getInputStream()) {
                         data = ByteStreams.toByteArray(stream);
                     }
                     Files.write(data, cache);
 
                     // write etag
                     etag = con.getHeaderField("ETag");
-                    if (Strings.isNullOrEmpty(etag))
-                    {
+                    if (Strings.isNullOrEmpty(etag)) {
                         Files.touch(etagFile);
-                    }
-                    else
-                    {
+                    } else {
                         Files.asCharSink(etagFile, Charsets.UTF_8).write(etag);
                     }
 
                     return new String(data);
-                }
-                else
-                {
+                } else {
                     LOGGER.error("Etag download for " + strUrl + " failed with code " + con.getResponseCode());
                 }
 
                 con.disconnect();
-            }
-            catch (Exception e)
-            {
+            } catch (Exception e) {
                 e.printStackTrace();
             }
         }
 
-        if (cache.exists())
-        {
-            try
-            {
+        if (cache.exists()) {
+            try {
                 return Files.asCharSource(cache, Charsets.UTF_8).read();
-            }
-            catch (IOException e)
-            {
+            } catch (IOException e) {
                 throw new RuntimeException(e);
             }
         }
@@ -744,25 +698,21 @@ public abstract class BasePlugin<K extends BaseExtension> implements Plugin<Proj
      * Also populates the McDeps and natives configurations.
      * Also sets the ASSET_INDEX replacement string
      * Does nothing (returns null) if the file is not found, but hard-crashes if it could not be parsed.
-     * @param file version file to parse
+     *
+     * @param file            version file to parse
      * @param inheritanceDirs folders to look for the parent json, should include DIR_JSON
      * @return NULL if the file doesnt exist
      */
-    protected Version parseAndStoreVersion(File file, File... inheritanceDirs)
-    {
+    protected Version parseAndStoreVersion(File file, File... inheritanceDirs) {
         if (!file.exists())
             return null;
 
         Version version = null;
 
-        if (version == null)
-        {
-            try
-            {
+        if (version == null) {
+            try {
                 version = JsonFactory.loadVersion(file, delayedString(REPLACE_MC_VERSION).call(), inheritanceDirs);
-            }
-            catch (IOException e)
-            {
+            } catch (IOException e) {
                 LOGGER.error("" + file + " could not be parsed");
                 throw new RuntimeException(e);
             }
@@ -772,44 +722,35 @@ public abstract class BasePlugin<K extends BaseExtension> implements Plugin<Proj
         DependencyHandler handler = project.getDependencies();
 
         // actual dependencies
-        if (project.getConfigurations().getByName(CONFIG_MC_DEPS).getState() == State.UNRESOLVED)
-        {
-            for (net.minecraftforge.gradle.util.json.version.Library lib : version.getLibraries())
-            {
-                if (lib.natives == null)
-                {
+        if (project.getConfigurations().getByName(CONFIG_MC_DEPS).getState() == State.UNRESOLVED) {
+            for (net.minecraftforge.gradle.util.json.version.Library lib : version.getLibraries()) {
+                if (lib.natives == null) {
                     String configName = CONFIG_MC_DEPS;
                     if (lib.name.contains("java3d")
                             || lib.name.contains("paulscode")
                             || lib.name.contains("lwjgl")
                             || lib.name.contains("twitch")
-                            || lib.name.contains("jinput"))
-                    {
+                            || lib.name.contains("jinput")) {
                         configName = CONFIG_MC_DEPS_CLIENT;
                     }
 
                     handler.add(configName, lib.getArtifactName());
                 }
             }
-        }
-        else
+        } else
             LOGGER.debug("RESOLVED: " + CONFIG_MC_DEPS);
 
         // the natives
-        if (project.getConfigurations().getByName(CONFIG_NATIVES).getState() == State.UNRESOLVED)
-        {
-            for (net.minecraftforge.gradle.util.json.version.Library lib : version.getLibraries())
-            {
-                if (lib.natives != null)
-                {
+        if (project.getConfigurations().getByName(CONFIG_NATIVES).getState() == State.UNRESOLVED) {
+            for (net.minecraftforge.gradle.util.json.version.Library lib : version.getLibraries()) {
+                if (lib.natives != null) {
                     if (lib.getArtifactName().contains("java-objc-bridge") && lib.getArtifactName().contains("natives-osx")) //Normal repo bundles this in the mian jar so we need to just use the main jar
                         handler.add(CONFIG_NATIVES, lib.getArtifactNameSkipNatives());
                     else
                         handler.add(CONFIG_NATIVES, lib.getArtifactName());
                 }
             }
-        }
-        else
+        } else
             LOGGER.debug("RESOLVED: " + CONFIG_NATIVES);
 
         // set asset index
@@ -820,52 +761,19 @@ public abstract class BasePlugin<K extends BaseExtension> implements Plugin<Proj
         return version;
     }
 
-    // DELAYED STUFF ONLY ------------------------------------------------------------------------
-    private LoadingCache<String, TokenReplacer> replacerCache = CacheBuilder.newBuilder()
-            .weakValues()
-            .build(
-                    new CacheLoader<String, TokenReplacer>() {
-                        public TokenReplacer load(String key)
-                        {
-                            return new TokenReplacer(replacer, key);
-                        }
-                    });
-    private LoadingCache<String, DelayedString> stringCache = CacheBuilder.newBuilder()
-            .weakValues()
-            .build(
-                    new CacheLoader<String, DelayedString>() {
-                        public DelayedString load(String key)
-                        {
-                            return new DelayedString(CacheLoader.class, replacerCache.getUnchecked(key));
-                        }
-                    });
-    private LoadingCache<String, DelayedFile> fileCache = CacheBuilder.newBuilder()
-            .weakValues()
-            .build(
-                    new CacheLoader<String, DelayedFile>() {
-                        public DelayedFile load(String key)
-                        {
-                            return new DelayedFile(CacheLoader.class, project, replacerCache.getUnchecked(key));
-                        }
-                    });
-
-    public DelayedString delayedString(String path)
-    {
+    public DelayedString delayedString(String path) {
         return stringCache.getUnchecked(path);
     }
 
-    public DelayedFile delayedFile(String path)
-    {
+    public DelayedFile delayedFile(String path) {
         return fileCache.getUnchecked(path);
     }
 
-    public DelayedFileTree delayedTree(String path)
-    {
+    public DelayedFileTree delayedTree(String path) {
         return new DelayedFileTree(BasePlugin.class, project, replacerCache.getUnchecked(path));
     }
 
-    protected File cacheFile(String path)
-    {
+    protected File cacheFile(String path) {
         return new File(project.getGradle().getGradleUserHomeDir(), "caches/minecraft/" + path);
     }
 }

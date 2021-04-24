@@ -38,8 +38,7 @@ import java.io.IOException;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
-class TaskExtractExcModifiers extends DefaultTask
-{
+class TaskExtractExcModifiers extends DefaultTask {
     @InputFile
     private Object inJar;
 
@@ -53,12 +52,13 @@ class TaskExtractExcModifiers extends DefaultTask
     String matchingPrefix = "net/minecraft/";
 
     //@formatter:off
-    public TaskExtractExcModifiers() { super(); }
+    public TaskExtractExcModifiers() {
+        super();
+    }
     //@formatter:on
 
     @TaskAction
-    public void doStuff() throws IOException
-    {
+    public void doStuff() throws IOException {
         File output = getOutExc();
         File input = getInJar();
 
@@ -69,12 +69,10 @@ class TaskExtractExcModifiers extends DefaultTask
         output.createNewFile();
 
         try (BufferedWriter writer = Files.newWriter(output, Charsets.UTF_8);
-            ZipInputStream zin = new ZipInputStream(new FileInputStream(input)))
-        {
+             ZipInputStream zin = new ZipInputStream(new FileInputStream(input))) {
             ZipEntry entry;
 
-            while ((entry = zin.getNextEntry()) != null)
-            {
+            while ((entry = zin.getNextEntry()) != null) {
                 if (entry.isDirectory())
                     continue;
 
@@ -93,66 +91,54 @@ class TaskExtractExcModifiers extends DefaultTask
         }
     }
 
-    private static class GenerateMapClassAdapter extends ClassVisitor
-    {
+    private static class GenerateMapClassAdapter extends ClassVisitor {
         String className;
         BufferedWriter writer;
 
-        public GenerateMapClassAdapter(BufferedWriter writer)
-        {
+        public GenerateMapClassAdapter(BufferedWriter writer) {
             super(Opcodes.ASM5);
             this.writer = writer;
         }
 
         @Override
-        public void visit(int version, int access, String name, String signature, String superName, String[] interfaces)
-        {
+        public void visit(int version, int access, String name, String signature, String superName, String[] interfaces) {
             this.className = name;
             super.visit(version, access, name, signature, superName, interfaces);
         }
 
         @Override
-        public MethodVisitor visitMethod(int access, String name, String desc, String signature, String[] exceptions)
-        {
+        public MethodVisitor visitMethod(int access, String name, String desc, String signature, String[] exceptions) {
             if (name.equals("<clinit>"))
                 return super.visitMethod(access, name, desc, signature, exceptions);
 
             String clsSig = this.className + "/" + name + desc;
 
-            try
-            {
-                if ((access & Opcodes.ACC_STATIC) == Opcodes.ACC_STATIC)
-                {
+            try {
+                if ((access & Opcodes.ACC_STATIC) == Opcodes.ACC_STATIC) {
                     writer.write(clsSig);
                     writer.write("=static");
                     writer.newLine();
                 }
-            }
-            catch (IOException e)
-            {
+            } catch (IOException e) {
                 throw new RuntimeException(e);
             }
             return super.visitMethod(access, name, desc, signature, exceptions);
         }
     }
 
-    public File getInJar()
-    {
+    public File getInJar() {
         return getProject().file(inJar);
     }
 
-    public void setInJar(Object inJar)
-    {
+    public void setInJar(Object inJar) {
         this.inJar = inJar;
     }
 
-    public File getOutExc()
-    {
+    public File getOutExc() {
         return getProject().file(outExc);
     }
 
-    public void setOutExc(Object outExc)
-    {
+    public void setOutExc(Object outExc) {
         this.outExc = outExc;
     }
 }

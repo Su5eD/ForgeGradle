@@ -19,14 +19,12 @@
  */
 package net.minecraftforge.gradle.util;
 
-public class ThrowableUtil
-{
-    public static void propagate(Throwable t)
-    {
+public class ThrowableUtil {
+    public static void propagate(Throwable t) {
         if (t instanceof Error)
-            throw (Error)t;
+            throw (Error) t;
         if (t instanceof RuntimeException)
-            throw (RuntimeException)t;
+            throw (RuntimeException) t;
         throw new RuntimeException(t);
     }
 }

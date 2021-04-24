@@ -43,50 +43,43 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 import java.util.zip.ZipOutputStream;
 
-public class TaskExtractAnnotations extends DefaultTask
-{
+public class TaskExtractAnnotations extends DefaultTask {
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
 
     private Object jar;
 
-    public TaskExtractAnnotations()
-    {
+    public TaskExtractAnnotations() {
         this.getOutputs().upToDateWhen(Constants.CALL_FALSE);
     }
 
     @TaskAction
-    public void doTask() /*throws IOException*/
-    {
+    public void doTask() /*throws IOException*/ {
         try { //Temporary for now, so we dont break people's builds... at least... we shouldn't.
-        File out = getJar();
-        File tempIn = File.createTempFile("input", ".jar", getTemporaryDir());
-        File tempOut = File.createTempFile("output", ".jar", getTemporaryDir());
-        tempIn.deleteOnExit();
-        tempOut.deleteOnExit();
+            File out = getJar();
+            File tempIn = File.createTempFile("input", ".jar", getTemporaryDir());
+            File tempOut = File.createTempFile("output", ".jar", getTemporaryDir());
+            tempIn.deleteOnExit();
+            tempOut.deleteOnExit();
 
-        Constants.copyFile(out, tempIn); // copy the to-be-output jar to the temporary input location. because output == input
+            Constants.copyFile(out, tempIn); // copy the to-be-output jar to the temporary input location. because output == input
 
-        processJar(tempIn, tempOut);
+            processJar(tempIn, tempOut);
 
-        Constants.copyFile(tempOut, out);// This is the only 'destructive' line, IF we do error on here. then something is screwy... If we error above then it'd be just like this never run.
-        tempOut.delete();
+            Constants.copyFile(tempOut, out);// This is the only 'destructive' line, IF we do error on here. then something is screwy... If we error above then it'd be just like this never run.
+            tempOut.delete();
         } catch (IOException e) {
             this.getProject().getLogger().error("Error while building FML annotations cache: " + e.getMessage(), e);
         }
     }
 
-    private void processJar(File input, File output) throws IOException
-    {
+    private void processJar(File input, File output) throws IOException {
         Map<String, ASMInfo> asm_info = Maps.newTreeMap(); //Tree map because I like sorted outputs.
         Map<String, Integer> class_versions = Maps.newTreeMap();
 
         try (ZipFile in = new ZipFile(input);
-             ZipOutputStream out = new ZipOutputStream(new BufferedOutputStream(new FileOutputStream(output))))
-        {
-            for (ZipEntry e : Collections.list(in.entries()))
-            {
-                if (e.isDirectory())
-                {
+             ZipOutputStream out = new ZipOutputStream(new BufferedOutputStream(new FileOutputStream(output)))) {
+            for (ZipEntry e : Collections.list(in.entries())) {
+                if (e.isDirectory()) {
                     out.putNextEntry(e);
                     continue;
                 }
@@ -99,20 +92,15 @@ public class TaskExtractAnnotations extends DefaultTask
                 out.write(data);
 
                 // correct source name
-                if (e.getName().endsWith(".class"))
-                {
+                if (e.getName().endsWith(".class")) {
                     ASMInfo info = AnnotationUtils.processClass(data);
-                    if (info != null)
-                    {
+                    if (info != null) {
                         String name = e.getName().substring(0, e.getName().length() - 6);
                         class_versions.put(name, info.version);
                         info.version = null;
-                        if (info.annotations != null)
-                        {
-                            for (Annotation anno : info.annotations)
-                            {
-                                if (anno.values != null && anno.values.size() == 1 && anno.values.containsKey("value"))
-                                {
+                        if (info.annotations != null) {
+                            for (Annotation anno : info.annotations) {
+                                if (anno.values != null && anno.values.size() == 1 && anno.values.containsKey("value")) {
                                     anno.value = anno.values.get("value");
                                     anno.values = null;
                                 }
@@ -124,8 +112,7 @@ public class TaskExtractAnnotations extends DefaultTask
                 }
             }
 
-            if (!asm_info.isEmpty())
-            {
+            if (!asm_info.isEmpty()) {
                 String data = GSON.toJson(asm_info);
                 ZipEntry cache = new ZipEntry("META-INF/fml_cache_annotation.json");
                 cache.setTime(new Date().getTime());
@@ -142,13 +129,11 @@ public class TaskExtractAnnotations extends DefaultTask
     }
 
     @InputFile
-    public File getJar()
-    {
+    public File getJar() {
         return getProject().file(jar);
     }
 
-    public void setJar(Object jar)
-    {
+    public void setJar(Object jar) {
         this.jar = jar;
     }
 }

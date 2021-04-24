@@ -34,31 +34,28 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Set;
 
-public class ExtractConfigTask extends CachedTask implements PatternFilterable
-{
+public class ExtractConfigTask extends CachedTask implements PatternFilterable {
 
     @Input
-    private String     config;
+    private String config;
 
-    private PatternSet patternSet       = new PatternSet();
-
-    @Input
-    private boolean    includeEmptyDirs = true;
+    private PatternSet patternSet = new PatternSet();
 
     @Input
-    private boolean    clean            = false;
+    private boolean includeEmptyDirs = true;
+
+    @Input
+    private boolean clean = false;
 
     @Cached
     @OutputDirectory
-    private Object     destinationDir   = null;
+    private Object destinationDir = null;
 
     @TaskAction
-    public void doTask() throws IOException
-    {
+    public void doTask() throws IOException {
         File dest = getDestinationDir();
 
-        if (getClean())
-        {
+        if (getClean()) {
             delete(dest);
         }
 
@@ -66,149 +63,124 @@ public class ExtractConfigTask extends CachedTask implements PatternFilterable
 
         ExtractionVisitor visitor = new ExtractionVisitor(dest, isIncludeEmptyDirs(), patternSet.getAsSpec());
 
-        for (File source : getConfigFiles())
-        {
+        for (File source : getConfigFiles()) {
             getLogger().debug("Extracting: " + source);
             getProject().zipTree(source).visit(visitor);
         }
     }
 
-    private void delete(File f) throws IOException
-    {
-        if (f.isDirectory())
-        {
+    private void delete(File f) throws IOException {
+        if (f.isDirectory()) {
             for (File c : f.listFiles())
                 delete(c);
         }
         f.delete();
     }
 
-    public String getConfig()
-    {
+    public String getConfig() {
         return config;
     }
 
-    public void setConfig(String config)
-    {
+    public void setConfig(String config) {
         this.config = config;
     }
 
     @Optional
     @InputFiles
-    public FileCollection getConfigFiles()
-    {
+    public FileCollection getConfigFiles() {
         return getProject().getConfigurations().getByName(config);
     }
 
-    public void setDestinationDir(Object dest)
-    {
+    public void setDestinationDir(Object dest) {
         this.destinationDir = dest;
     }
 
-    public File getDestinationDir()
-    {
+    public File getDestinationDir() {
         return getProject().file(destinationDir);
     }
 
-    public boolean isIncludeEmptyDirs()
-    {
+    public boolean isIncludeEmptyDirs() {
         return includeEmptyDirs;
     }
 
-    public void setIncludeEmptyDirs(boolean includeEmptyDirs)
-    {
+    public void setIncludeEmptyDirs(boolean includeEmptyDirs) {
         this.includeEmptyDirs = includeEmptyDirs;
     }
 
     @Override
-    protected boolean defaultCache()
-    {
+    protected boolean defaultCache() {
         return false;
     }
 
-    public boolean getClean()
-    {
+    public boolean getClean() {
         return clean;
     }
 
-    public void setClean(boolean clean)
-    {
+    public void setClean(boolean clean) {
         this.clean = clean;
     }
 
     @Override
-    public PatternFilterable exclude(String... arg0)
-    {
+    public PatternFilterable exclude(String... arg0) {
         return patternSet.exclude(arg0);
     }
 
     @Override
-    public PatternFilterable exclude(Iterable<String> arg0)
-    {
+    public PatternFilterable exclude(Iterable<String> arg0) {
         return patternSet.exclude(arg0);
     }
 
     @Override
-    public PatternFilterable exclude(Spec<FileTreeElement> arg0)
-    {
+    public PatternFilterable exclude(Spec<FileTreeElement> arg0) {
         return patternSet.exclude(arg0);
     }
 
     @Override
     @SuppressWarnings("rawtypes")
-    public PatternFilterable exclude(Closure arg0)
-    {
+    public PatternFilterable exclude(Closure arg0) {
         return patternSet.exclude(arg0);
     }
 
     @Override
     @Input
-    public Set<String> getExcludes()
-    {
+    public Set<String> getExcludes() {
         return patternSet.getExcludes();
     }
 
     @Override
     @Input
-    public Set<String> getIncludes()
-    {
+    public Set<String> getIncludes() {
         return patternSet.getIncludes();
     }
 
     @Override
-    public PatternFilterable include(String... arg0)
-    {
+    public PatternFilterable include(String... arg0) {
         return patternSet.include(arg0);
     }
 
     @Override
-    public PatternFilterable include(Iterable<String> arg0)
-    {
+    public PatternFilterable include(Iterable<String> arg0) {
         return patternSet.include(arg0);
     }
 
     @Override
-    public PatternFilterable include(Spec<FileTreeElement> arg0)
-    {
+    public PatternFilterable include(Spec<FileTreeElement> arg0) {
         return patternSet.include(arg0);
     }
 
     @Override
     @SuppressWarnings("rawtypes")
-    public PatternFilterable include(Closure arg0)
-    {
+    public PatternFilterable include(Closure arg0) {
         return patternSet.include(arg0);
     }
 
     @Override
-    public PatternFilterable setExcludes(Iterable<String> arg0)
-    {
+    public PatternFilterable setExcludes(Iterable<String> arg0) {
         return patternSet.setExcludes(arg0);
     }
 
     @Override
-    public PatternFilterable setIncludes(Iterable<String> arg0)
-    {
+    public PatternFilterable setIncludes(Iterable<String> arg0) {
         return patternSet.setIncludes(arg0);
     }
 }

@@ -30,8 +30,7 @@ import org.gradle.api.tasks.TaskAction;
 
 import java.io.*;
 
-class TaskCompressLZMA extends CachedTask
-{
+class TaskCompressLZMA extends CachedTask {
     @InputFile
     private Object inputFile;
 
@@ -40,12 +39,12 @@ class TaskCompressLZMA extends CachedTask
     private Object outputFile;
 
     //@formatter:off
-    public TaskCompressLZMA() { }
+    public TaskCompressLZMA() {
+    }
     //@formatter:on
 
     @TaskAction
-    public void doTask() throws IOException
-    {
+    public void doTask() throws IOException {
         final BufferedInputStream in = new BufferedInputStream(new FileInputStream(getInputFile()));
         final OutputStream out = new LzmaOutputStream.Builder(new FileOutputStream(getOutputFile()))
                 .useEndMarkerMode(true)
@@ -57,28 +56,23 @@ class TaskCompressLZMA extends CachedTask
         out.close();
     }
 
-    public File getInputFile()
-    {
+    public File getInputFile() {
         return getProject().file(inputFile);
     }
 
-    public void setInputFile(DelayedFile inputFile)
-    {
+    public void setInputFile(DelayedFile inputFile) {
         this.inputFile = inputFile;
 
-        if (outputFile == null)
-        {
+        if (outputFile == null) {
             outputFile = inputFile;
         }
     }
 
-    public File getOutputFile()
-    {
+    public File getOutputFile() {
         return getProject().file(outputFile);
     }
 
-    public void setOutputFile(DelayedFile outputFile)
-    {
+    public void setOutputFile(DelayedFile outputFile) {
         this.outputFile = outputFile;
     }
 }

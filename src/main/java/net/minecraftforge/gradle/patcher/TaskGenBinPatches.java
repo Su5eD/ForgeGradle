@@ -44,50 +44,52 @@ import java.util.*;
 import java.util.jar.*;
 import java.util.jar.Pack200.Packer;
 
-class TaskGenBinPatches extends DefaultTask
-{
+class TaskGenBinPatches extends DefaultTask {
     //@formatter:off
-    @InputFile  private Object cleanClient;
-    @InputFile  private Object cleanServer;
-    @InputFile  private Object cleanMerged;
-    @InputFile  private Object dirtyJar;
-    @InputFile  private Object srg;
-    @OutputFile private Object devBinPatches;
-    @OutputFile private Object runBinPatches;
+    @InputFile
+    private Object cleanClient;
+    @InputFile
+    private Object cleanServer;
+    @InputFile
+    private Object cleanMerged;
+    @InputFile
+    private Object dirtyJar;
+    @InputFile
+    private Object srg;
+    @OutputFile
+    private Object devBinPatches;
+    @OutputFile
+    private Object runBinPatches;
     //@formatter:on
 
-    private List<Object>             patchSets    = Lists.newArrayList();
-    private HashMap<String, String>  obfMapping   = new HashMap<>();
-    private HashMap<String, String>  srgMapping   = new HashMap<>();
+    private List<Object> patchSets = Lists.newArrayList();
+    private HashMap<String, String> obfMapping = new HashMap<>();
+    private HashMap<String, String> srgMapping = new HashMap<>();
     private Multimap<String, String> innerClasses = ArrayListMultimap.create();
-    private Set<String>              patchedFiles = new HashSet<>();
-    private Delta                    delta        = new Delta();
+    private Set<String> patchedFiles = new HashSet<>();
+    private Delta delta = new Delta();
 
     //@formatter:off
-    public TaskGenBinPatches() { super(); }
+    public TaskGenBinPatches() {
+        super();
+    }
     //@formatter:on
 
     @TaskAction
-    public void doTask() throws Exception
-    {
+    public void doTask() throws Exception {
         loadMappings();
 
-        for (Object o : this.patchSets)
-        {
-            if (o instanceof File && ((File)o).isDirectory())
-            {
-                String base = ((File)o).getAbsolutePath();
-                for (File patch : getProject().fileTree(o))
-                {
+        for (Object o : this.patchSets) {
+            if (o instanceof File && ((File) o).isDirectory()) {
+                String base = ((File) o).getAbsolutePath();
+                for (File patch : getProject().fileTree(o)) {
                     String path = patch.getAbsolutePath().replace(".java.patch", "");
                     path = path.substring(base.length() + 1).replace('\\', '/');
                     String obfName = srgMapping.get(path);
                     patchedFiles.add(obfName);
                     addInnerClasses(path, patchedFiles);
                 }
-            }
-            else
-            {
+            } else {
                 throw new RuntimeException("Unsuported patch set type: " + o);
             }
         }
@@ -112,27 +114,22 @@ class TaskGenBinPatches extends DefaultTask
         Files.write(devtimedata, getDevBinPatches());
     }
 
-    private void addInnerClasses(String parent, Set<String> patchList)
-    {
+    private void addInnerClasses(String parent, Set<String> patchList) {
         // Recursively add inner classes to the list of patches - this will mean we ship anything affected by "access$" changes
-        for (String inner : innerClasses.get(parent))
-        {
+        for (String inner : innerClasses.get(parent)) {
             patchList.add(srgMapping.get(inner));
             addInnerClasses(inner, patchList);
         }
     }
 
-    private void loadMappings() throws Exception
-    {
+    private void loadMappings() throws Exception {
         Files.asCharSource(getSrg(), Charset.defaultCharset()).readLines(new LineProcessor<String>() {
 
             Splitter splitter = Splitter.on(CharMatcher.anyOf(": ")).omitEmptyStrings().trimResults();
 
             @Override
-            public boolean processLine(String line) throws IOException
-            {
-                if (!line.startsWith("CL"))
-                {
+            public boolean processLine(String line) throws IOException {
+                if (!line.startsWith("CL")) {
                     return true;
                 }
 
@@ -141,8 +138,7 @@ class TaskGenBinPatches extends DefaultTask
                 String srgName = parts[2]; //.substring(parts[2].lastIndexOf('/') + 1);
                 srgMapping.put(srgName, parts[1]);
                 int innerDollar = srgName.lastIndexOf('$');
-                if (innerDollar > 0)
-                {
+                if (innerDollar > 0) {
                     String outer = srgName.substring(0, innerDollar);
                     innerClasses.put(outer, srgName);
                 }
@@ -150,21 +146,17 @@ class TaskGenBinPatches extends DefaultTask
             }
 
             @Override
-            public String getResult()
-            {
+            public String getResult() {
                 return null;
             }
         });
     }
 
-    private void createBinPatches(HashMap<String, byte[]> patches, String root, File base, File target) throws Exception
-    {
+    private void createBinPatches(HashMap<String, byte[]> patches, String root, File base, File target) throws Exception {
         try (JarFile cleanJ = new JarFile(base);
-             JarFile dirtyJ = new JarFile(target))
-        {
+             JarFile dirtyJ = new JarFile(target)) {
 
-            for (Map.Entry<String, String> entry : obfMapping.entrySet())
-            {
+            for (Map.Entry<String, String> entry : obfMapping.entrySet()) {
                 String obf = entry.getKey();
                 String srg = entry.getValue();
 
@@ -190,13 +182,10 @@ class TaskGenBinPatches extends DefaultTask
         }
     }
 
-    private byte[] createPatchJar(HashMap<String, byte[]> patches) throws Exception
-    {
+    private byte[] createPatchJar(HashMap<String, byte[]> patches) throws Exception {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
-        try (JarOutputStream jar = new JarOutputStream(out))
-        {
-            for (Map.Entry<String, byte[]> entry : patches.entrySet())
-            {
+        try (JarOutputStream jar = new JarOutputStream(out)) {
+            for (Map.Entry<String, byte[]> entry : patches.entrySet()) {
                 jar.putNextEntry(new JarEntry("binpatch/" + entry.getKey()));
                 jar.write(entry.getValue());
             }
@@ -204,8 +193,7 @@ class TaskGenBinPatches extends DefaultTask
         return out.toByteArray();
     }
 
-    private byte[] pack200(byte[] data) throws Exception
-    {
+    private byte[] pack200(byte[] data) throws Exception {
         JarInputStream in = new JarInputStream(new ByteArrayInputStream(data));
         ByteArrayOutputStream out = new ByteArrayOutputStream();
 
@@ -227,74 +215,57 @@ class TaskGenBinPatches extends DefaultTask
         return out.toByteArray();
     }
 
-    private byte[] compress(byte[] data) throws Exception
-    {
+    private byte[] compress(byte[] data) throws Exception {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
-        try (LzmaOutputStream lzma = new LzmaOutputStream.Builder(out).useEndMarkerMode(true).build())
-        {
+        try (LzmaOutputStream lzma = new LzmaOutputStream.Builder(out).useEndMarkerMode(true).build()) {
             lzma.write(data);
         }
         return out.toByteArray();
     }
 
-    public File getCleanClient()
-    {
+    public File getCleanClient() {
         return getProject().file(cleanClient);
     }
 
-    public void setCleanClient(Object cleanClient)
-    {
+    public void setCleanClient(Object cleanClient) {
         this.cleanClient = cleanClient;
     }
 
-    public File getCleanServer()
-    {
+    public File getCleanServer() {
         return getProject().file(cleanServer);
     }
 
-    public void setCleanServer(Object cleanServer)
-    {
+    public void setCleanServer(Object cleanServer) {
         this.cleanServer = cleanServer;
     }
 
-    public File getCleanMerged()
-    {
+    public File getCleanMerged() {
         return getProject().file(cleanMerged);
     }
 
-    public void setCleanMerged(Object cleanMerged)
-    {
+    public void setCleanMerged(Object cleanMerged) {
         this.cleanMerged = cleanMerged;
     }
 
-    public File getDirtyJar()
-    {
+    public File getDirtyJar() {
         return getProject().file(dirtyJar);
     }
 
-    public void setDirtyJar(Object dirtyJar)
-    {
+    public void setDirtyJar(Object dirtyJar) {
         this.dirtyJar = dirtyJar;
     }
 
     @InputFiles
-    public FileCollection getPatchSets()
-    {
+    public FileCollection getPatchSets() {
         FileCollection collection = null;
 
-        for (Object o : patchSets)
-        {
+        for (Object o : patchSets) {
             FileCollection col;
-            if (o instanceof FileCollection)
-            {
+            if (o instanceof FileCollection) {
                 col = (FileCollection) o;
-            }
-            else if (o instanceof File && ((File) o).isDirectory())
-            {
+            } else if (o instanceof File && ((File) o).isDirectory()) {
                 col = getProject().fileTree(o);
-            }
-            else
-            {
+            } else {
                 col = getProject().files(o);
             }
 
@@ -307,38 +278,31 @@ class TaskGenBinPatches extends DefaultTask
         return collection;
     }
 
-    public void addPatchSet(Object patchList)
-    {
+    public void addPatchSet(Object patchList) {
         this.patchSets.add(patchList);
     }
 
-    public File getSrg()
-    {
+    public File getSrg() {
         return getProject().file(srg);
     }
 
-    public void setSrg(Object srg)
-    {
+    public void setSrg(Object srg) {
         this.srg = srg;
     }
 
-    public File getRuntimeBinPatches()
-    {
+    public File getRuntimeBinPatches() {
         return getProject().file(runBinPatches);
     }
 
-    public void setRuntimeBinPatches(Object runBinPatches)
-    {
+    public void setRuntimeBinPatches(Object runBinPatches) {
         this.runBinPatches = runBinPatches;
     }
 
-    public File getDevBinPatches()
-    {
+    public File getDevBinPatches() {
         return getProject().file(devBinPatches);
     }
 
-    public void setDevBinPatches(Object devBinPatches)
-    {
+    public void setDevBinPatches(Object devBinPatches) {
         this.devBinPatches = devBinPatches;
     }
 }

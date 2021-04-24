@@ -39,33 +39,31 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
-class TaskSubprojectCall extends DefaultTask
-{
+class TaskSubprojectCall extends DefaultTask {
     private Object projectDir;
     private Object callLine;
     private final List<URL> initResources = Lists.newArrayList();
     private final Map<String, Object> replacements = Maps.newHashMap();
 
     //@formatter:off
-    public TaskSubprojectCall() { super(); }
+    public TaskSubprojectCall() {
+        super();
+    }
     //@formatter:on
 
     @TaskAction
-    public void doTask() throws IOException
-    {
+    public void doTask() throws IOException {
         // resolve replacements
         replacements.replaceAll((k, v) -> Constants.resolveString(v).replace('\\', '/'));
 
         // extract extra initscripts
         List<File> initscripts = Lists.newArrayListWithCapacity(initResources.size());
-        for (int i = 0; i < initResources.size(); i++)
-        {
-            File file = new File(getTemporaryDir(), "initscript"+i);
+        for (int i = 0; i < initResources.size(); i++) {
+            File file = new File(getTemporaryDir(), "initscript" + i);
             String thing = Resources.toString(initResources.get(i), Constants.CHARSET);
 
-            for (Entry<String, Object> entry : replacements.entrySet())
-            {
-                thing = thing.replace(entry.getKey(), (String)entry.getValue());
+            for (Entry<String, Object> entry : replacements.entrySet()) {
+                thing = thing.replace(entry.getKey(), (String) entry.getValue());
             }
 
             Files.asCharSink(file, Constants.CHARSET).write(thing);
@@ -90,8 +88,7 @@ class TaskSubprojectCall extends DefaultTask
         ArrayList<String> args = new ArrayList<>(5);
         args.addAll(Splitter.on(' ').splitToList(getCallLine()));
 
-        for (File f : initscripts)
-        {
+        for (File f : initscripts) {
             args.add("-I" + f.getCanonicalPath());
         }
 
@@ -109,33 +106,27 @@ class TaskSubprojectCall extends DefaultTask
         getProject().getLogger().lifecycle("------------------------ ");
     }
 
-    public File getProjectDir()
-    {
+    public File getProjectDir() {
         return getProject().file(projectDir);
     }
 
-    public void setProjectDir(Object projectDir)
-    {
+    public void setProjectDir(Object projectDir) {
         this.projectDir = projectDir;
     }
 
-    public String getCallLine()
-    {
+    public String getCallLine() {
         return Constants.resolveString(callLine);
     }
 
-    public void setCallLine(Object callLine)
-    {
+    public void setCallLine(Object callLine) {
         this.callLine = callLine;
     }
 
-    public void addInitScript(URL url)
-    {
+    public void addInitScript(URL url) {
         initResources.add(url);
     }
 
-    public void addReplacement(String key, Object val)
-    {
+    public void addReplacement(String key, Object val) {
         replacements.put(key, val);
     }
 }

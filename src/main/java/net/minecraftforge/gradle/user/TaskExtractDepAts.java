@@ -37,16 +37,14 @@ import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 import java.util.jar.Manifest;
 
-public class TaskExtractDepAts extends DefaultTask
-{
+public class TaskExtractDepAts extends DefaultTask {
     @Input
     private List<String> configurations = Lists.newArrayList();
     @OutputDirectory
-    private Object               outputDir;
+    private Object outputDir;
 
     @TaskAction
-    public void doTask() throws IOException
-    {
+    public void doTask() throws IOException {
         FileCollection col = getCollections();
         File outputDir = getOutputDir();
         outputDir.mkdirs(); // make sur eit exists
@@ -56,22 +54,17 @@ public class TaskExtractDepAts extends DefaultTask
 
         Splitter splitter = Splitter.on(' ');
 
-        for (File f : col)
-        {
+        for (File f : col) {
             if (!f.exists() || !f.getName().endsWith("jar"))
                 continue;
 
-            try (JarFile jar = new JarFile(f))
-            {
+            try (JarFile jar = new JarFile(f)) {
                 Manifest man = jar.getManifest();
 
-                if (man != null)
-                {
+                if (man != null) {
                     String atString = man.getMainAttributes().getValue("FMLAT");
-                    if (!Strings.isNullOrEmpty(atString))
-                    {
-                        for (String at : splitter.split(atString.trim()))
-                        {
+                    if (!Strings.isNullOrEmpty(atString)) {
+                        for (String at : splitter.split(atString.trim())) {
                             // append _at.cfg just in case its not there already...
                             // also differentiate the file name, in cas the same At comes from multiple jars.. who knows why...
                             File outFile = new File(outputDir, at + "_" + Files.getNameWithoutExtension(f.getName()) + "_at.cfg");
@@ -81,8 +74,7 @@ public class TaskExtractDepAts extends DefaultTask
 
 
                             try (InputStream istream = jar.getInputStream(entry);
-                                 OutputStream ostream = new FileOutputStream(outFile))
-                            {
+                                 OutputStream ostream = new FileOutputStream(outFile)) {
                                 ByteStreams.copy(istream, ostream);
                             }
                         }
@@ -92,32 +84,27 @@ public class TaskExtractDepAts extends DefaultTask
         }
 
         // remove the files that shouldnt be there...
-        for (File f : toDelete)
-        {
+        for (File f : toDelete) {
             f.delete();
         }
     }
 
-    public FileCollection getCollections()
-    {
-    	List<Configuration> configs = Lists.newArrayListWithCapacity(configurations.size());
-    	for (String s : configurations)
-    		configs.add(getProject().getConfigurations().getByName(s));
+    public FileCollection getCollections() {
+        List<Configuration> configs = Lists.newArrayListWithCapacity(configurations.size());
+        for (String s : configurations)
+            configs.add(getProject().getConfigurations().getByName(s));
         return getProject().files(configs);
     }
 
-    public void addCollection(String col)
-    {
+    public void addCollection(String col) {
         configurations.add(col);
     }
 
-    public File getOutputDir()
-    {
+    public File getOutputDir() {
         return getProject().file(outputDir);
     }
 
-    public void setOutputDir(Object outputFile)
-    {
+    public void setOutputDir(Object outputFile) {
         this.outputDir = outputFile;
     }
 }

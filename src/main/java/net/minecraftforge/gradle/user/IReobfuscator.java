@@ -28,8 +28,7 @@ import java.util.List;
  * Used to create a base interface for the reobf task and config classes so that
  * things can be copy-pasted between the two.
  */
-public interface IReobfuscator
-{
+public interface IReobfuscator {
     /**
      * Gets the mappings file used to reobfuscate. It should be either a
      * {@link File} or a String path for a DelayedFile.
@@ -66,7 +65,7 @@ public interface IReobfuscator
      * </pre>
      *
      * @param type The mapping
-     * @throws NullPointerException when type is null
+     * @throws NullPointerException     when type is null
      * @throws IllegalArgumentException when type is {@link ReobfMappingType#CUSTOM}
      */
     void setMappingType(ReobfMappingType type);
@@ -145,7 +144,7 @@ public interface IReobfuscator
     /**
      * Sets the mappings to use Searge names. This is the default with the Forge
      * plugin.
-     *
+     * <p>
      * i.e. Minecraft.func_71410_x()
      *
      * @deprecated Use {@link #setMappingType(ReobfMappingType)}
@@ -156,7 +155,7 @@ public interface IReobfuscator
     /**
      * Sets the mappings to use Notch names. Useful for mods that want to be
      * able to run without Forge installed, such as libraries or hybrid mods.
-     *
+     * <p>
      * i.e. bsu.z()
      *
      * @deprecated Use {@link #setMappingType(ReobfMappingType)}

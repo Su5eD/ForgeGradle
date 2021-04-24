@@ -35,43 +35,40 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Set;
 
-class TaskMergeFiles extends DefaultTask
-{
+class TaskMergeFiles extends DefaultTask {
     @InputFiles
     private final List<Object> inSrgs = Lists.newArrayListWithExpectedSize(3);
 
     @OutputFile
-    private Object             outSrg;
+    private Object outSrg;
 
     @InputFiles
     private final List<Object> inExcs = Lists.newArrayListWithExpectedSize(3);
 
     @OutputFile
-    private Object             outExc;
+    private Object outExc;
 
     @InputFiles
-    private final List<Object> inAts  = Lists.newArrayListWithExpectedSize(3);
+    private final List<Object> inAts = Lists.newArrayListWithExpectedSize(3);
 
     @OutputFile
-    private Object             outAt;
+    private Object outAt;
 
     //@formatter:off
-    public TaskMergeFiles() {}
+    public TaskMergeFiles() {
+    }
     //@formatter:on
 
     @TaskAction
-    public void mergeFiles() throws IOException
-    {
+    public void mergeFiles() throws IOException {
         mergeFiles(getInSrgs(), ".srg", getOutSrg());
         mergeFiles(getInExcs(), ".exc", getOutExc());
         mergeFiles(getInAts(), "_at.cfg", getOutAt());
     }
 
-    private void mergeFiles(FileCollection in, String ending, File out) throws IOException
-    {
+    private void mergeFiles(FileCollection in, String ending, File out) throws IOException {
         Set<String> lines = Sets.newLinkedHashSet();
-        for (File f : in.getFiles())
-        {
+        for (File f : in.getFiles()) {
             if (f.isDirectory() || !f.exists() || !f.getName().endsWith(ending))
                 continue;
             lines.addAll(Files.readLines(f, Constants.CHARSET));
@@ -81,63 +78,51 @@ class TaskMergeFiles extends DefaultTask
         Files.asCharSink(out, Constants.CHARSET).write(Joiner.on('\n').join(lines));
     }
 
-    public File getOutSrg()
-    {
+    public File getOutSrg() {
         return getProject().file(outSrg);
     }
 
-    public void setOutSrg(Object outSrg)
-    {
+    public void setOutSrg(Object outSrg) {
         this.outSrg = outSrg;
     }
 
-    public File getOutExc()
-    {
+    public File getOutExc() {
         return getProject().file(outExc);
     }
 
-    public void setOutExc(Object outExc)
-    {
+    public void setOutExc(Object outExc) {
         this.outExc = outExc;
     }
 
-    public File getOutAt()
-    {
+    public File getOutAt() {
         return getProject().file(outAt);
     }
 
-    public void setOutAt(Object outAt)
-    {
+    public void setOutAt(Object outAt) {
         this.outAt = outAt;
     }
 
-    public FileCollection getInSrgs()
-    {
+    public FileCollection getInSrgs() {
         return getProject().files(inSrgs);
     }
 
-    public void addSrg(Object srg)
-    {
+    public void addSrg(Object srg) {
         inSrgs.add(srg);
     }
 
-    public FileCollection getInExcs()
-    {
+    public FileCollection getInExcs() {
         return getProject().files(inExcs);
     }
 
-    public void addExc(Object exc)
-    {
+    public void addExc(Object exc) {
         inExcs.add(exc);
     }
 
-    public FileCollection getInAts()
-    {
+    public FileCollection getInAts() {
         return getProject().files(inAts);
     }
 
-    public void addAt(Object at)
-    {
+    public void addAt(Object at) {
         inAts.add(at);
     }
 }

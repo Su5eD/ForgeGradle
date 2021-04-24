@@ -52,32 +52,43 @@ import java.util.List;
 import java.util.Map.Entry;
 import java.util.Set;
 
-public class CreateStartTask extends CachedTask
-{
+public class CreateStartTask extends CachedTask {
+    private static final String EXTRA_LINES = "//@@EXTRALINES@@";
     @Input
-    HashMap<String, String>     resources    = Maps.newHashMap();
-
+    HashMap<String, String> resources = Maps.newHashMap();
     @Input
-    HashMap<String, Object>     replacements = Maps.newHashMap();
-
+    HashMap<String, Object> replacements = Maps.newHashMap();
     @Input
-    List<String>                extraLines   = Lists.newArrayList();
-
+    List<String> extraLines = Lists.newArrayList();
     @Cached
     @OutputDirectory
-    private Object              startOut;
+    private Object startOut;
+    private Set<String> classpath = Sets.newHashSet();
+    private boolean compile;
 
-    private Set<String>         classpath    = Sets.newHashSet();
-    private boolean             compile;
-
-    private static final String EXTRA_LINES  = "//@@EXTRALINES@@";
+    public static AntBuilder setupAnt(Task task) {
+        AntBuilder ant = task.getAnt();
+        LogLevel startLevel = task.getProject().getGradle().getStartParameter().getLogLevel();
+        if (startLevel.compareTo(LogLevel.LIFECYCLE) >= 0) {
+            GradleVersion v2_14 = GradleVersion.version("2.14");
+            if (GradleVersion.current().compareTo(v2_14) >= 0) {
+                ant.setLifecycleLogLevel(AntMessagePriority.ERROR);
+            } else {
+                try {
+                    LoggingManager.class.getMethod("setLevel", LogLevel.class).invoke(task.getLogging(), LogLevel.ERROR);
+                } catch (Exception e) {
+                    //Couldn't find it? We are on some weird version oh well.
+                    task.getLogger().info("Could not set log level:", e);
+                }
+            }
+        }
+        return ant;
+    }
 
     @TaskAction
-    public void doStuff() throws IOException
-    {
+    public void doStuff() throws IOException {
         // resolve the replacements
-        for (Entry<String, Object> entry : replacements.entrySet())
-        {
+        for (Entry<String, Object> entry : replacements.entrySet()) {
             replacements.put(entry.getKey(), resolveString(entry.getValue()));
         }
 
@@ -85,17 +96,14 @@ public class CreateStartTask extends CachedTask
         File resourceDir = compile ? new File(getTemporaryDir(), "extracted") : getStartOut();
 
         // replace and extract
-        for (Entry<String, String> resEntry : resources.entrySet())
-        {
+        for (Entry<String, String> resEntry : resources.entrySet()) {
             String out = resEntry.getValue();
-            for (Entry<String, Object> replacement : replacements.entrySet())
-            {
+            for (Entry<String, Object> replacement : replacements.entrySet()) {
                 out = out.replace(replacement.getKey(), (String) replacement.getValue());
             }
 
             // replace extra lines
-            if (!extraLines.isEmpty())
-            {
+            if (!extraLines.isEmpty()) {
                 String replacement = Joiner.on('\n').join(extraLines);
                 out = out.replace(EXTRA_LINES, replacement);
             }
@@ -107,15 +115,13 @@ public class CreateStartTask extends CachedTask
         }
 
         // now compile, if im compiling.
-        if (compile)
-        {
+        if (compile) {
             final File compiled = getStartOut(); // quas
             compiled.mkdirs(); // wex
 
             // build claspath    exort
             FileCollection col = null;
-            for (String s : classpath)
-            {
+            for (String s : classpath) {
                 FileCollection config = getProject().getConfigurations().getByName(s);
 
                 if (col == null)
@@ -142,14 +148,12 @@ public class CreateStartTask extends CachedTask
             getProject().fileTree(resourceDir).visit(new FileVisitor() {
 
                 @Override
-                public void visitDir(FileVisitDetails arg0)
-                {
+                public void visitDir(FileVisitDetails arg0) {
                     // ignore
                 }
 
                 @Override
-                public void visitFile(FileVisitDetails arg0)
-                {
+                public void visitFile(FileVisitDetails arg0) {
                     arg0.copyTo(arg0.getRelativePath().getFile(compiled));
                 }
 
@@ -158,33 +162,8 @@ public class CreateStartTask extends CachedTask
 
     }
 
-    public static AntBuilder setupAnt(Task task)
-    {
-        AntBuilder ant = task.getAnt();
-        LogLevel startLevel = task.getProject().getGradle().getStartParameter().getLogLevel();
-        if (startLevel.compareTo(LogLevel.LIFECYCLE) >= 0)
-        {
-            GradleVersion v2_14 = GradleVersion.version("2.14");
-            if (GradleVersion.current().compareTo(v2_14) >= 0)
-            {
-                ant.setLifecycleLogLevel(AntMessagePriority.ERROR);
-            }
-            else
-            {
-                try {
-                    LoggingManager.class.getMethod("setLevel", LogLevel.class).invoke(task.getLogging(), LogLevel.ERROR);
-                } catch (Exception e) {
-                    //Couldn't find it? We are on some weird version oh well.
-                    task.getLogger().info("Could not set log level:", e);
-                }
-            }
-        }
-        return ant;
-    }
-
     @SuppressWarnings("rawtypes")
-    private String resolveString(Object obj) throws IOException
-    {
+    private String resolveString(Object obj) throws IOException {
         if (obj == null)
             return null;
 
@@ -196,69 +175,57 @@ public class CreateStartTask extends CachedTask
             return obj.toString();
     }
 
-    private String getResource(URL resource)
-    {
-        try
-        {
+    private String getResource(URL resource) {
+        try {
             return Resources.toString(resource, Charsets.UTF_8);
-        }
-        catch (IOException e)
-        {
+        } catch (IOException e) {
             throw new RuntimeException(e);
         }
     }
 
     /**
      * Use Resources.getResource() for this
+     *
      * @param resource URL of the resource in the jar
-     * @param outName name of the resource once extracted
+     * @param outName  name of the resource once extracted
      */
-    public void addResource(URL resource, String outName)
-    {
+    public void addResource(URL resource, String outName) {
         resources.put(outName, getResource(resource));
     }
 
-    public void removeResource(String key)
-    {
+    public void removeResource(String key) {
         resources.remove(key);
     }
 
-    public void addResource(String resource, String outName)
-    {
+    public void addResource(String resource, String outName) {
         this.addResource(Constants.getResource(resource), outName);
     }
 
-    public void addResource(String thing)
-    {
+    public void addResource(String thing) {
         this.addResource(thing, thing);
     }
 
-    public void addReplacement(String token, Object replacement)
-    {
+    public void addReplacement(String token, Object replacement) {
         replacements.put(token, replacement);
     }
 
-    public void addExtraLine(String extra)
-    {
+    public void addExtraLine(String extra) {
         this.extraLines.add(extra);
     }
 
-    public void addClasspathConfig(String classpathConfig)
-    {
+    public void addClasspathConfig(String classpathConfig) {
         compile = true;
         classpath.add(classpathConfig);
     }
 
-    public File getStartOut()
-    {
+    public File getStartOut() {
         File dir = getProject().file(startOut);
         if (!dir.exists())
             dir.mkdirs();
         return dir;
     }
 
-    public void setStartOut(Object outputFile)
-    {
+    public void setStartOut(Object outputFile) {
         this.startOut = outputFile;
     }
 

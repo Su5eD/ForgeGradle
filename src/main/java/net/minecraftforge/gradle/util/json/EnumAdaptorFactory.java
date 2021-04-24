@@ -32,27 +32,21 @@ import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
 
-public class EnumAdaptorFactory implements TypeAdapterFactory
-{
+public class EnumAdaptorFactory implements TypeAdapterFactory {
 
     @SuppressWarnings("unchecked")
     @Override
-    public <T> TypeAdapter<T> create(Gson gson, TypeToken<T> type)
-    {
+    public <T> TypeAdapter<T> create(Gson gson, TypeToken<T> type) {
         if (!type.getRawType().isEnum()) return null;
         final Map<String, T> map = new HashMap<>();
-        for (T c : (T[])type.getRawType().getEnumConstants())
-        {
+        for (T c : (T[]) type.getRawType().getEnumConstants()) {
             map.put(c.toString().toLowerCase(Locale.US), c);
         }
 
-        return new TypeAdapter<T>()
-        {
+        return new TypeAdapter<T>() {
             @Override
-            public T read(JsonReader reader) throws IOException
-            {
-                if (reader.peek() == JsonToken.NULL)
-                {
+            public T read(JsonReader reader) throws IOException {
+                if (reader.peek() == JsonToken.NULL) {
                     reader.nextNull();
                     return null;
                 }
@@ -62,14 +56,10 @@ public class EnumAdaptorFactory implements TypeAdapterFactory
             }
 
             @Override
-            public void write(JsonWriter writer, T value) throws IOException
-            {
-                if (value == null)
-                {
+            public void write(JsonWriter writer, T value) throws IOException {
+                if (value == null) {
                     writer.nullValue();
-                }
-                else
-                {
+                } else {
                     writer.value(value.toString().toLowerCase(Locale.US));
                 }
             }

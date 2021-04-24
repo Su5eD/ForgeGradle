@@ -26,14 +26,11 @@ import com.google.gson.stream.JsonWriter;
 import java.io.File;
 import java.io.IOException;
 
-public class FileAdapter extends TypeAdapter<File>
-{
+public class FileAdapter extends TypeAdapter<File> {
 
     @Override
-    public File read(JsonReader json) throws IOException
-    {
-        if (json.hasNext())
-        {
+    public File read(JsonReader json) throws IOException {
+        if (json.hasNext()) {
             String value = json.nextString();
             return value == null ? null : new File(value);
         }
@@ -41,14 +38,10 @@ public class FileAdapter extends TypeAdapter<File>
     }
 
     @Override
-    public void write(JsonWriter json, File value) throws IOException
-    {
-        if (value == null)
-        {
+    public void write(JsonWriter json, File value) throws IOException {
+        if (value == null) {
             json.nullValue();
-        }
-        else
-        {
+        } else {
             json.value(value.getCanonicalPath());
         }
     }

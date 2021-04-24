@@ -50,26 +50,23 @@ import java.util.*;
 import java.util.jar.JarOutputStream;
 import java.util.zip.ZipEntry;
 
-public class PostDecompileTask extends AbstractEditJarTask
-{
-    private Object                       patchDir;
-    private Object                       injectDir;
-    private Object                       astyleConfig;
+public class PostDecompileTask extends AbstractEditJarTask {
+    private Object patchDir;
+    private Object injectDir;
+    private Object astyleConfig;
 
     //private static final Pattern         BEFORE      = Pattern.compile("(?m)((case|default).+(?:\\r\\n|\\r|\\n))(?:\\r\\n|\\r|\\n)");
     //private static final Pattern         AFTER       = Pattern.compile("(?m)(?:\\r\\n|\\r|\\n)((?:\\r\\n|\\r|\\n)[ \\t]+(case|default))");
 
-    private final Set<String>            seenPackages = Sets.newHashSet();
-    private final Multimap<String, File> patchesMap  = ArrayListMultimap.create();
-    private final List<PatchAttempt>     patchErrors = Lists.newArrayList();
-    private final ASFormatter            formatter   = new ASFormatter();
-    private GLConstantFixer              oglFixer;
+    private final Set<String> seenPackages = Sets.newHashSet();
+    private final Multimap<String, File> patchesMap = ArrayListMultimap.create();
+    private final List<PatchAttempt> patchErrors = Lists.newArrayList();
+    private final ASFormatter formatter = new ASFormatter();
+    private GLConstantFixer oglFixer;
 
     @Override
-    public void doStuffBefore() throws Exception
-    {
-        for (File f : getPatches())
-        {
+    public void doStuffBefore() throws Exception {
+        for (File f : getPatches()) {
             String name = f.getName();
 
             int patchIndex = name.indexOf(".patch");
@@ -87,29 +84,30 @@ public class PostDecompileTask extends AbstractEditJarTask
 
         oglFixer = new GLConstantFixer();
     }
+
     static class PatchAttempt {
         public PatchAttempt(List<PatchReport> report, String file) {
             super();
             this.report = report;
             this.file = file;
         }
+
         final List<PatchReport> report;
         final String file;
     }
+
     @Override
-    public String asRead(String name, String file) throws Exception
-    {
+    public String asRead(String name, String file) throws Exception {
         getLogger().debug("Processing file: " + name);
 
         file = FFPatcher.processFile(file);
 
         // patch the file
         Collection<File> patchFiles = patchesMap.get(name.replace('/', '.'));
-        if (!patchFiles.isEmpty())
-        {
+        if (!patchFiles.isEmpty()) {
             getLogger().debug("applying MCP patches");
             ContextProvider provider = new ContextProvider(file);
-            ContextualPatch patch = findPatch(patchFiles, provider,getLogger());
+            ContextualPatch patch = findPatch(patchFiles, provider, getLogger());
             if (patch != null) {
                 patchErrors.add(new PatchAttempt(patch.patch(false), file));
                 file = provider.getAsString();
@@ -146,23 +144,19 @@ public class PostDecompileTask extends AbstractEditJarTask
     }
 
     @Override
-    protected void postWriteEntry(JarOutputStream jarOut, String entryName) throws IOException
-    {
+    protected void postWriteEntry(JarOutputStream jarOut, String entryName) throws IOException {
         if (entryName.startsWith("net/minecraft/") && entryName.endsWith(".java"))
             this.seenPackages.add(entryName.substring(0, entryName.lastIndexOf('/')));
     }
 
     @Override
-    protected void postWrite(JarOutputStream jarOut) throws IOException
-    {
-        File file = ((DelayedFile)this.injectDir).call();
+    protected void postWrite(JarOutputStream jarOut) throws IOException {
+        File file = ((DelayedFile) this.injectDir).call();
         File info = new File(file, "package-info-template.java");
-        if (info.exists())
-        {
+        if (info.exists()) {
             String template = Resources.toString(info.toURI().toURL(), Charsets.UTF_8);
             getLogger().info("Adding package-infos");
-            for (String pkg : this.seenPackages)
-            {
+            for (String pkg : this.seenPackages) {
                 getLogger().info("  " + pkg + "/package-info.java");
                 jarOut.putNextEntry(new ZipEntry(pkg + "/package-info.java"));
                 jarOut.write(template.replaceAll("\\{PACKAGE\\}", pkg.replace('/', '.')).getBytes());
@@ -170,14 +164,12 @@ public class PostDecompileTask extends AbstractEditJarTask
             }
         }
         File common = new File(file, "common/");
-        if (common.isDirectory())
-        {
+        if (common.isDirectory()) {
             String root = common.getAbsolutePath().replace('\\', '/');
             if (!root.endsWith("/")) root += '/';
             getLogger().info("Inject Root: " + root);
 
-            for (File f : this.getProject().fileTree(common))
-            {
+            for (File f : this.getProject().fileTree(common)) {
                 String full = f.getAbsolutePath().replace('\\', '/');
                 String name = full.substring(root.length());
                 getLogger().info("  Injecting: " + name);
@@ -189,22 +181,17 @@ public class PostDecompileTask extends AbstractEditJarTask
     }
 
     @Override
-    public void doStuffAfter() throws Exception
-    {
+    public void doStuffAfter() throws Exception {
         boolean fuzzed = false;
         Throwable error = null;
-        for (PatchAttempt attempt: patchErrors)
-        {
+        for (PatchAttempt attempt : patchErrors) {
             for (PatchReport report : attempt.report) {
-                if (!report.getStatus().isSuccess())
-                {
+                if (!report.getStatus().isSuccess()) {
                     //getLogger().log(LogLevel.ERROR, "Patching failed: " + report.getTarget(), report.getFailure());
                     getLogger().error("Patching failed: " + report.getTarget());
 
-                    for (HunkReport hunk : report.getHunks())
-                    {
-                        if (!hunk.getStatus().isSuccess())
-                        {
+                    for (HunkReport hunk : report.getHunks()) {
+                        if (!hunk.getStatus().isSuccess()) {
                             getLogger().error("Hunk " + hunk.getHunkID() + " failed! " + report.getFailure().getMessage());
                             getLogger().error(Joiner.on("\n").join(hunk.hunk.lines));
                             getLogger().error("File state");
@@ -213,22 +200,17 @@ public class PostDecompileTask extends AbstractEditJarTask
                     }
 
                     error = report.getFailure();
-                }
-                else if (report.getStatus() == PatchStatus.Fuzzed) // catch fuzzed patches
+                } else if (report.getStatus() == PatchStatus.Fuzzed) // catch fuzzed patches
                 {
                     getLogger().log(LogLevel.INFO, "Patching fuzzed: " + report.getTarget(), report.getFailure());
                     fuzzed = true;
 
-                    for (HunkReport hunk : report.getHunks())
-                    {
-                        if (!hunk.getStatus().isSuccess())
-                        {
+                    for (HunkReport hunk : report.getHunks()) {
+                        if (!hunk.getStatus().isSuccess()) {
                             getLogger().info("Hunk " + hunk.getHunkID() + " fuzzed " + hunk.getFuzz() + "!");
                         }
                     }
-                }
-                else
-                {
+                } else {
                     getLogger().debug("Patch succeeded: " + report.getTarget());
                 }
             }
@@ -240,13 +222,11 @@ public class PostDecompileTask extends AbstractEditJarTask
         }
     }
 
-    private static ContextualPatch findPatch(Collection<File> files, ContextProvider provider, Logger logger) throws Exception
-    {
+    private static ContextualPatch findPatch(Collection<File> files, ContextProvider provider, Logger logger) throws Exception {
         ContextualPatch patch = null;
         File lastFile = null;
         boolean success = true;
-        for (File f : files)
-        {
+        for (File f : files) {
             logger.debug("trying MCP patch " + f.getName());
             lastFile = f;
             patch = ContextualPatch.create(Files.asCharSource(f, Constants.CHARSET).read(), provider).setAccessC14N(true);
@@ -254,8 +234,7 @@ public class PostDecompileTask extends AbstractEditJarTask
             List<PatchReport> errors = patch.patch(true);
 
             success = true;
-            for (PatchReport rep : errors)
-            {
+            for (PatchReport rep : errors) {
                 if (!rep.getStatus().isSuccess()) {
                     success = false;
                     break;
@@ -273,79 +252,66 @@ public class PostDecompileTask extends AbstractEditJarTask
     }
 
     @InputFile
-    public File getAstyleConfig()
-    {
+    public File getAstyleConfig() {
         return getProject().file(astyleConfig);
     }
 
-    public void setAstyleConfig(Object astyleConfig)
-    {
+    public void setAstyleConfig(Object astyleConfig) {
         this.astyleConfig = astyleConfig;
     }
 
     @InputFiles
-    public FileCollection getPatches()
-    {
+    public FileCollection getPatches() {
         return getProject().fileTree(patchDir);
     }
 
-    public void setPatches(Object patchesDir)
-    {
+    public void setPatches(Object patchesDir) {
         this.patchDir = patchesDir;
     }
 
     @InputFiles
-    public FileCollection getInjects()
-    {
+    public FileCollection getInjects() {
         return getProject().fileTree(injectDir);
     }
 
-    public void setInjects(Object injectDir)
-    {
+    public void setInjects(Object injectDir) {
         this.injectDir = injectDir;
     }
 
     /**
      * A private inner class to be used with the MCPPatches only.
      */
-    private static class ContextProvider implements ContextualPatch.IContextProvider
-    {
+    private static class ContextProvider implements ContextualPatch.IContextProvider {
         private List<String> data;
 
-        public ContextProvider(String file)
-        {
+        public ContextProvider(String file) {
             data = Constants.lines(file);
         }
 
         @Override
-        public List<String> getData(String target)
-        {
+        public List<String> getData(String target) {
             List<String> out = new ArrayList<>(data.size() + 5);
             out.addAll(data);
             return out;
         }
 
         @Override
-        public void setData(String target, List<String> data)
-        {
+        public void setData(String target, List<String> data) {
             this.data = data;
         }
 
-        public String getAsString()
-        {
+        public String getAsString() {
             return Joiner.on(Constants.NEWLINE).join(data);
         }
     }
 
     //@formatter:off
     @Override
-    public void doStuffMiddle(Map<String, String> sourceMap, Map<String, byte[]> resourceMap) throws Exception
-    {
+    public void doStuffMiddle(Map<String, String> sourceMap, Map<String, byte[]> resourceMap) throws Exception {
     }
 
     @Override
-    protected boolean storeJarInRam()
-    {
+    protected boolean storeJarInRam() {
         return false;
     }
 }

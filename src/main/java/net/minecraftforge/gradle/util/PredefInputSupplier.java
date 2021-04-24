@@ -31,37 +31,30 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
-public class PredefInputSupplier implements InputSupplier
-{
+public class PredefInputSupplier implements InputSupplier {
     private final Map<String, byte[]> fileMap = Maps.newHashMap();
     private final Map<String, String> rootMap = Maps.newHashMap();
 
     @Override
-    public void close() throws IOException
-    {
+    public void close() throws IOException {
         // uh.. no?
     }
 
     @Override
-    public String getRoot(String resource)
-    {
+    public String getRoot(String resource) {
         return rootMap.get(sanitize(resource));
     }
 
     @Override
-    public InputStream getInput(String relPath)
-    {
+    public InputStream getInput(String relPath) {
         return new ByteArrayInputStream(fileMap.get(sanitize(relPath)));
     }
 
     @Override
-    public List<String> gatherAll(String endFilter)
-    {
+    public List<String> gatherAll(String endFilter) {
         LinkedList<String> out = Lists.newLinkedList();
-        for (String s : fileMap.keySet())
-        {
-            if (s.endsWith(endFilter))
-            {
+        for (String s : fileMap.keySet()) {
+            if (s.endsWith(endFilter)) {
                 out.add(s);
             }
         }
@@ -69,17 +62,14 @@ public class PredefInputSupplier implements InputSupplier
         return out;
     }
 
-    public void addFile(String path, File root, byte[] data) throws IOException
-    {
+    public void addFile(String path, File root, byte[] data) throws IOException {
         path = sanitize(path);
         fileMap.put(path, data);
         rootMap.put(path, sanitize(root.getCanonicalPath()));
     }
 
-    private String sanitize(String in)
-    {
-        if (in == null)
-        {
+    private String sanitize(String in) {
+        if (in == null) {
             return null;
         }
 
@@ -91,8 +81,7 @@ public class PredefInputSupplier implements InputSupplier
         return in;
     }
 
-    public boolean isEmpty()
-    {
+    public boolean isEmpty() {
         return fileMap.isEmpty() && rootMap.isEmpty();
     }
 }

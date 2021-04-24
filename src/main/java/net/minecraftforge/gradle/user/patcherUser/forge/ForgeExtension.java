@@ -28,26 +28,22 @@ import org.gradle.api.logging.Logging;
 import java.util.regex.Pattern;
 
 @SuppressWarnings("unused")
-public class ForgeExtension extends UserBaseExtension
-{
-    private String         forgeVersion;
-    private String         coreMod = null;
+public class ForgeExtension extends UserBaseExtension {
+    private String forgeVersion;
+    private String coreMod = null;
 
-    public ForgeExtension(UserBasePlugin<ForgeExtension> plugin)
-    {
+    public ForgeExtension(UserBasePlugin<ForgeExtension> plugin) {
         super(plugin);
     }
 
     /**
      * @return the MinecraftForge version
      */
-    public String getForgeVersion()
-    {
+    public String getForgeVersion() {
         return forgeVersion;
     }
 
-    public void setForgeVersion(String forgeVersion)
-    {
+    public void setForgeVersion(String forgeVersion) {
         checkAndSetVersion(forgeVersion);
 
         replacer.putReplacement(Constants.REPLACE_MC_VERSION, version);
@@ -67,12 +63,10 @@ public class ForgeExtension extends UserBaseExtension
      * </ul>
      *
      * @param inVersion The version
-     *
      * @see <a href="https://maven.minecraftforge.net">https://maven.minecraftforge.net</a>
      */
     @Override
-    public void setVersion(String inVersion)
-    {
+    public void setVersion(String inVersion) {
         checkAndSetVersion(inVersion);
 
         replacer.putReplacement(Constants.REPLACE_MC_VERSION, version);
@@ -87,14 +81,13 @@ public class ForgeExtension extends UserBaseExtension
     // Code to check the forge version and stuff
     // ----------------------------------------
 
-    private static final String  JUST_MC  = "(\\d+\\.\\d+(?:\\.\\d+)?[_pre\\d]*)";
-    private static final String  JUST_API = "((?:\\d+\\.){3}(\\d+))((?:-[\\w\\.]+)?)";
-    private static final Pattern API      = Pattern.compile(JUST_API);
+    private static final String JUST_MC = "(\\d+\\.\\d+(?:\\.\\d+)?[_pre\\d]*)";
+    private static final String JUST_API = "((?:\\d+\\.){3}(\\d+))((?:-[\\w\\.]+)?)";
+    private static final Pattern API = Pattern.compile(JUST_API);
     private static final Pattern STANDARD = Pattern.compile(JUST_MC + "-" + JUST_API);
-    private static final Logger  LOGGER   = Logging.getLogger(ForgeExtension.class);
+    private static final Logger LOGGER = Logging.getLogger(ForgeExtension.class);
 
-    private void checkAndSetVersion(String str)
-    {
+    private void checkAndSetVersion(String str) {
         str = str.trim();
         int idx = str.indexOf('-');
         if (idx == -1)
@@ -153,13 +146,13 @@ public class ForgeExtension extends UserBaseExtension
          *     This was just used to verify the version existed. This can be done via maven-metadata.xml
          */
     }
+
     /**
      * Get the coremod class for the mod
      *
      * @return The coremod class, or {@code null} if none is configured
      */
-    public String getCoreMod()
-    {
+    public String getCoreMod() {
         return coreMod;
     }
 
@@ -168,8 +161,7 @@ public class ForgeExtension extends UserBaseExtension
      *
      * @param coreMod The FQN for the coremod
      */
-    public void setCoreMod(String coreMod)
-    {
+    public void setCoreMod(String coreMod) {
         this.coreMod = coreMod;
     }
 }
