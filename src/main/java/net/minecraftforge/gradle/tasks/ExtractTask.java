@@ -141,7 +141,6 @@ public class ExtractTask extends CachedTask implements PatternFilterable {
     }
 
     @Override
-    @SuppressWarnings("rawtypes")
     public PatternFilterable exclude(Closure arg0) {
         return patternSet.exclude(arg0);
     }
@@ -172,7 +171,6 @@ public class ExtractTask extends CachedTask implements PatternFilterable {
     }
 
     @Override
-    @SuppressWarnings("rawtypes")
     public PatternFilterable include(Closure arg0) {
         return patternSet.include(arg0);
     }

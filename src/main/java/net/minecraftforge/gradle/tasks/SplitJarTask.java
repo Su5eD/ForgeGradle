@@ -143,7 +143,6 @@ public class SplitJarTask extends CachedTask implements PatternFilterable {
     }
 
     @Override
-    @SuppressWarnings("rawtypes")
     public PatternFilterable exclude(Closure arg0) {
         return pattern.exclude(arg0);
     }
@@ -174,7 +173,6 @@ public class SplitJarTask extends CachedTask implements PatternFilterable {
     }
 
     @Override
-    @SuppressWarnings("rawtypes")
     public PatternFilterable include(Closure arg0) {
         return pattern.include(arg0);
     }

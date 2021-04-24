@@ -95,8 +95,6 @@ public class ExtractS2SRangeTask extends DefaultTask {
 
         File f = getProject().file(o);
 
-        System.out.println(f);
-
         if (f.isDirectory())
             return new FolderSupplier(f);
         else if (f.getPath().endsWith(".jar") || f.getPath().endsWith(".zip")) {

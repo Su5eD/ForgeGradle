@@ -39,7 +39,6 @@ public class ReobfTaskFactory implements NamedDomainObjectFactory<IReobfuscator>
         this.plugin = plugin;
     }
 
-    @SuppressWarnings("serial")
     @Override
     public IReobfuscator create(final String jarName) {
         String name = Character.toUpperCase(jarName.charAt(0)) + jarName.substring(1);
