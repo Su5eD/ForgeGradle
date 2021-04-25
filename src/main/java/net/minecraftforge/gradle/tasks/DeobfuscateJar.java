@@ -81,6 +81,8 @@ public class DeobfuscateJar extends CachedTask {
     @InputFiles
     private ArrayList<Object> ats = Lists.newArrayList();
 
+    @OutputFile
+    @Optional
     private Object log;
 
     @TaskAction
@@ -372,7 +374,7 @@ public class DeobfuscateJar extends CachedTask {
      *
      * @return Object that will resolve to
      */
-    @SuppressWarnings("serial")
+    @OutputFile
     public Closure<File> getDelayedOutput() {
         return new Closure<File>(DeobfuscateJar.class) {
             public File call() {

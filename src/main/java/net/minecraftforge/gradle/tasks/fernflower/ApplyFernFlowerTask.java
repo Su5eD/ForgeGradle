@@ -27,6 +27,7 @@ import net.minecraftforge.gradle.util.caching.CachedTask;
 import org.codehaus.groovy.runtime.ResourceGroovyMethods;
 import org.gradle.api.file.FileCollection;
 import org.gradle.api.tasks.InputFile;
+import org.gradle.api.tasks.InputFiles;
 import org.gradle.api.tasks.OutputFile;
 import org.gradle.api.tasks.TaskAction;
 import org.gradle.process.ExecResult;
@@ -52,7 +53,9 @@ public class ApplyFernFlowerTask extends CachedTask {
     @OutputFile
     Object outJar;
 
+    @InputFiles
     private FileCollection classpath;
+    @InputFiles
     private FileCollection forkedClasspath;
 
     @TaskAction

@@ -32,7 +32,7 @@ plugins {
 }
 
 group = "net.minecraftforge.gradle"
-version = "2.3.2"
+version = "2.3.3"
 java.targetCompatibility = JavaVersion.VERSION_1_8
 java.sourceCompatibility = JavaVersion.VERSION_1_8
 
