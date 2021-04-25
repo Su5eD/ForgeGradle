@@ -111,10 +111,10 @@ public class TaskApplyBinPatchesTest extends TaskTest<TaskApplyBinPatches>
 
         TaskApplyBinPatches taskApplyBinPatches = getTask(TaskApplyBinPatches.class);
         taskApplyBinPatches.setInJar(inputJar);
-        taskApplyBinPatches.setClassJar(classJar);
+        taskApplyBinPatches.setClassesJar(classJar);
         taskApplyBinPatches.setPatches(patchJar);
         taskApplyBinPatches.setOutJar(outputJar);
-        taskApplyBinPatches.setResourceJar(resourceJar);
+        taskApplyBinPatches.setResourcesJar(resourceJar);
         taskApplyBinPatches.doTask();
 
         Assert.assertTrue("File '" + outputJar + "' should exist", outputJar.isFile());

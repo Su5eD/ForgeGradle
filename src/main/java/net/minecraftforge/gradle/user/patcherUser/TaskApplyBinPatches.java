@@ -47,11 +47,8 @@ import java.util.zip.*;
 
 public class TaskApplyBinPatches extends CachedTask {
     //@formatter:off
-    @InputFile
     Object inJar;
-    @InputFile
     Object classesJar;
-    @InputFile
     Object resourcesJar;
     @InputFile
     Object patches;
@@ -75,7 +72,7 @@ public class TaskApplyBinPatches extends CachedTask {
         final HashSet<String> entries = new HashSet<>();
 
         try (ZipFile in = new ZipFile(getInJar());
-             ZipInputStream classesIn = new ZipInputStream(new FileInputStream(getClassJar()));
+             ZipInputStream classesIn = new ZipInputStream(new FileInputStream(getClassesJar()));
              ZipOutputStream out = new ZipOutputStream(new BufferedOutputStream(new FileOutputStream(getOutJar())))) {
             // DO PATCHES
             log("Patching Class:");
@@ -122,7 +119,7 @@ public class TaskApplyBinPatches extends CachedTask {
                 entries.add(entry.getName());
             }
 
-            getProject().zipTree(getResourceJar()).visit(new FileVisitor() {
+            getProject().zipTree(getResourcesJar()).visit(new FileVisitor() {
                 @Override
                 public void visitDir(FileVisitDetails dirDetails) {
                 }
@@ -211,6 +208,7 @@ public class TaskApplyBinPatches extends CachedTask {
         getLogger().debug(String.format(format, args));
     }
 
+    @InputFile
     public File getInJar() {
         return getProject().file(inJar);
     }
@@ -235,19 +233,21 @@ public class TaskApplyBinPatches extends CachedTask {
         this.patches = patchesJar;
     }
 
-    public File getClassJar() {
+    @InputFile
+    public File getClassesJar() {
         return getProject().file(classesJar);
     }
 
-    public void setClassJar(Object extraJar) {
+    public void setClassesJar(Object extraJar) {
         this.classesJar = extraJar;
     }
 
-    public File getResourceJar() {
+    @InputFile
+    public File getResourcesJar() {
         return getProject().file(resourcesJar);
     }
 
-    public void setResourceJar(Object resources) {
+    public void setResourcesJar(Object resources) {
         this.resourcesJar = resources;
     }
 
