@@ -29,16 +29,12 @@ import net.minecraftforge.gradle.common.tasks.ExtractExistingFiles;
 import net.minecraftforge.gradle.common.tasks.ExtractMCPData;
 import net.minecraftforge.gradle.common.tasks.ExtractNatives;
 import net.minecraftforge.gradle.common.tasks.ExtractRangeMap;
-import net.minecraftforge.gradle.common.util.BaseRepo;
-import net.minecraftforge.gradle.common.util.EnvironmentChecks;
-import net.minecraftforge.gradle.common.util.MinecraftRepo;
-import net.minecraftforge.gradle.common.util.MojangLicenseHelper;
-import net.minecraftforge.gradle.common.util.Utils;
-import net.minecraftforge.gradle.common.util.VersionJson;
+import net.minecraftforge.gradle.common.util.*;
 import net.minecraftforge.gradle.mcp.ChannelProvidersExtension;
 import net.minecraftforge.gradle.mcp.MCPRepo;
 import net.minecraftforge.gradle.mcp.tasks.DownloadMCPMappings;
 import net.minecraftforge.gradle.mcp.tasks.GenerateSRG;
+import net.minecraftforge.gradle.userdev.legacy.LegacyExtension;
 import net.minecraftforge.gradle.userdev.tasks.RenameJarInPlace;
 import net.minecraftforge.gradle.userdev.util.DeobfuscatingRepo;
 import net.minecraftforge.gradle.userdev.util.Deobfuscator;
@@ -55,12 +51,14 @@ import org.gradle.api.artifacts.Dependency;
 import org.gradle.api.artifacts.DependencySet;
 import org.gradle.api.artifacts.ExternalModuleDependency;
 import org.gradle.api.artifacts.repositories.MavenArtifactRepository.MetadataSources;
+import org.gradle.api.file.ConfigurableFileCollection;
 import org.gradle.api.file.FileCollection;
 import org.gradle.api.file.SourceDirectorySet;
 import org.gradle.api.logging.Logger;
 import org.gradle.api.plugins.JavaPlugin;
 import org.gradle.api.plugins.JavaPluginExtension;
 import org.gradle.api.provider.Provider;
+import org.gradle.api.tasks.JavaExec;
 import org.gradle.api.tasks.SourceSet;
 import org.gradle.api.tasks.TaskContainer;
 import org.gradle.api.tasks.TaskProvider;
@@ -89,6 +87,7 @@ public class UserDevPlugin implements Plugin<Project> {
         final Logger logger = project.getLogger();
         final UserDevExtension extension = project.getExtensions().create(UserDevExtension.EXTENSION_NAME, UserDevExtension.class, project);
         project.getExtensions().create(ChannelProvidersExtension.EXTENSION_NAME, ChannelProvidersExtension.class);
+        project.getExtensions().create(LegacyExtension.EXTENSION_NAME, LegacyExtension.class);
         project.getPluginManager().apply(JavaPlugin.class);
         final File nativesFolder = project.file("build/natives/");
 
@@ -293,6 +292,8 @@ public class UserDevPlugin implements Plugin<Project> {
 
             extension.getRuns().forEach(runConfig -> runConfig.token("asset_index", finalAssetIndex));
             Utils.createRunConfigTasks(extension, extractNatives, downloadAssets, createSrgToMcp);
+
+            runRetrogradleFixes(project);
         });
     }
 
@@ -315,5 +316,43 @@ public class UserDevPlugin implements Plugin<Project> {
         });
         project.getExtensions().add("reobf", reobfExtension);
         return reobfExtension;
+    }
+
+    /**
+     * The RetroGradle project aims to port older (below 1.13) versions of Minecraft to the current toolchains.
+     * In the process, some quirks with the older versions of ForgeGradle were discovered that need to be replicated here.
+     *
+     * Each quirk is documented and accounted for in this function.
+     *  - Classpath / Resources; FG2 Userdev puts all classes and resources into a single jar file for FML to consume.
+     *      FG3+ puts classes and resources into separate folders, which breaks on older versions.
+     *      We replicate the FG2 behavior by forcing the classes and resources to go to the same build folder.
+     *
+     * In other words, it's a containment zone for version-specific hacks.
+     * For issues you think are caused by this function, contact Curle or any other Retrogradle maintainer.
+     */
+    private void runRetrogradleFixes(Project project) {
+        final LegacyExtension config = (LegacyExtension) project.getExtensions().getByName(LegacyExtension.EXTENSION_NAME);
+        final boolean shouldFixClasspath = config.getFixClasspath();
+
+        if(shouldFixClasspath) {
+            // Find the output jar file
+            final Jar jarTask = (Jar) project.getTasks().getByName("jar");
+            // Get the classpath and create a composite with the found jar file
+            final ConfigurableFileCollection classpath = project.files(
+                    project.getConfigurations().getByName("runtimeClasspath"),
+                    jarTask.getArchiveFile().get().getAsFile());
+            // Get the Userdev plugin for the run configs
+            final MinecraftExtension minecraftExtension = (MinecraftExtension) project.getExtensions().getByName(UserDevExtension.EXTENSION_NAME);
+
+            // For all defined run configurations..
+            minecraftExtension.getRuns().stream()
+                    // Get the Task created by it
+                    .map(run -> project.getTasks().getByName(run.getTaskName()))
+                    // Filter for those that define a JavaExec run
+                    .filter(task -> task instanceof JavaExec)
+                    // Set the run's classpath to the composite we made
+                    .forEach(task -> ((JavaExec) task).setClasspath(classpath));
+        }
+
     }
 }
