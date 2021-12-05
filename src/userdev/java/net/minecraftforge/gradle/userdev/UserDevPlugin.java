@@ -34,6 +34,7 @@ import net.minecraftforge.gradle.mcp.ChannelProvidersExtension;
 import net.minecraftforge.gradle.mcp.MCPRepo;
 import net.minecraftforge.gradle.mcp.tasks.DownloadMCPMappings;
 import net.minecraftforge.gradle.mcp.tasks.GenerateSRG;
+import net.minecraftforge.gradle.userdev.legacy.FixClasspathTask;
 import net.minecraftforge.gradle.userdev.legacy.LegacyExtension;
 import net.minecraftforge.gradle.userdev.tasks.RenameJarInPlace;
 import net.minecraftforge.gradle.userdev.util.DeobfuscatingRepo;
@@ -51,14 +52,12 @@ import org.gradle.api.artifacts.Dependency;
 import org.gradle.api.artifacts.DependencySet;
 import org.gradle.api.artifacts.ExternalModuleDependency;
 import org.gradle.api.artifacts.repositories.MavenArtifactRepository.MetadataSources;
-import org.gradle.api.file.ConfigurableFileCollection;
 import org.gradle.api.file.FileCollection;
 import org.gradle.api.file.SourceDirectorySet;
 import org.gradle.api.logging.Logger;
 import org.gradle.api.plugins.JavaPlugin;
 import org.gradle.api.plugins.JavaPluginExtension;
 import org.gradle.api.provider.Provider;
-import org.gradle.api.tasks.JavaExec;
 import org.gradle.api.tasks.SourceSet;
 import org.gradle.api.tasks.TaskContainer;
 import org.gradle.api.tasks.TaskProvider;
@@ -70,7 +69,9 @@ import org.gradle.language.base.plugins.LifecycleBasePlugin;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import javax.annotation.Nonnull;
@@ -332,27 +333,27 @@ public class UserDevPlugin implements Plugin<Project> {
      */
     private void runRetrogradleFixes(Project project) {
         final LegacyExtension config = (LegacyExtension) project.getExtensions().getByName(LegacyExtension.EXTENSION_NAME);
-        final boolean shouldFixClasspath = config.getFixClasspath();
-
+        final boolean shouldFixClasspath = config.getFixClasspath().get();
+        
         if(shouldFixClasspath) {
-            // Find the output jar file
-            final Jar jarTask = (Jar) project.getTasks().getByName("jar");
-            // Get the classpath and create a composite with the found jar file
-            final ConfigurableFileCollection classpath = project.files(
-                    project.getConfigurations().getByName("runtimeClasspath"),
-                    jarTask.getArchiveFile().get().getAsFile());
+            final FixClasspathTask fixClasspathTask = project.getTasks().create("fixClasspath", FixClasspathTask.class, task -> {
+                // Make sure the jar is built before we run
+                task.dependsOn("jar");
+            });
             // Get the Userdev plugin for the run configs
             final MinecraftExtension minecraftExtension = (MinecraftExtension) project.getExtensions().getByName(UserDevExtension.EXTENSION_NAME);
-
-            // For all defined run configurations..
-            minecraftExtension.getRuns().stream()
-                    // Get the Task created by it
-                    .map(run -> project.getTasks().getByName(run.getTaskName()))
-                    // Filter for those that define a JavaExec run
-                    .filter(task -> task instanceof JavaExec)
-                    // Set the run's classpath to the composite we made
-                    .forEach(task -> ((JavaExec) task).setClasspath(classpath));
+            
+            // Get the names of all run tasks
+            Set<String> runs = minecraftExtension.getRuns().stream()
+                    .map(RunConfig::getTaskName)
+                    .collect(Collectors.toSet());
+            
+            // When each run task is added, make it depend on our FixClasspathTask task
+            project.getTasks().whenTaskAdded(task -> {
+                if (runs.contains(task.getName())) {
+                    task.dependsOn(fixClasspathTask);
+                }
+            });
         }
-
     }
 }
