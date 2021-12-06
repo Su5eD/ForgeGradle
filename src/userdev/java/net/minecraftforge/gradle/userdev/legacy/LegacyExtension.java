@@ -23,15 +23,14 @@ import org.gradle.api.provider.Property;
  */
 public abstract class LegacyExtension extends GroovyObjectSupport {
     public static final String EXTENSION_NAME = "legacy";
+    private static final MinecraftVersion FG3 = MinecraftVersion.from("1.13");
 
     public LegacyExtension(Project project) {
-        final MinecraftVersion FG2_3 = MinecraftVersion.from("1.12.2");
-
         getFixClasspath().convention(project.provider(() -> {
             final MinecraftVersion version = MinecraftVersion.from((String) project.getExtensions().getExtraProperties().get("MC_VERSION"));
             
-            // fixClasspath by default if version is below FG 2.3
-            return version.compareTo(FG2_3) < 0;
+            // fixClasspath by default if version is below FG 3
+            return version.compareTo(FG3) < 0;
         }));
     }
 
