@@ -340,20 +340,9 @@ public class UserDevPlugin implements Plugin<Project> {
                 // Make sure the jar is built before we run
                 task.dependsOn("jar");
             });
-            // Get the Userdev plugin for the run configs
-            final MinecraftExtension minecraftExtension = (MinecraftExtension) project.getExtensions().getByName(UserDevExtension.EXTENSION_NAME);
             
-            // Get the names of all run tasks
-            Set<String> runs = minecraftExtension.getRuns().stream()
-                    .map(RunConfig::getTaskName)
-                    .collect(Collectors.toSet());
-            
-            // When each run task is added, make it depend on our FixClasspathTask task
-            project.getTasks().whenTaskAdded(task -> {
-                if (runs.contains(task.getName())) {
-                    task.dependsOn(fixClasspathTask);
-                }
-            });
+            // execute fixClasspath before each run task
+            project.getTasks().getByName("prepareRuns").dependsOn(fixClasspathTask);
         }
     }
 }

@@ -12,11 +12,11 @@ import org.gradle.api.tasks.TaskContainer;
 import org.gradle.api.tasks.bundling.Jar;
 
 /**
- * Modifies each run task's classpath before they run.
+ * Modifies run tasks' classpath before they run.
  * {@link TaskContainer#whenTaskAdded(Action)} runs before the task is configured,
  * therefore any changes made to the classpath there would be overwritten.
- * Instead, we declare a task dependency on the run task and modify its classpath
- * just before it runs.
+ * Instead, we declare a task dependency on prepareRuns and modify each 
+ * run task's classpath just before it runs.
  */
 public abstract class FixClasspathTask extends DefaultTask {
 
