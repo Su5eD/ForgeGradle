@@ -38,7 +38,7 @@ public abstract class LegacyExtension extends GroovyObjectSupport {
      * fixClassPath;
      *  FG2 Userdev puts all classes and resources into a single jar file for FML to consume.
      *  FG3+ puts classes and resources into separate folders, which breaks on older versions.
-     *  We replicate the FG2 behavior by forcing the classes and resources to go to the same build folder.
+     *  We replicate the FG2 behavior by replacing these folders by the jar artifact on the runtime classpath.
      *
      * Takes a boolean - true for apply fix, false for no fix.
      */

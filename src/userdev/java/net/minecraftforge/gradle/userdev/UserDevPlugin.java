@@ -34,7 +34,6 @@ import net.minecraftforge.gradle.mcp.ChannelProvidersExtension;
 import net.minecraftforge.gradle.mcp.MCPRepo;
 import net.minecraftforge.gradle.mcp.tasks.DownloadMCPMappings;
 import net.minecraftforge.gradle.mcp.tasks.GenerateSRG;
-import net.minecraftforge.gradle.userdev.legacy.FixClasspathTask;
 import net.minecraftforge.gradle.userdev.legacy.LegacyExtension;
 import net.minecraftforge.gradle.userdev.tasks.RenameJarInPlace;
 import net.minecraftforge.gradle.userdev.util.DeobfuscatingRepo;
@@ -59,6 +58,7 @@ import org.gradle.api.plugins.JavaPlugin;
 import org.gradle.api.plugins.JavaPluginExtension;
 import org.gradle.api.provider.Provider;
 import org.gradle.api.tasks.SourceSet;
+import org.gradle.api.tasks.SourceSetContainer;
 import org.gradle.api.tasks.TaskContainer;
 import org.gradle.api.tasks.TaskProvider;
 import org.gradle.api.tasks.bundling.AbstractArchiveTask;
@@ -69,9 +69,7 @@ import org.gradle.language.base.plugins.LifecycleBasePlugin;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Set;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import javax.annotation.Nonnull;
@@ -326,7 +324,7 @@ public class UserDevPlugin implements Plugin<Project> {
      * Each quirk is documented and accounted for in this function.
      *  - Classpath / Resources; FG2 Userdev puts all classes and resources into a single jar file for FML to consume.
      *      FG3+ puts classes and resources into separate folders, which breaks on older versions.
-     *      We replicate the FG2 behavior by forcing the classes and resources to go to the same build folder.
+     *      We replicate the FG2 behavior by replacing these folders by the jar artifact on the runtime classpath.
      *
      * In other words, it's a containment zone for version-specific hacks.
      * For issues you think are caused by this function, contact Curle or any other Retrogradle maintainer.
@@ -336,13 +334,15 @@ public class UserDevPlugin implements Plugin<Project> {
         final boolean shouldFixClasspath = config.getFixClasspath().get();
         
         if(shouldFixClasspath) {
-            final FixClasspathTask fixClasspathTask = project.getTasks().create("fixClasspath", FixClasspathTask.class, task -> {
-                // Make sure the jar is built before we run
-                task.dependsOn("jar");
-            });
+            // get the main source set
+            final JavaPluginExtension javaPlugin = project.getExtensions().getByType(JavaPluginExtension.class);
+            final SourceSetContainer sourceSets = javaPlugin.getSourceSets();
+            final SourceSet main = sourceSets.getByName(SourceSet.MAIN_SOURCE_SET_NAME); 
             
-            // execute fixClasspath before each run task
-            project.getTasks().getByName("prepareRuns").dependsOn(fixClasspathTask);
+            // create a singleton collection from the jar task's output 
+            final FileCollection jar = project.files(project.getTasks().named("jar"));
+            // replace output directories with the jar artifact on the main source set's classpath
+            main.setRuntimeClasspath(main.getRuntimeClasspath().minus(main.getOutput()).plus(jar));
         }
     }
 }
