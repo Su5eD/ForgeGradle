@@ -34,6 +34,7 @@ import net.minecraftforge.gradle.mcp.ChannelProvidersExtension;
 import net.minecraftforge.gradle.mcp.MCPRepo;
 import net.minecraftforge.gradle.mcp.tasks.DownloadMCPMappings;
 import net.minecraftforge.gradle.mcp.tasks.GenerateSRG;
+import net.minecraftforge.gradle.userdev.legacy.ExtractMappingsTask;
 import net.minecraftforge.gradle.userdev.legacy.LegacyExtension;
 import net.minecraftforge.gradle.userdev.tasks.RenameJarInPlace;
 import net.minecraftforge.gradle.userdev.util.DeobfuscatingRepo;
@@ -322,16 +323,25 @@ public class UserDevPlugin implements Plugin<Project> {
      * In the process, some quirks with the older versions of ForgeGradle were discovered that need to be replicated here.
      *
      * Each quirk is documented and accounted for in this function.
-     *  - Classpath / Resources; FG2 Userdev puts all classes and resources into a single jar file for FML to consume.
+     *  - Classpath / Resources;
+     *      FG2 Userdev puts all classes and resources into a single jar file for FML to consume.
      *      FG3+ puts classes and resources into separate folders, which breaks on older versions.
      *      We replicate the FG2 behavior by replacing these folders by the jar artifact on the runtime classpath.
+     *- Dependency AccessTransformers / Coremods;
+     *      FG2 GradleStart exposes a <code>net.minecraftforge.gradle.GradleStart.csvDir</code> property
+     *      that points to a directory containing CSV mappings files. This is used by LegacyDev to remap dependencies' AT files.
+     *      We replicate the FG2 behavior by extracting the mappings to a folder in the build directory
+     *      and setting the property pointing to it.
      *
      * In other words, it's a containment zone for version-specific hacks.
      * For issues you think are caused by this function, contact Curle or any other Retrogradle maintainer.
      */
     private void runRetrogradleFixes(Project project) {
         final LegacyExtension config = (LegacyExtension) project.getExtensions().getByName(LegacyExtension.EXTENSION_NAME);
+        // Get the Userdev extension for the run configs
+        final MinecraftExtension minecraftExtension = project.getExtensions().getByType(MinecraftExtension.class);
         final boolean shouldFixClasspath = config.getFixClasspath().get();
+        final boolean shouldExtractMappings = config.getExtractMappings().get();
         
         if(shouldFixClasspath) {
             // get the main source set
@@ -343,6 +353,17 @@ public class UserDevPlugin implements Plugin<Project> {
             final FileCollection jar = project.files(project.getTasks().named("jar"));
             // replace output directories with the jar artifact on the main source set's classpath
             main.setRuntimeClasspath(main.getRuntimeClasspath().minus(main.getOutput()).plus(jar));
+        }
+        
+        if (shouldExtractMappings) {
+            final ExtractMappingsTask extractMappingsTask = project.getTasks().create("extractMappings", ExtractMappingsTask.class);
+            final File csvDir = extractMappingsTask.getOutputDirectory().get().getAsFile();
+            
+            // attach the csvDir location property to each run configuration
+            minecraftExtension.getRuns().forEach(run -> run.property("net.minecraftforge.gradle.GradleStart.csvDir", csvDir));
+            
+            // execute extractMappings before each run task
+            project.getTasks().getByName("prepareRuns").dependsOn(extractMappingsTask);
         }
     }
 }

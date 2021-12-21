@@ -5,6 +5,7 @@ import net.minecraftforge.gradle.userdev.UserDevPlugin;
 import net.minecraftforge.srgutils.MinecraftVersion;
 import org.gradle.api.Project;
 import org.gradle.api.provider.Property;
+import org.gradle.api.provider.Provider;
 
 
 /**
@@ -26,12 +27,15 @@ public abstract class LegacyExtension extends GroovyObjectSupport {
     private static final MinecraftVersion FG3 = MinecraftVersion.from("1.13");
 
     public LegacyExtension(Project project) {
-        getFixClasspath().convention(project.provider(() -> {
+        Provider<Boolean> isLegacy = project.provider(() -> {
             final MinecraftVersion version = MinecraftVersion.from((String) project.getExtensions().getExtraProperties().get("MC_VERSION"));
             
-            // fixClasspath by default if version is below FG 3
+            // enable patches by default if version is below FG 3
             return version.compareTo(FG3) < 0;
-        }));
+        });
+
+        getFixClasspath().convention(isLegacy);
+        getExtractMappings().convention(isLegacy);
     }
 
     /**
@@ -43,4 +47,15 @@ public abstract class LegacyExtension extends GroovyObjectSupport {
      * Takes a boolean - true for apply fix, false for no fix.
      */
     public abstract Property<Boolean> getFixClasspath();
+
+    /**
+     * extractMappings;
+     * FG2 GradleStart exposes a <code>net.minecraftforge.gradle.GradleStart.csvDir</code> property
+     * that points to a directory containing CSV mappings files. This is used by LegacyDev to remap dependencies' AT files.
+     * We replicate the FG2 behavior by extracting the mappings to a folder in the build directory
+     * and setting the property pointing to it.
+     * 
+     * Takes a boolean - true for apply fix, false for no fix.
+     */
+    public abstract Property<Boolean> getExtractMappings();
 }
