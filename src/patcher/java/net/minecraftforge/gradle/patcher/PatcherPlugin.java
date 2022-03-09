@@ -474,7 +474,7 @@ public class PatcherPlugin implements Plugin<Project> {
             project.getDependencies().add(MC_DEP_CONFIG, mcpParentExtension.getConfig()
                     .map(ver -> "net.minecraft:client:" + ver.getVersion() + ":extra"));
             // Add mappings so that it can be used by reflection tools.
-            project.getDependencies().add(MC_DEP_CONFIG, extension.getMappingChannel()
+            project.getDependencies().add(JavaPlugin.RUNTIME_ONLY_CONFIGURATION_NAME, extension.getMappingChannel()
                     .zip(extension.getMappingVersion(), MCPRepo::getMappingDep));
 
             dlMCMetaConfig.configure(task -> task.getMCVersion().convention(extension.getMcVersion()));
