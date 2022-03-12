@@ -504,6 +504,18 @@ public class RunConfig extends GroovyObjectSupport implements Serializable {
         ideaModule = first.ideaModule == null ? second.ideaModule : first.ideaModule;
         singleInstance = first.singleInstance == null ? second.singleInstance : first.singleInstance;
         this.client = first.client == null ? second.client : first.client;
+        
+        if (other.tokens != null) {
+            other.tokens.forEach(overwrite
+                ? (key, value) -> getTokens().put(key, value)
+                : (key, value) -> getTokens().putIfAbsent(key, value));
+        }
+        
+        if (other.lazyTokens != null) {
+            other.lazyTokens.forEach(overwrite
+                ? (key, value) -> getLazyTokens().put(key, value)
+                : (key, value) -> getLazyTokens().putIfAbsent(key, value));
+        }
 
         if (other.env != null) {
             other.env.forEach(overwrite
