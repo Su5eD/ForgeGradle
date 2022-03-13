@@ -21,17 +21,22 @@
 package net.minecraftforge.gradle.common.util.runs;
 
 import com.google.common.base.Suppliers;
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.ImmutableMultimap;
+import com.google.common.collect.Multimap;
 import net.minecraftforge.gradle.common.util.MinecraftExtension;
 import net.minecraftforge.gradle.common.util.RunConfig;
 import net.minecraftforge.gradle.common.util.Utils;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.tuple.ImmutableTriple;
+import org.apache.commons.lang3.tuple.Pair;
 import org.apache.commons.lang3.tuple.Triple;
 import org.gradle.api.Project;
 import org.gradle.api.Task;
 import org.gradle.api.artifacts.Configuration;
 import org.gradle.api.artifacts.ConfigurationContainer;
+import org.gradle.api.artifacts.ModuleVersionIdentifier;
 import org.gradle.api.plugins.JavaPluginExtension;
 import org.gradle.api.tasks.JavaExec;
 import org.gradle.api.tasks.SourceSet;
@@ -200,6 +205,9 @@ public abstract class RunConfigGenerator
         tokens.put("runtime_classpath", () -> runtimeClasspath);
         String minecraftClasspath = classpathJoiner.apply(tokens.get("minecraft_classpath"), createMinecraftClassPath(project));
         tokens.put("minecraft_classpath", () -> minecraftClasspath);
+        Supplier<String> excludedModules = tokens.get("excluded_modules");
+        String moduleClasspath = classpathJoiner.apply(tokens.get("module_classpath"), createModuleClassPath(project, excludedModules != null ? excludedModules.get() : ""));
+        tokens.put("module_classpath", () -> moduleClasspath);
 
         File classpathFolder = new File(project.getBuildDir(), "classpath");
         BinaryOperator<String> classpathFileWriter = (filename, classpath) -> {
@@ -242,13 +250,37 @@ public abstract class RunConfigGenerator
     }
 
     protected static String createMinecraftClassPath(final Project project) {
+        Configuration minecraft = findMinecraftConfiguration(project);
+        return getResolvedClasspath(minecraft);
+    }
+
+    protected static String createModuleClassPath(final Project project, String excludedModules) {
+        Configuration minecraft = findMinecraftConfiguration(project);
+        Multimap<String, String> excluded = excludedModules.isEmpty() ? ImmutableMultimap.of() : Arrays.stream(excludedModules.split(","))
+            .map(s -> {
+                String[] parts = s.split(":");
+                if (parts.length < 2) throw new IllegalArgumentException("Invalid exclusion identifier: " + s);
+                return Pair.of(parts[0], parts[1]);
+            })
+            .collect(HashMultimap::create, (map, pair) -> map.put(pair.getLeft(), pair.getRight()), HashMultimap::putAll);
+
+        return minecraft.copyRecursive().getResolvedConfiguration().getResolvedArtifacts().stream()
+            .filter(artifact -> {
+                ModuleVersionIdentifier id = artifact.getModuleVersion().getId();
+                return !excluded.containsEntry(id.getGroup(), id.getName()) && artifact.getExtension().equals("jar");
+            })
+            .map(artifact -> artifact.getFile().getAbsolutePath())
+            .collect(Collectors.joining(File.pathSeparator));
+    }
+
+    private static Configuration findMinecraftConfiguration(final Project project) {
         ConfigurationContainer configurations = project.getConfigurations();
         Configuration minecraft = configurations.findByName("minecraft");
         if (minecraft == null)
             minecraft = configurations.findByName("minecraftImplementation");
         if (minecraft == null)
             throw new IllegalStateException("Could not find valid minecraft configuration!");
-        return getResolvedClasspath(minecraft);
+        return minecraft;
     }
 
     public static TaskProvider<JavaExec> createRunTask(final RunConfig runConfig, final Project project, final Task prepareRuns, final List<String> additionalClientArgs) {
