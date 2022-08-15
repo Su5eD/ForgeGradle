@@ -7,7 +7,7 @@ plugins {
     id 'com.github.ben-manes.versions' version '0.39.0'
 }
 
-version = gradleutils.getTagOffsetBranchVersion('FG_5.0')
+version = gradleutils.getTagOffsetBranchVersion('FG_5.1-legacy')
 logger.lifecycle('Version: ' + version + ' Java: ' + System.getProperty('java.version') + ' JVM: ' + System.getProperty('java.vm.version') + '(' + System.getProperty('java.vendor') + ') Arch: ' + System.getProperty('os.arch'))
 
 changelog {
@@ -117,15 +117,15 @@ project.extensions.eclipse.classpath.file.whenMerged { Classpath cp ->
 gradlePlugin {
     plugins {
         mcp {
-            id = 'net.minecraftforge.gradle.mcp'
+            id = 'net.minecraftforge.gradle-legacy.mcp'
             implementationClass = 'net.minecraftforge.gradle.mcp.MCPPlugin'
         }
         patcher {
-            id = 'net.minecraftforge.gradle.patcher'
+            id = 'net.minecraftforge.gradle-legacy.patcher'
             implementationClass = 'net.minecraftforge.gradle.patcher.PatcherPlugin'
         }
         userdev {
-            id = 'net.minecraftforge.gradle'
+            id = 'net.minecraftforge.gradle-legacy'
             implementationClass = 'net.minecraftforge.gradle.userdev.UserDevPlugin'
         }
     }
