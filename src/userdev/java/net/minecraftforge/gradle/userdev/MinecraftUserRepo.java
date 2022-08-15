@@ -64,6 +64,7 @@ import net.minecraftforge.srgutils.MinecraftVersion;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
+import org.gradle.api.NamedDomainObjectContainer;
 import org.gradle.api.Project;
 import org.gradle.api.Task;
 import org.gradle.api.artifacts.Configuration;
@@ -259,6 +260,9 @@ public class MinecraftUserRepo extends BaseRepo {
         }
 
         runs.forEach((name, run) -> run.tokens(tokens));
+
+        NamedDomainObjectContainer<RenameJarInPlace> reobfExtension = (NamedDomainObjectContainer<RenameJarInPlace>) project.getExtensions().getByName("reobf");
+        reobfExtension.all(task -> task.getExcludedPackages().set(parent.getExcludedReobfPackages()));
 
         this.extraDataFiles = this.buildExtraDataFiles();
     }
@@ -1538,6 +1542,13 @@ public class MinecraftUserRepo extends BaseRepo {
                 }
             }
             return this.universalFilters;
+        }
+
+        public List<String> getExcludedReobfPackages() {
+            if (getConfigV2() != null) {
+                return getConfigV2().getExcludedReobfPackages();
+            }
+            return Collections.emptyList();
         }
     }
 

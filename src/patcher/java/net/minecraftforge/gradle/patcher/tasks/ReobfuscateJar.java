@@ -27,6 +27,7 @@ import net.minecraftforge.srgutils.IMappingFile;
 import org.apache.commons.io.IOUtils;
 import org.gradle.api.file.RegularFile;
 import org.gradle.api.file.RegularFileProperty;
+import org.gradle.api.provider.ListProperty;
 import org.gradle.api.provider.Provider;
 import org.gradle.api.tasks.Input;
 import org.gradle.api.tasks.InputFile;
@@ -55,7 +56,7 @@ public abstract class ReobfuscateJar extends JarExec {
 
     public ReobfuscateJar() {
         getTool().set(Utils.SPECIALSOURCE);
-        getArgs().addAll("--in-jar", "{input}", "--out-jar", "{output}", "--srg-in", "{srg}", "--live");
+        getArgs().addAll("--in-jar", "{input}", "--out-jar", "{output}", "--srg-in", "{srg}", "--live", "-e", "{excludedPkgs}");
         getOutput().convention(workDir.map(d -> d.file("output.jar")));
     }
 
@@ -101,6 +102,7 @@ public abstract class ReobfuscateJar extends JarExec {
         return replaceArgs(args, ImmutableMap.of(
                 "{input}", getInput().get().getAsFile(),
                 "{output}", outputTemp.get().getAsFile(),
+                "{excludedPkgs}", getExcludedPackages().map(list -> list.isEmpty() ? "\"\"" : String.join(",", list)).get(),
                 "{srg}", getSrg().get().getAsFile()), null);
     }
 
@@ -138,4 +140,7 @@ public abstract class ReobfuscateJar extends JarExec {
     public void filterData() {
         this.keepData = false;
     }
+
+    @Input
+    public abstract ListProperty<String> getExcludedPackages(); 
 }

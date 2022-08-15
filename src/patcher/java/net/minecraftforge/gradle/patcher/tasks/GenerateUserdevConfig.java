@@ -121,6 +121,7 @@ public abstract class GenerateUserdevConfig extends DefaultTask {
             json.setNotchObf(notchObf);
             json.setSourceFileCharset(getSourceFileEncoding().get());
             getUniversalFilters().get().forEach(json::addUniversalFilter);
+            getExcludedReobfPackages().get().forEach(json::addExcludedReobfPackage);
         }
 
         Files.write(Utils.GSON.toJson(json).getBytes(StandardCharsets.UTF_8), getOutput().get().getAsFile());
@@ -304,6 +305,10 @@ public abstract class GenerateUserdevConfig extends DefaultTask {
     @Input
     @Optional
     public abstract ListProperty<String> getUniversalFilters();
+
+    @Input
+    @Optional
+    public abstract ListProperty<String> getExcludedReobfPackages();
 
     @OutputFile
     public abstract RegularFileProperty getOutput();

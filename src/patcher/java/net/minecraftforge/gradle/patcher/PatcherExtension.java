@@ -50,6 +50,7 @@ public abstract class PatcherExtension extends MinecraftExtension {
     private boolean notchObf = false;
 
     private List<Object> extraExcs, extraMappings;
+    private List<String> excludedReobfPackages;
 
     @Nullable
     private DataFunction processor;
@@ -142,6 +143,22 @@ public abstract class PatcherExtension extends MinecraftExtension {
         }
 
         return extraMappings;
+    }
+
+    public void excludeReobfPackages(String... packages) {
+        getExcludedReobfPackages().addAll(Arrays.asList(packages));
+    }
+
+    public void setExcludedReobfPackages(List<String> excludedReobfPackages) {
+        this.excludedReobfPackages = new ArrayList<>(excludedReobfPackages);
+    }
+
+    public List<String> getExcludedReobfPackages() {
+        if (excludedReobfPackages == null) {
+            excludedReobfPackages = new ArrayList<>();
+        }
+
+        return excludedReobfPackages;
     }
 
     @Nullable

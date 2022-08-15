@@ -28,7 +28,9 @@ import org.gradle.api.file.ConfigurableFileCollection;
 import org.gradle.api.file.Directory;
 import org.gradle.api.file.RegularFile;
 import org.gradle.api.file.RegularFileProperty;
+import org.gradle.api.provider.ListProperty;
 import org.gradle.api.provider.Provider;
+import org.gradle.api.tasks.Input;
 import org.gradle.api.tasks.InputFile;
 import org.gradle.api.tasks.InputFiles;
 import org.gradle.api.tasks.Optional;
@@ -46,7 +48,7 @@ public abstract class RenameJarInPlace extends JarExec {
 
     public RenameJarInPlace() {
         getTool().set(Utils.SPECIALSOURCE);
-        getArgs().addAll("--in-jar", "{input}", "--out-jar", "{output}", "--srg-in", "{mappings}", "--live");
+        getArgs().addAll("--in-jar", "{input}", "--out-jar", "{output}", "--srg-in", "{mappings}", "--live", "-e", "{excludedPackages}");
         this.getOutputs().upToDateWhen(task -> false);
     }
 
@@ -54,7 +56,8 @@ public abstract class RenameJarInPlace extends JarExec {
     protected List<String> filterArgs(List<String> args) {
         return replaceArgsMulti(args, ImmutableMap.of(
                 "{input}", getInput().get().getAsFile(),
-                "{output}", temp.get().getAsFile()
+                "{output}", temp.get().getAsFile(),
+                "{excludedPackages}", String.join(",", getExcludedPackages().get())
                 ), ImmutableMultimap.<String, Object>builder()
                         .put("{mappings}", getMappings().get().getAsFile())
                         .putAll("{mappings}", getExtraMappings().getFiles()).build()
@@ -84,4 +87,7 @@ public abstract class RenameJarInPlace extends JarExec {
 
     @InputFile
     public abstract RegularFileProperty getInput();
+    
+    @Input
+    public abstract ListProperty<String> getExcludedPackages(); 
 }

@@ -251,6 +251,7 @@ public class PatcherPlugin implements Plugin<Project> {
         reobfJar.configure(task -> {
             task.getInput().set(jarTask.flatMap(AbstractArchiveTask::getArchiveFile));
             task.getClasspath().from(project.getConfigurations().named(MC_DEP_CONFIG));
+            task.getExcludedPackages().set(extension.getExcludedReobfPackages());
         });
 
         genJoinedBinPatches.configure(task -> {
@@ -501,6 +502,8 @@ public class PatcherPlugin implements Plugin<Project> {
                     userdevConfig.configure(t -> t.getSASs().from(f));
                 });
             }
+
+            userdevConfig.configure(t -> t.getExcludedReobfPackages().set(extension.getExcludedReobfPackages()));
 
             TaskProvider<CreateFakeSASPatches> fakePatches = null;
             PatcherExtension ext = extension;

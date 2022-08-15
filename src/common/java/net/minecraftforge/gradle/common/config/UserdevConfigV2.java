@@ -51,6 +51,8 @@ public class UserdevConfigV2 extends UserdevConfigV1 {
     @Nullable
     private List<String> universalFilters;
     @Nullable
+    private List<String> excludedReobfPackages;
+    @Nullable
     public List<String> modules; // Modules passed to --module-path
     private String sourceFileCharset = StandardCharsets.UTF_8.name();
 
@@ -81,6 +83,16 @@ public class UserdevConfigV2 extends UserdevConfigV1 {
 
     public List<String> getUniversalFilters() {
         return universalFilters == null ? Collections.emptyList() : universalFilters;
+    }
+
+    public void addExcludedReobfPackage(String pkg) {
+        if (excludedReobfPackages == null)
+            excludedReobfPackages = new ArrayList<>();
+        excludedReobfPackages.add(pkg);
+    }
+
+    public List<String> getExcludedReobfPackages() {
+        return excludedReobfPackages == null ? Collections.emptyList() : excludedReobfPackages;
     }
 
     public void addModule(String value) {
