@@ -48,6 +48,7 @@ import net.minecraftforge.gradle.userdev.util.Deobfuscator;
 import net.minecraftforge.gradle.userdev.util.DependencyRemapper;
 import net.minecraftforge.srgutils.IMappingFile;
 
+import net.minecraftforge.srgutils.MinecraftVersion;
 import org.apache.commons.lang3.StringUtils;
 import org.gradle.api.DefaultTask;
 import org.gradle.api.NamedDomainObjectContainer;
@@ -93,6 +94,8 @@ public class UserDevPlugin implements Plugin<Project> {
     public static final String MINECRAFT_EMBED_CONFIGURATION_NAME = "minecraftEmbed";
 
     private static final String DISABLE_DEFAULT_CONFIGS_PROP = "net.minecraftforge.gradle.disableDefaultMinecraftConfigurations";
+    
+    private static final MinecraftVersion FG3 = MinecraftVersion.from("1.13");
 
     @SuppressWarnings("unchecked")
     @Override
@@ -369,6 +372,18 @@ public class UserDevPlugin implements Plugin<Project> {
 
             extension.getRuns().forEach(runConfig -> runConfig.token("asset_index", finalAssetIndex));
             Utils.createRunConfigTasks(extension, extractNatives, downloadAssets, createSrgToMcp);
+            
+            if(MinecraftVersion.from(mcVer).compareTo(FG3) < 0) {
+                // create a singleton collection from the jar task's output 
+                final FileCollection jar = project.files(project.getTasks().named("jar"));
+
+                extension.getRuns().stream()
+                    // get all RunConfig SourceSets
+                    .flatMap(runConfig -> runConfig.getAllSources().stream())
+                    .distinct()
+                    // replace output directories with the jar artifact on each SourceSet's classpath
+                    .forEach(sourceSet -> sourceSet.setRuntimeClasspath(sourceSet.getRuntimeClasspath().minus(sourceSet.getOutput()).plus(jar)));
+            }
         });
 
         project.getTasks().withType(JarJar.class).configureEach(jarJar -> {
