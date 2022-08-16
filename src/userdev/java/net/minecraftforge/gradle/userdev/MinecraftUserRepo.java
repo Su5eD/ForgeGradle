@@ -31,6 +31,7 @@ import net.minecraftforge.gradle.common.config.UserdevConfigV1;
 import net.minecraftforge.gradle.common.config.UserdevConfigV2;
 import net.minecraftforge.gradle.common.config.UserdevConfigV2.DataFunction;
 import net.minecraftforge.gradle.common.tasks.ApplyBinPatches;
+import net.minecraftforge.gradle.common.tasks.ApplyRangeMap;
 import net.minecraftforge.gradle.common.tasks.DownloadAssets;
 import net.minecraftforge.gradle.common.tasks.DynamicJarExec;
 import net.minecraftforge.gradle.common.tasks.ExtractMCPData;
@@ -81,6 +82,7 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import org.gradle.api.plugins.JavaPluginExtension;
 import org.gradle.api.provider.Property;
+import org.gradle.api.tasks.TaskProvider;
 import org.gradle.jvm.toolchain.JavaLanguageVersion;
 
 import java.io.ByteArrayInputStream;
@@ -261,8 +263,21 @@ public class MinecraftUserRepo extends BaseRepo {
 
         runs.forEach((name, run) -> run.tokens(tokens));
 
+        boolean notch = isNotchObf();
+        TaskProvider<GenerateSRG> createMcpToObf = project.getTasks().named("createMcpToObf", GenerateSRG.class);
+        if (notch) {
+            Task task = project.getTasks().findByName("applyRangeMap");
+            if (task != null) {
+                ((ApplyRangeMap) task).getSrgFiles().from(createMcpToObf.flatMap(GenerateSRG::getOutput));
+            }
+        }
         NamedDomainObjectContainer<RenameJarInPlace> reobfExtension = (NamedDomainObjectContainer<RenameJarInPlace>) project.getExtensions().getByName("reobf");
-        reobfExtension.all(task -> task.getExcludedPackages().set(parent.getExcludedReobfPackages()));
+        reobfExtension.all(task -> {
+            task.getExcludedPackages().set(parent.getExcludedReobfPackages());
+            if (notch) {
+                task.getMappings().set(createMcpToObf.flatMap(GenerateSRG::getOutput));
+            }
+        });
 
         this.extraDataFiles = this.buildExtraDataFiles();
     }
@@ -321,6 +336,14 @@ public class MinecraftUserRepo extends BaseRepo {
         }
         deps.forEach(dep -> cfg.getDependencies().add(project.getDependencies().create(dep)));
         return cfg.resolve();
+    }
+
+    public boolean isNotchObf() {
+        return parent != null && parent.getConfigV2() != null && parent.getConfigV2().getNotchObf();
+    }
+
+    public File getObfForgeDep() {
+        return cacheRaw("obf", "jar");
     }
 
     @SuppressWarnings("unused")

@@ -20,16 +20,21 @@
 
 package net.minecraftforge.gradle.userdev.util;
 
+import net.minecraftforge.gradle.common.tasks.JarExec;
 import net.minecraftforge.gradle.common.util.HashFunction;
 import net.minecraftforge.gradle.common.util.HashStore;
 import net.minecraftforge.gradle.common.util.MavenArtifactDownloader;
 import net.minecraftforge.gradle.common.util.McpNames;
 import net.minecraftforge.gradle.common.util.Utils;
 import net.minecraftforge.gradle.mcp.MCPRepo;
+import net.minecraftforge.gradle.mcp.tasks.GenerateSRG;
+import net.minecraftforge.gradle.userdev.UserDevPlugin;
+import net.minecraftforge.gradle.userdev.tasks.RenameJar;
 import net.minecraftforge.gradle.userdev.tasks.RenameJarSrg2Mcp;
 
 import org.apache.commons.io.IOUtils;
 import org.gradle.api.Project;
+import org.gradle.api.Task;
 import org.w3c.dom.Document;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
@@ -113,12 +118,18 @@ public class Deobfuscator {
     }
 
     @Nullable
-    public File deobfBinary(File original, @Nullable String mappings, String... cachePath) throws IOException {
+    public File deobfBinary(File original, File obfForge, boolean notch, @Nullable String mappings, String... cachePath) throws IOException {
         project.getLogger().debug("Deobfuscating binary file {} with mappings {}", original.getName(), mappings);
 
         File names = findMapping(mappings);
         if (names == null || !names.exists()) {
             return null;
+        }
+
+        if (notch) {
+            GenerateSRG srg = project.getTasks().named("createObfToMcp", GenerateSRG.class).get();
+            names = srg.getOutput().get().getAsFile();
+            if (!names.exists()) executeTaskDependencies(srg);
         }
 
         File output = getCacheFile(cachePath);
@@ -130,11 +141,7 @@ public class Deobfuscator {
                 .add("orig", original);
 
         if (!cache.isSame() || !output.exists()) {
-            RenameJarSrg2Mcp rename = project.getTasks().create("_RenameSrg2Mcp_" + new Random().nextInt(), RenameJarSrg2Mcp.class);
-            rename.getInput().set(original);
-            rename.getOutput().set(output);
-            rename.getMappings().set(names);
-            rename.setSignatureRemoval(true);
+            JarExec rename = createRenameTask(original, output, names, notch, obfForge);
             rename.apply();
             rename.setEnabled(false);
 
@@ -204,5 +211,30 @@ public class Deobfuscator {
         String version = mapping.substring(idx + 1);
         String desc = MCPRepo.getMappingDep(channel, version);
         return MavenArtifactDownloader.generate(project, desc, false);
+    }
+
+    private void executeTaskDependencies(Task task) {
+        task.getTaskDependencies().getDependencies(task).forEach(this::executeTaskDependencies);
+
+        task.getActions().forEach(action -> action.execute(task));
+    }
+
+    private JarExec createRenameTask(File original, File output, File names, boolean notch, File obfForge) {
+        if (notch) {
+            RenameJar rename = project.getTasks().create("_RenameObf2Mcp_" + new Random().nextInt(), RenameJar.class);
+            rename.getArgs().add("--live");
+            rename.getInput().set(original);
+            rename.getOutput().set(output);
+            rename.getMappings().set(names);
+            rename.getClasspath().from(obfForge, project.getConfigurations().getByName(UserDevPlugin.OBF));
+            return rename;
+        }
+
+        RenameJarSrg2Mcp rename = project.getTasks().create("_RenameSrg2Mcp_" + new Random().nextInt(), RenameJarSrg2Mcp.class);
+        rename.getInput().set(original);
+        rename.getOutput().set(output);
+        rename.getMappings().set(names);
+        rename.setSignatureRemoval(true);
+        return rename;
     }
 }

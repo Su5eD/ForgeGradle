@@ -127,6 +127,8 @@ public class UserDevPlugin implements Plugin<Project> {
         final TaskProvider<ExtractMCPData> extractSrg = tasks.register("extractSrg", ExtractMCPData.class);
         final TaskProvider<GenerateSRG> createSrgToMcp = tasks.register("createSrgToMcp", GenerateSRG.class);
         final TaskProvider<GenerateSRG> createMcpToSrg = tasks.register("createMcpToSrg", GenerateSRG.class);
+        final TaskProvider<GenerateSRG> createMcpToObf = project.getTasks().register("createMcpToObf", GenerateSRG.class);
+        final TaskProvider<GenerateSRG> createObfToMcp = project.getTasks().register("createObfToMcp", GenerateSRG.class);
         final TaskProvider<DownloadMCMeta> downloadMCMeta = tasks.register("downloadMCMeta", DownloadMCMeta.class);
         final TaskProvider<ExtractNatives> extractNatives = tasks.register("extractNatives", ExtractNatives.class);
         final TaskProvider<DownloadAssets> downloadAssets = tasks.register("downloadAssets", DownloadAssets.class);
@@ -139,7 +141,10 @@ public class UserDevPlugin implements Plugin<Project> {
         showLicense.configure(task -> task.doLast(_t ->
                 MojangLicenseHelper.show(project, extension.getMappingChannel().get(), extension.getMappingVersion().get())));
 
-        extractSrg.configure(task -> task.getConfig().set(downloadMcpConfig.flatMap(DownloadMavenArtifact::getOutput)));
+        extractSrg.configure(task -> {
+            task.dependsOn(downloadMcpConfig);
+            task.getConfig().set(downloadMcpConfig.flatMap(DownloadMavenArtifact::getOutput));
+        });
 
         createSrgToMcp.configure(task -> {
             task.setReverse(false);
@@ -154,6 +159,24 @@ public class UserDevPlugin implements Plugin<Project> {
             task.setReverse(true);
             task.getSrg().set(extractSrg.flatMap(ExtractMCPData::getOutput));
             task.getMappings().set(extension.getMappings());
+        });
+
+        createMcpToObf.configure(task -> {
+            task.setNotch(true);
+            task.setReverse(true);
+            task.dependsOn(createMcpToSrg);
+            task.getSrg().set(createMcpToSrg.flatMap(GenerateSRG::getSrg));
+            task.getMappings().set(extension.getMappings());
+        });
+
+        createObfToMcp.configure(task -> {
+            task.setNotch(true);
+            task.setReverse(false);
+            task.dependsOn(extractSrg);
+            task.getSrg().set(extractSrg.flatMap(ExtractMCPData::getOutput));
+            task.getMappings().set(extension.getMappings());
+            task.getFormat().set(IMappingFile.Format.SRG);
+            task.getOutput().set(project.file("build/" + createObfToMcp.getName() + "/output.srg"));
         });
 
         extractNatives.configure(task -> {
@@ -274,7 +297,7 @@ public class UserDevPlugin implements Plugin<Project> {
             });
 
             if (!internalObfConfiguration.getDependencies().isEmpty()) {
-                deobfrepo = new DeobfuscatingRepo(project, internalObfConfiguration, deobfuscator);
+                deobfrepo = new DeobfuscatingRepo(project, internalObfConfiguration, deobfuscator, mcrepo);
                 if (deobfrepo.getResolvedOrigin() == null) {
                     project.getLogger().error("DeobfRepo attempted to resolve an origin repo early but failed, this may cause issues with some IDEs");
                 }

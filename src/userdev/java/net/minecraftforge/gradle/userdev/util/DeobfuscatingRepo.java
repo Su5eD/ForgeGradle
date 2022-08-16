@@ -26,6 +26,7 @@ import net.minecraftforge.gradle.common.util.BaseRepo;
 import net.minecraftforge.gradle.common.util.MavenArtifactDownloader;
 import net.minecraftforge.gradle.common.util.Utils;
 
+import net.minecraftforge.gradle.userdev.MinecraftUserRepo;
 import org.gradle.api.Project;
 import org.gradle.api.artifacts.Configuration;
 import org.gradle.api.artifacts.ResolvedArtifact;
@@ -50,12 +51,14 @@ public class DeobfuscatingRepo extends BaseRepo {
     private final Configuration origin;
     private ResolvedConfiguration resolvedOrigin;
     private final Deobfuscator deobfuscator;
+    private final MinecraftUserRepo mcUserRepo;
 
-    public DeobfuscatingRepo(Project project, Configuration origin, Deobfuscator deobfuscator) {
+    public DeobfuscatingRepo(Project project, Configuration origin, Deobfuscator deobfuscator, MinecraftUserRepo mcUserRepo) {
         super(Utils.getCache(project, "mod_remap_repo"), project.getLogger());
         this.project = project;
         this.origin = origin;
         this.deobfuscator = deobfuscator;
+        this.mcUserRepo = mcUserRepo;
     }
 
     @Nullable
@@ -134,7 +137,7 @@ public class DeobfuscatingRepo extends BaseRepo {
 
         File origFile = orig.get();
 
-        return deobfuscator.deobfBinary(origFile, mapping, getArtifactPath(artifact, mapping));
+        return deobfuscator.deobfBinary(origFile, this.mcUserRepo.getObfForgeDep(), this.mcUserRepo.isNotchObf(), mapping, getArtifactPath(artifact, mapping));
     }
 
     @Nullable

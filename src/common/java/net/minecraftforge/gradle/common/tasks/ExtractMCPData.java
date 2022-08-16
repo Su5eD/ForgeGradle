@@ -73,6 +73,9 @@ public abstract class ExtractMCPData extends DefaultTask {
                 return;
             }
 
+            if (!output.exists()) {
+                output.getParentFile().mkdirs();
+            }
             try (OutputStream out = new FileOutputStream(output)) {
                 IOUtils.copy(zip.getInputStream(entry), out);
             }
