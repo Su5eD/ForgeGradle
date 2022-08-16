@@ -31,6 +31,7 @@ import net.minecraftforge.gradle.common.tasks.ExtractNatives;
 import net.minecraftforge.gradle.common.tasks.ExtractRangeMap;
 import net.minecraftforge.gradle.common.tasks.ExtractZip;
 import net.minecraftforge.gradle.common.tasks.JarExec;
+import net.minecraftforge.gradle.common.tasks.RenameAccessTransformers;
 import net.minecraftforge.gradle.common.util.Artifact;
 import net.minecraftforge.gradle.common.util.BaseRepo;
 import net.minecraftforge.gradle.common.util.EnvironmentChecks;
@@ -81,6 +82,8 @@ import org.gradle.api.tasks.compile.JavaCompile;
 
 import codechicken.diffpatch.util.PatchMode;
 import com.google.common.collect.Lists;
+import org.gradle.language.jvm.tasks.ProcessResources;
+
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -131,6 +134,7 @@ public class PatcherPlugin implements Plugin<Project> {
         final TaskProvider<BakePatches> bakePatches = tasks.register("bakePatches", BakePatches.class);
         final TaskProvider<DownloadAssets> downloadAssets = tasks.register("downloadAssets", DownloadAssets.class);
         final TaskProvider<ReobfuscateJar> reobfJar = tasks.register("reobfJar", ReobfuscateJar.class);
+        final TaskProvider<RenameAccessTransformers> reobfATs = tasks.register("reobfATs", RenameAccessTransformers.class);
         final TaskProvider<GenerateBinPatches> genJoinedBinPatches = tasks.register("genJoinedBinPatches", GenerateBinPatches.class);
         final TaskProvider<GenerateBinPatches> genClientBinPatches = tasks.register("genClientBinPatches", GenerateBinPatches.class);
         final TaskProvider<GenerateBinPatches> genServerBinPatches = tasks.register("genServerBinPatches", GenerateBinPatches.class);
@@ -270,6 +274,11 @@ public class PatcherPlugin implements Plugin<Project> {
 
         filterNew.configure(task -> task.getInput().set(reobfJar.flatMap(ReobfuscateJar::getOutput)));
 
+        reobfATs.configure(task -> {
+            task.getInput().from(extension.getAccessTransformers());
+            task.getReverse().set(true);
+        });
+
         /*
          * All sources in SRG names.
          * patches in /patches/
@@ -288,7 +297,7 @@ public class PatcherPlugin implements Plugin<Project> {
         universalJar.configure(task -> {
             task.dependsOn(filterNew);
             task.from(project.zipTree(filterNew.flatMap(FilterNewJar::getOutput)));
-            task.from(javaConv.getSourceSets().named(SourceSet.MAIN_SOURCE_SET_NAME).map(SourceSet::getResources));
+            task.from(javaConv.getSourceSets().named(SourceSet.MAIN_SOURCE_SET_NAME).map(s -> s.getOutput().getResourcesDir()));
             task.getArchiveClassifier().set("universal");
         });
 
@@ -336,6 +345,12 @@ public class PatcherPlugin implements Plugin<Project> {
             TaskProvider<DefaultTask> updateMappings = tasks.register("updateMappings", DefaultTask.class);
             updateMappings.configure(task -> task.dependsOn(extractMappedNew));
         }
+
+        project.getTasks().named("processResources", ProcessResources.class).configure(task -> {
+            task.dependsOn(reobfATs);
+            task.exclude(spec -> reobfATs.get().getInput().contains(spec.getFile()));
+            task.from(reobfATs.flatMap(RenameAccessTransformers::getOutput));
+        });
 
         project.afterEvaluate(p -> {
             // Add the patched source as a source dir during afterEvaluate, to not be overwritten by buildscripts
@@ -388,6 +403,7 @@ public class PatcherPlugin implements Plugin<Project> {
                     final TaskProvider<ExtractMCPData> extractSrg = tasks.register("extractSrg", ExtractMCPData.class);
                     extractSrg.configure(task -> task.getConfig().set(downloadConfig.flatMap(DownloadMCPConfig::getOutput)));
                     createMcp2Srg.configure(task -> task.getSrg().convention(extractSrg.flatMap(ExtractMCPData::getOutput)));
+                    reobfATs.configure(task -> task.getSrg().set(extractSrg.flatMap(ExtractMCPData::getOutput)));
 
                     final TaskProvider<ExtractMCPData> extractStatic = tasks.register("extractStatic", ExtractMCPData.class);
                     extractStatic.configure(task -> {
@@ -436,6 +452,8 @@ public class PatcherPlugin implements Plugin<Project> {
 
                     final TaskProvider<GenerateSRG> parentCreateMcp2Srg = parentTasks.named("createMcp2Srg", GenerateSRG.class);
                     createMcp2Srg.configure(task -> task.getSrg().convention(parentCreateMcp2Srg.flatMap(GenerateSRG::getSrg)));
+                    final TaskProvider<RenameAccessTransformers> parentReobfATs = parentTasks.named("reobfATs", RenameAccessTransformers.class);
+                    reobfATs.configure(task -> task.getSrg().convention(parentReobfATs.flatMap(RenameAccessTransformers::getSrg)));
 
                     final TaskProvider<CreateExc> parentCreateExc = parentTasks.named("createExc", CreateExc.class);
                     createExc.configure(task -> {

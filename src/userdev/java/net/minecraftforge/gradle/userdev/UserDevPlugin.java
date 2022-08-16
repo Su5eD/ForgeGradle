@@ -29,6 +29,7 @@ import net.minecraftforge.gradle.common.tasks.ExtractExistingFiles;
 import net.minecraftforge.gradle.common.tasks.ExtractMCPData;
 import net.minecraftforge.gradle.common.tasks.ExtractNatives;
 import net.minecraftforge.gradle.common.tasks.ExtractRangeMap;
+import net.minecraftforge.gradle.common.tasks.RenameAccessTransformers;
 import net.minecraftforge.gradle.common.util.BaseRepo;
 import net.minecraftforge.gradle.common.util.EnvironmentChecks;
 import net.minecraftforge.gradle.common.util.MinecraftRepo;
@@ -70,6 +71,7 @@ import org.gradle.api.tasks.bundling.AbstractArchiveTask;
 import org.gradle.api.tasks.bundling.Jar;
 import org.gradle.api.tasks.compile.JavaCompile;
 import org.gradle.language.base.plugins.LifecycleBasePlugin;
+import org.gradle.language.jvm.tasks.ProcessResources;
 
 import java.io.File;
 import java.io.IOException;
@@ -129,6 +131,7 @@ public class UserDevPlugin implements Plugin<Project> {
         final TaskProvider<GenerateSRG> createMcpToSrg = tasks.register("createMcpToSrg", GenerateSRG.class);
         final TaskProvider<GenerateSRG> createMcpToObf = project.getTasks().register("createMcpToObf", GenerateSRG.class);
         final TaskProvider<GenerateSRG> createObfToMcp = project.getTasks().register("createObfToMcp", GenerateSRG.class);
+        final TaskProvider<RenameAccessTransformers> reobfATs = tasks.register("reobfATs", RenameAccessTransformers.class);
         final TaskProvider<DownloadMCMeta> downloadMCMeta = tasks.register("downloadMCMeta", DownloadMCMeta.class);
         final TaskProvider<ExtractNatives> extractNatives = tasks.register("extractNatives", ExtractNatives.class);
         final TaskProvider<DownloadAssets> downloadAssets = tasks.register("downloadAssets", DownloadAssets.class);
@@ -177,6 +180,13 @@ public class UserDevPlugin implements Plugin<Project> {
             task.getMappings().set(extension.getMappings());
             task.getFormat().set(IMappingFile.Format.SRG);
             task.getOutput().set(project.file("build/" + createObfToMcp.getName() + "/output.srg"));
+        });
+
+        reobfATs.configure(task -> {
+            task.dependsOn(extractSrg);
+            task.getInput().from(extension.getAccessTransformers());
+            task.getSrg().set(extractSrg.flatMap(ExtractMCPData::getOutput));
+            task.getReverse().set(true);
         });
 
         extractNatives.configure(task -> {
@@ -243,6 +253,12 @@ public class UserDevPlugin implements Plugin<Project> {
         }
 
         configureJarJarTask(project, jarJarExtension);
+        
+        tasks.named("processResources", ProcessResources.class).configure(task -> {
+            task.dependsOn(reobfATs);
+            task.exclude(spec -> reobfATs.get().getInput().contains(spec.getFile()));
+            task.from(reobfATs.flatMap(RenameAccessTransformers::getOutput));
+        });
 
         if (!project.hasProperty(DISABLE_DEFAULT_CONFIGS_PROP) || !Boolean.parseBoolean((String) project.property(DISABLE_DEFAULT_CONFIGS_PROP))) {
             final Configuration minecraftLibrary = project.getConfigurations().create(MINECRAFT_LIBRARY_CONFIGURATION_NAME);
