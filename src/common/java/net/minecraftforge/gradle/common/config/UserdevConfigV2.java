@@ -55,6 +55,7 @@ public class UserdevConfigV2 extends UserdevConfigV1 {
     @Nullable
     public List<String> modules; // Modules passed to --module-path
     private String sourceFileCharset = StandardCharsets.UTF_8.name();
+    private int javaRecompileTarget = 8;
 
     public void setNotchObf(boolean value) {
         this.notchObf = value ? true : null;
@@ -104,6 +105,14 @@ public class UserdevConfigV2 extends UserdevConfigV1 {
     @Nullable
     public List<String> getModules() {
         return modules;
+    }
+
+    public int getJavaRecompileTarget() {
+        return this.javaRecompileTarget;
+    }
+
+    public void setJavaRecompileTarget(int javaRecompileTarget) {
+        this.javaRecompileTarget = javaRecompileTarget;
     }
 
     public static class DataFunction extends Function {

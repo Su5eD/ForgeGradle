@@ -83,6 +83,7 @@ public abstract class GenerateUserdevConfig extends DefaultTask {
                 .convention(StandardCharsets.UTF_8.name());
         getInject().convention("inject/");
         getPatches().convention("patches/");
+        getJavaRecompileTarget().convention(8);
 
         processorData = objects.mapProperty(String.class, File.class);
 
@@ -120,6 +121,7 @@ public abstract class GenerateUserdevConfig extends DefaultTask {
             json.patchesModifiedPrefix = getPatchesModifiedPrefix().get();
             json.setNotchObf(notchObf);
             json.setSourceFileCharset(getSourceFileEncoding().get());
+            json.setJavaRecompileTarget(getJavaRecompileTarget().get());
             getUniversalFilters().get().forEach(json::addUniversalFilter);
             getExcludedReobfPackages().get().forEach(json::addExcludedReobfPackage);
         }
@@ -196,6 +198,9 @@ public abstract class GenerateUserdevConfig extends DefaultTask {
     @Input
     @Optional
     public abstract ListProperty<String> getSRGLines();
+
+    @Input
+    public abstract Property<Integer> getJavaRecompileTarget();
 
     public NamedDomainObjectContainer<RunConfig> runs(@SuppressWarnings("rawtypes") Closure closure) {
         return runs.configure(closure);

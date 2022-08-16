@@ -1384,7 +1384,8 @@ public class MinecraftUserRepo extends BaseRepo {
             Set<File> files = Sets.newHashSet(this.extraDataFiles);
             Collections.addAll(files, extraDeps);
             compile.setClasspath(project.files(files));
-            String target = String.valueOf(mcp.wrapper.getConfig().getJavaTarget());
+            int targetVersion = parent.configv2 != null ? parent.configv2.getJavaRecompileTarget() : mcp.wrapper.getConfig().getJavaTarget();
+            String target = String.valueOf(targetVersion);
             compile.setSourceCompatibility(target);
             compile.setTargetCompatibility(target);
             compile.getDestinationDirectory().set(output);
