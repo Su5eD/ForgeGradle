@@ -69,6 +69,7 @@ import org.gradle.api.NamedDomainObjectContainer;
 import org.gradle.api.Project;
 import org.gradle.api.Task;
 import org.gradle.api.artifacts.Configuration;
+import org.gradle.api.artifacts.Dependency;
 import org.gradle.api.artifacts.ExternalModuleDependency;
 import org.gradle.api.logging.LogLevel;
 import org.gradle.api.plugins.ExtraPropertiesExtension;
@@ -763,6 +764,8 @@ public class MinecraftUserRepo extends BaseRepo {
             if (mapping != null)
                 rename.getArgs().addAll("--map", findSrgToMcp(mapping, names).getAbsolutePath());
             rename.getArgs().add("--src-fix"); // Set SourceFile attribute so IDEs will link decomped code on first pass, Line numbers will be screwy, but that's a todo.
+            // Add filtered libraries to the classpath so that FART can infer inheritance
+            getMcpLibraries().forEach(f -> rename.getArgs().addAll("--lib", f.getAbsolutePath()));
             rename.apply();
 
             debug("    Finished: " + bin);
@@ -770,6 +773,12 @@ public class MinecraftUserRepo extends BaseRepo {
             cache.save();
         }
         return bin;
+    }
+
+    private Set<File> getMcpLibraries() {
+        Dependency[] deps = mcp.getLibraries().stream().map(s -> project.getDependencies().create(s)).toArray(Dependency[]::new);
+        Configuration resolveLibs = project.getConfigurations().detachedConfiguration(deps);
+        return resolveLibs.resolve();
     }
 
     @Nullable
@@ -872,7 +881,15 @@ public class MinecraftUserRepo extends BaseRepo {
                 rename.getOutput().set(srged);
                 rename.getMappings().set(obf2Srg);
                 rename.apply();
-                return srged;
+
+                File filtered = cacheRaw("filter", "jar");
+                debug("    Filtering renamed jar");
+                // Filter out excluded packages
+                JarExec filter = createTask("filterJar", JarExec.class);
+                filter.getTool().set(Utils.JARFILTER);
+                filter.getArgs().addAll("--input", srged.getAbsolutePath(), "--output", filtered.getAbsolutePath(), "--filter", String.join(",", parent.getExcludedReobfPackages()));
+                filter.apply();
+                return filtered;
             } else {
                 return merged;
             }
