@@ -39,7 +39,7 @@ public class EnvironmentChecks {
 
     public static void checkGradleRange(@Nullable GradleVersion minVersionInclusive, @Nullable GradleVersion maxVersionExclusive) {
         checkRange("Gradle", GradleVersion.current(), minVersionInclusive, maxVersionExclusive,
-                "\nNote: Upgrade your gradle version first before trying to switch to FG5.", "");
+                "\nNote: Upgrade your gradle version first before trying to switch to FG6.", "");
     }
 
     private static <T> void checkRange(String name, Comparable<T> current, @Nullable T minVersionInclusive, @Nullable T maxVersionExclusive, String additionalMin, String additionalMax) {
