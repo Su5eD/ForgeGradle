@@ -5,6 +5,8 @@
 
 package net.minecraftforge.gradle.common.util;
 
+import org.jetbrains.annotations.ApiStatus;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.FileSystem;
@@ -13,12 +15,15 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.jar.Attributes;
 import java.util.jar.Manifest;
 
 // Quick reader class for the v1.0 bundler format used by the server installers in 1.18+
-class BundlerUtils {
+@ApiStatus.Internal
+public class BundlerUtils {
     private static final Attributes.Name BUNDLER_FORMAT = new Attributes.Name("Bundler-Format");
 
     static Path extractMainJar(Path raw, Path target) throws IOException {
@@ -48,6 +53,37 @@ class BundlerUtils {
             extractFile("versions", fs, entry, target);
         }
         return target;
+    }
+
+    public static Set<String> listBundleLibraries(Path bundlePath) throws IOException {
+        try (FileSystem bundleFs = FileSystems.newFileSystem(bundlePath, null)) {
+            return BundlerUtils.listBundleLibraries(bundleFs);
+        }
+    }
+
+    public static Set<String> listBundleLibraries(FileSystem bundleFs) throws IOException {
+        Path mfp = bundleFs.getPath("META-INF", "MANIFEST.MF");
+        if (!Files.exists(mfp))
+            throw new RuntimeException("Input archive does not contain META-INF/MANIFEST.MF");
+
+        Manifest mf;
+        try (InputStream is = Files.newInputStream(mfp)) {
+            mf = new Manifest(is);
+        }
+        String format = mf.getMainAttributes().getValue(BUNDLER_FORMAT);
+        if (format == null)
+            throw new RuntimeException("Invalid bundler archive; missing format entry from manifest");
+
+        if (!"1.0".equals(format))
+            throw new RuntimeException("Unsupported bundler format " + format + "; only 1.0 is supported");
+
+        FileList libraries = FileList.read(bundleFs.getPath("META-INF", "libraries.list"));
+        Set<String> artifacts = new HashSet<>();
+        for (FileList.Entry entry : libraries.entries) {
+            artifacts.add(entry.id);
+        }
+
+        return artifacts;
     }
 
     private static String getBundlerVersion(Path manifest) throws IOException {

@@ -105,7 +105,7 @@ public class MinecraftRepo extends BaseRepo {
     public File findFile(ArtifactIdentifier artifact) throws IOException {
         String side = artifact.getName();
 
-        if (!artifact.getGroup().equals(GROUP) || (!"client".equals(side) && !"server".equals(side)))
+        if (!artifact.getGroup().equals(GROUP) || (!"client-extra".equals(side) && !"client".equals(side) && !"server".equals(side)))
             return null;
 
         String version = artifact.getVersion();
@@ -117,6 +117,13 @@ public class MinecraftRepo extends BaseRepo {
             return null; //We do not support mappings
         String classifier = artifact.getClassifier() == null ? "" : artifact.getClassifier();
         String ext = artifact.getExtension();
+
+        if ("client-extra".equals(side)) {
+            // We alias client-extra here because Gradle only allows one artifact with a given artifact group and id.
+            // This means we cannot have net.minecraft:client with no classifier AND net.minecraft:client:extra in the same configuration.
+            side = "client";
+            classifier = "extra";
+        }
 
         File json = findVersion(getMCVersion(version));
         if (json == null)
@@ -132,6 +139,7 @@ public class MinecraftRepo extends BaseRepo {
         } else if ("jar".equals(ext)) {
             switch (classifier) {
                 case "":         return findRaw(side, version, json);
+                case "bundled":  return findBundled(side, version, json);
                 case "slim":     return findSlim(side, version, forceStable, json); //Deprecated - Use MCP Specific version
                 case "data":     return findData(side, version, forceStable, json); //Deprecated - Use extra
                 case "extra":    return findExtra(side, version, forceStable, json); //Deprecated - Use MCP Specific version
@@ -143,11 +151,15 @@ public class MinecraftRepo extends BaseRepo {
         return null;
     }
 
+    @Nullable
     private File findMcp(String version) throws IOException {
-        Artifact mcp = Artifact.from("de.oceanlabs.mcp:mcp_config:" + version + "@zip");
+        Artifact mcp = Artifact.from(Utils.getMCPConfigArtifact(version));
         File zip = cache("versions", version, "mcp.zip");
         if (!zip.exists()) {
-            FileUtils.copyFile(MavenArtifactDownloader.manual(project, mcp.getDescriptor(), false), zip);
+            File mcpConfig = MavenArtifactDownloader.manual(project, mcp.getDescriptor(), false);
+            if (mcpConfig == null)
+                return null;
+            FileUtils.copyFile(mcpConfig, zip);
             Utils.updateHash(zip);
         }
         return zip;
@@ -156,11 +168,25 @@ public class MinecraftRepo extends BaseRepo {
     @Nullable
     private File findMcpMappings(String version) throws IOException {
         File mcp = findMcp(version);
-        if (mcp == null)
-            return null;
-
         File mappings = cache("versions", version, "mcp_mappings.tsrg");
-        HashStore cache = commonCache(cache("versions", version, "mcp_mappings.tsrg"));
+        HashStore cache = commonCache(mappings);
+
+        if (mcp == null) {
+            String mcVersion = getMCVersion(version);
+            cache.add("mcVersion", mcVersion);
+            if (!cache.isSame() || !mappings.exists()) {
+                File generated = MavenArtifactDownloader.generate(this.project, Utils.getOfficialMappingsArtifact("client", mcVersion), true);
+                if (generated == null)
+                    return null;
+
+                IMappingFile.load(generated).write(mappings.toPath(), IMappingFile.Format.TSRG2, true);
+                Utils.updateHash(mappings);
+                cache.save();
+            }
+
+            return mappings;
+        }
+
         cache.add(mcp);
 
         if (!cache.isSame() || !mappings.exists()) {
@@ -251,6 +277,15 @@ public class MinecraftRepo extends BaseRepo {
         return findDownloadEntry(side + "_mappings", cache("versions", getMCVersion(version), side + "_mappings.txt"), getMCVersion(version), json_file);
     }
 
+    @Nullable
+    private File findBundled(String side, String version, File json_file) throws IOException {
+        String mcver = getMCVersion(version);
+        if (!"server".equals(side) || v1_18.compareTo(MinecraftVersion.from(mcver)) > 0)
+            return null;
+
+        return findDownloadEntry("server", cache("versions", mcver, "server.jar"), mcver, json_file);
+    }
+
     private File findRaw(String side, String version, File json_file) throws IOException {
         String mcver = getMCVersion(version);
         File raw = findDownloadEntry(side, cache("versions", mcver, side + ".jar"), mcver, json_file);
@@ -288,7 +323,7 @@ public class MinecraftRepo extends BaseRepo {
         File raw = findRaw(side, version, json);
         File mappings = findMcpMappings(version);
         File extra = cache("versions", version, side + "-extra" + (forceStable && !stable ? "-stable" : "") + ".jar");
-        HashStore cache = commonCache(cache("versions", version, side + "-extra" + (forceStable && !stable ? "-stable" : "") + ".jar"))
+        HashStore cache = commonCache(extra)
                 .add("raw", raw)
                 .add("mappings", mappings)
                 .add("codever", "1");

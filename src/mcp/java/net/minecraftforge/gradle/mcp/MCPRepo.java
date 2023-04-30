@@ -14,6 +14,7 @@ import net.minecraftforge.artifactural.api.repository.Repository;
 import net.minecraftforge.artifactural.base.repository.ArtifactProviderBuilder;
 import net.minecraftforge.artifactural.base.repository.SimpleRepository;
 import net.minecraftforge.artifactural.gradle.GradleRepositoryAdapter;
+import net.minecraftforge.gradle.common.tasks.JarExec;
 import net.minecraftforge.gradle.common.util.BaseRepo;
 import net.minecraftforge.gradle.common.util.DownloadUtils;
 import net.minecraftforge.gradle.common.util.HashFunction;
@@ -33,6 +34,7 @@ import net.minecraftforge.srgutils.IMappingFile.IMethod;
 import net.minecraftforge.srgutils.IRenamer;
 import org.apache.commons.io.FileUtils;
 import org.gradle.api.Project;
+import org.gradle.api.Task;
 import org.gradle.api.artifacts.repositories.RepositoryContentDescriptor;
 import org.gradle.api.logging.Logger;
 
@@ -78,7 +80,7 @@ import java.util.zip.ZipOutputStream;
 public class MCPRepo extends BaseRepo {
     private static MCPRepo INSTANCE = null;
     private static final String GROUP_MINECRAFT = "net.minecraft";
-    private static final String NAMES_MINECRAFT = "^(client|server|joined|mappings_[a-z_]+)$";
+    private static final String NAMES_MINECRAFT = "^(client|client-extra|server|joined|mappings_[a-z_]+)$";
     private static final String GROUP_MCP = "de.oceanlabs.mcp";
     private static final String NAMES_MCP = "^(mcp_config)$";
     private static final String STEP_MERGE = "merge"; //TODO: Design better way to get steps output, for now hardcode
@@ -165,6 +167,14 @@ public class MCPRepo extends BaseRepo {
         debug("  " + REPO_NAME + " Request: " + artifact.getGroup() + ":" + name + ":" + version + ":" + classifier + "@" + ext);
 
         if (group.equals(GROUP_MINECRAFT)) {
+            String origName = name;
+            if (name.equals("client-extra")) {
+                // We alias client-extra here because Gradle only allows one artifact with a given artifact group and id.
+                // This means we cannot have net.minecraft:client with no classifier AND net.minecraft:client:extra in the same configuration.
+                name = "client";
+                classifier = "extra";
+            }
+
             if (name.startsWith("mappings_")) {
                 if ("zip".equals(ext)) {
                     return findNames(name.substring(9) + '_' + version);
@@ -172,7 +182,7 @@ public class MCPRepo extends BaseRepo {
                     return findEmptyPom(name, version);
                 }
             } else if ("pom".equals(ext)) {
-                return findPom(name, version);
+                return findPom(origName, version);
             } else if ("jar".equals(ext)) {
                 switch (classifier) {
                     case "":              return findRaw(name, version);
@@ -199,14 +209,16 @@ public class MCPRepo extends BaseRepo {
         return null;
     }
 
-    HashStore commonHash(File mcp) {
-        return new HashStore(this.getCacheRoot())
-            .add("mcp", mcp);
+    HashStore commonHash(@Nullable File mcp) {
+        HashStore hashStore = new HashStore(this.getCacheRoot());
+        if (mcp != null)
+            hashStore.add("mcp", mcp);
+        return hashStore;
     }
 
     @Nullable
     File getMCP(String version) {
-        return MavenArtifactDownloader.manual(project, "de.oceanlabs.mcp:mcp_config:" + version + "@zip", false);
+        return MavenArtifactDownloader.manual(project, Utils.getMCPConfigArtifact(version), false);
     }
 
     @Nullable
@@ -230,8 +242,8 @@ public class MCPRepo extends BaseRepo {
     @Nullable
     private File findPom(String side, String version) throws IOException {
         File mcp = getMCP(version);
-        if (mcp == null)
-            return null;
+        // if (mcp == null)
+        //     return null;
 
         File pom = cacheMC(side, version, null, "pom");
         debug("    Finding pom: " + pom);
@@ -264,15 +276,18 @@ public class MCPRepo extends BaseRepo {
                         }
                     }
                 }
-                builder.dependencies().add("net.minecraft:client:" + version, "compile").withClassifier("extra");
+                if (!side.endsWith("-extra"))
+                    builder.dependencies().add("net.minecraft:client:" + version, "compile").withClassifier("extra");
                 //builder.dependencies().add("net.minecraft:client:" + getMCVersion(version), "compile").withClassifier("data");
             } else {
                 builder.dependencies().add("net.minecraft:server:" + version, "compile").withClassifier("extra");
                 //builder.dependencies().add("net.minecraft:server:" + getMCVersion(version), "compile").withClassifier("data");
             }
 
-            MCPWrapper wrapper = getWrapper(version, mcp);
-            wrapper.getConfig().getLibraries(side).forEach(e -> builder.dependencies().add(e, "compile"));
+            if (mcp != null) {
+                MCPWrapper wrapper = getWrapper(version, mcp);
+                wrapper.getConfig().getLibraries(side).forEach(e -> builder.dependencies().add(e, "compile"));
+            }
 
             String ret = builder.tryBuild();
             if (ret == null)
@@ -290,12 +305,80 @@ public class MCPRepo extends BaseRepo {
         if (!"joined".equals(side))
             return null; //MinecraftRepo provides these
 
+        File mcp = getMCP(version);
+        if (mcp == null) {
+            File client = MavenArtifactDownloader.generate(this.project, "net.minecraft:client:" + version, false);
+            File server = MavenArtifactDownloader.generate(this.project, "net.minecraft:server:" + version, false);
+            if (client == null || server == null)
+                return null;
+
+            File merged = cacheMC(side, version, null, "jar");
+            HashStore cache = commonHash(null)
+                    .add("client", client)
+                    .add("server", server)
+                    .load(cacheMC(side, version, null, "jar.input"));
+
+            if (!cache.isSame() || !merged.exists()) {
+                merged.getParentFile().mkdirs();
+                JarExec mergeJar = createTask("mergeJar", JarExec.class);
+                mergeJar.setHasLog(false);
+                mergeJar.getTool().set(Utils.SIDESTRIPPER);
+                mergeJar.getArgs().empty();
+                mergeJar.getArgs().addAll("--client", client.getAbsolutePath(),
+                        "--server", server.getAbsolutePath(),
+                        "--ann", version,
+                        "--output", merged.getAbsolutePath(),
+                        "--inject", "false");
+                mergeJar.apply();
+                return merged.exists() ? merged : null;
+            } else {
+                return merged;
+            }
+        }
+
         return findStepOutput(side, version, null, "jar", STEP_MERGE);
     }
 
     @Nullable
     private File findSrg(String side, String version) throws IOException {
-        return findStepOutput(side, version, "srg", "jar", STEP_RENAME);
+        File mcp = getMCP(version);
+        File srg = findStepOutput(side, version, "srg", "jar", STEP_RENAME);
+        if (mcp != null || srg != null)
+            return srg;
+
+        srg = cacheMC(side, version, "srg", "jar");
+        File raw = MavenArtifactDownloader.generate(this.project, "net.minecraft:" + side + ":" + version, false);
+        File mappings = MavenArtifactDownloader.generate(this.project, Utils.getOfficialMappingsArtifact("joined".equals(side) ? "client" : side, version), true);
+        if (raw == null || mappings == null)
+            return null;
+
+        // Only for MCPConfig-free environments
+        HashStore cache = commonHash(null)
+                .add("raw", raw)
+                .add("mappings", mappings)
+                .load(new File(srg.getAbsolutePath() + ".input"));
+        if (!cache.isSame() || !srg.exists()) {
+            JarExec rename = createTask("renameJar", JarExec.class);
+            rename.setHasLog(false);
+            rename.getTool().set(Utils.FART);
+            rename.getArgs().empty();
+            rename.getArgs().addAll("--input", raw.getAbsolutePath(), "--output", srg.getAbsolutePath(), "--map", mappings.getAbsolutePath(), "--reverse");
+            rename.getArgs().addAll("--ann-fix", "--ids-fix", "--src-fix", "--record-fix");
+            rename.apply();
+            cache.save();
+        }
+
+        return srg.exists() ? srg : null;
+    }
+
+    private int taskCount = 1;
+
+    private String getNextTaskName(String prefix) {
+        return "_mcp_" + prefix + "_" + taskCount++;
+    }
+
+    private <T extends Task> T createTask(String prefix, Class<T> cls) {
+        return project.getTasks().create(getNextTaskName(prefix), cls);
     }
 
     @Nullable
@@ -436,7 +519,6 @@ public class MCPRepo extends BaseRepo {
         File extra = cacheMC(side, version, "extra", "jar");
         HashStore cache = commonHash(mcp).load(cacheMC(side, version, "extra", "jar.input"))
                 .add("raw", raw)
-                .add("mcp", mcp)
                 .add("codever", "1");
 
         if (!cache.isSame() || !extra.exists()) {

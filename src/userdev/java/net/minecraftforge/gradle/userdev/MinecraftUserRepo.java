@@ -6,6 +6,8 @@
 package net.minecraftforge.gradle.userdev;
 
 import com.google.common.collect.ImmutableList;
+import com.google.gson.Gson;
+import com.google.gson.JsonObject;
 import net.minecraftforge.artifactural.api.artifact.ArtifactIdentifier;
 import net.minecraftforge.artifactural.api.repository.Repository;
 import net.minecraftforge.artifactural.base.repository.ArtifactProviderBuilder;
@@ -23,6 +25,7 @@ import net.minecraftforge.gradle.common.tasks.ExtractNatives;
 import net.minecraftforge.gradle.common.tasks.JarExec;
 import net.minecraftforge.gradle.common.util.Artifact;
 import net.minecraftforge.gradle.common.util.BaseRepo;
+import net.minecraftforge.gradle.common.util.BundlerUtils;
 import net.minecraftforge.gradle.common.util.HashFunction;
 import net.minecraftforge.gradle.common.util.HashStore;
 import net.minecraftforge.gradle.common.util.MavenArtifactDownloader;
@@ -72,6 +75,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
@@ -116,6 +120,7 @@ public class MinecraftUserRepo extends BaseRepo {
     private final boolean isPatcher;
     private final Map<String, McpNames> mapCache = new HashMap<>();
     private boolean loadedParents = false;
+    @Nullable
     private Patcher parent;
     @Nullable
     private MCP mcp;
@@ -162,16 +167,23 @@ public class MinecraftUserRepo extends BaseRepo {
 
     public void validate(Configuration cfg, Map<String, RunConfig> runs, ExtractNatives extractNatives, DownloadAssets downloadAssets, GenerateSRG createSrgToMcp) {
         getParents();
-        if (mcp == null)
+        if (this.isPatcher && this.mcp == null)
             throw new IllegalStateException("Invalid minecraft dependency: " + GROUP + ":" + NAME + ":" + VERSION);
-        ExtraPropertiesExtension ext = project.getExtensions().getExtraProperties();
-        ext.set("MC_VERSION", mcp.getMCVersion());
-        ext.set("MCP_VERSION", mcp.getArtifact().getVersion());
+        ExtraPropertiesExtension ext = this.project.getExtensions().getExtraProperties();
+        String mcVersion = this.getMCVersion();
+        ext.set("MC_VERSION", mcVersion);
+        String mcpVersion;
+        if (this.mcp != null) {
+            mcpVersion = mcp.getArtifact().getVersion();
+            ext.set("MCP_VERSION", mcpVersion);
+        } else {
+            mcpVersion = null;
+        }
 
         // Validate the toolchain language version
-        Property<JavaLanguageVersion> languageVersion = project.getExtensions().getByType(JavaPluginExtension.class).getToolchain().getLanguageVersion();
+        Property<JavaLanguageVersion> languageVersion = this.project.getExtensions().getByType(JavaPluginExtension.class).getToolchain().getLanguageVersion();
         int setVersion = languageVersion.map(JavaLanguageVersion::asInt).getOrElse(0);
-        int javaTarget = mcp.wrapper.getConfig().getJavaTarget();
+        int javaTarget = this.mcp == null ? setVersion : this.mcp.wrapper.getConfig().getJavaTarget();
         if (setVersion != 0 && setVersion < javaTarget) {
             throw new IllegalArgumentException(
                     "The java toolchain language version of " + setVersion + " is below the required minimum of " + javaTarget + ".\n" +
@@ -208,8 +220,9 @@ public class MinecraftUserRepo extends BaseRepo {
         Map<String, String> tokens = new HashMap<>();
         tokens.put("assets_root", downloadAssets.getOutput().getAbsolutePath());
         tokens.put("natives", extractNatives.getOutput().get().getAsFile().getAbsolutePath());
-        tokens.put("mc_version", mcp.getMCVersion());
-        tokens.put("mcp_version", mcp.getArtifact().getVersion());
+        tokens.put("mc_version", mcVersion);
+        if (mcpVersion != null)
+            tokens.put("mcp_version", mcpVersion);
         tokens.put("mcp_mappings", MAPPING);
         tokens.put("mcp_to_srg", createSrgToMcp.getOutput().get().getAsFile().getAbsolutePath());
         if (parent != null && !parent.getModules().isEmpty()) {
@@ -277,8 +290,9 @@ public class MinecraftUserRepo extends BaseRepo {
     private Set<File> buildExtraDataFiles() {
         Configuration cfg = project.getConfigurations().create(getNextTaskName("compileJava"));
         List<String> deps = new ArrayList<>();
-        deps.add("net.minecraft:client:" + mcp.getMCVersion() + ":extra");
-        deps.addAll(mcp.getLibraries());
+        deps.add("net.minecraft:client:" + this.getMCVersion() + ":extra");
+        if (this.mcp != null)
+            deps.addAll(mcp.getLibraries());
         Patcher patcher = parent;
         while (patcher != null) {
             deps.addAll(patcher.getLibraries());
@@ -300,6 +314,13 @@ public class MinecraftUserRepo extends BaseRepo {
     }
     private File cacheMapped(@Nullable String mapping, String classifier, String ext) {
         return cache(GROUP.replace('.', File.separatorChar), NAME, getVersion(mapping), NAME + '-' + getVersion(mapping) + '-' + classifier + '.' + ext);
+    }
+    private File cacheMCP(String name, String ext) {
+        if (this.mcp == null) {
+            return cache(GROUP.replace('.', File.separatorChar), NAME, VERSION, name + '.' + ext);
+        } else {
+            return cache(mcp.getArtifact().getGroup().replace('.', File.separatorChar), mcp.getArtifact().getName(), mcp.getArtifact().getVersion(), name + '.' + ext);
+        }
     }
 
     public String getDependencyString() {
@@ -327,9 +348,9 @@ public class MinecraftUserRepo extends BaseRepo {
         return mappings == null ? VERSION : VERSION + "_mapped_" + mappings;
     }
 
+    @Nullable
     private Patcher getParents() {
         if (!loadedParents) {
-
             String classifier = "userdev";
             if ("net.minecraftforge".equals(GROUP) && "forge".equals(NAME)) {
                 MinecraftVersion mcver = MinecraftVersion.from(VERSION.split("-")[0]);
@@ -337,15 +358,20 @@ public class MinecraftUserRepo extends BaseRepo {
                     classifier = "userdev3";
             }
 
-            String artifact = isPatcher ? (GROUP + ":" + NAME +":" + VERSION + ':' + classifier) :
-                                        ("de.oceanlabs.mcp:mcp_config:" + VERSION + "@zip");
+            String artifact = isPatcher ? (GROUP + ":" + NAME +":" + VERSION + ':' + classifier) : Utils.getMCPConfigArtifact(VERSION);
             boolean patcher = isPatcher;
             Patcher last = null;
             while (artifact != null) {
                 debug("    Parent: " + artifact);
                 File dep = MavenArtifactDownloader.manual(project, artifact, CHANGING_USERDEV);
-                if (dep == null)
+                if (dep == null) {
+                    if (!patcher) {
+                        // We fall back to MCPConfig-free environment
+                        loadedParents = true;
+                        return parent;
+                    }
                     throw new IllegalStateException("Could not resolve dependency: " + artifact);
+                }
                 if (patcher) {
                     Patcher _new = new Patcher(project, dep, artifact);
                     if (parent == null)
@@ -410,7 +436,8 @@ public class MinecraftUserRepo extends BaseRepo {
     private HashStore commonHash(@Nullable File mapping) {
         getParents();
         HashStore ret = new HashStore(this.getCacheRoot());
-        ret.add(mcp.artifact.getDescriptor(), mcp.getZip());
+        if (this.mcp != null)
+            ret.add(mcp.artifact.getDescriptor(), mcp.getZip());
         Patcher patcher = parent;
         while (patcher != null) {
             ret.add(parent.artifact.getDescriptor(), parent.data);
@@ -448,7 +475,7 @@ public class MinecraftUserRepo extends BaseRepo {
     @Nullable
     private File findPom(@Nullable String mapping, String rand) throws IOException {
         getParents(); //Download parents
-        if (mcp == null || mapping == null) {
+        if ((this.isPatcher && mcp == null) || mapping == null) {
             debug("  Finding Pom: MCP or Mappings were null");
             return null;
         }
@@ -468,8 +495,19 @@ public class MinecraftUserRepo extends BaseRepo {
             POMBuilder builder = new POMBuilder(rand + GROUP, NAME, getVersion(mapping));
 
             //builder.dependencies().add(rand + GROUP + ':' + NAME + ':' + getVersion(mapping), "compile"); //Normal poms dont reference themselves...
-            builder.dependencies().add("net.minecraft:client:" + mcp.getMCVersion() + ":extra", "compile"); //Client as that has all deps as external list
-            mcp.getLibraries().forEach(e -> builder.dependencies().add(e, "compile"));
+            if (this.mcp == null && "net.minecraft".equals(GROUP) && "client".equals(NAME)) {
+                // We use the client-extra alias here because Gradle only allows one artifact with a given artifact group and id.
+                // This means we cannot have net.minecraft:client with no classifier AND net.minecraft:client:extra in the same configuration.
+                builder.dependencies().add("net.minecraft:client-extra:" + this.getMCVersion(), "compile");
+            } else {
+                // Use client name as that has all vanilla deps in its POM
+                builder.dependencies().add("net.minecraft:client:" + this.getMCVersion() + ":extra", "compile");
+            }
+            if (this.mcp != null) {
+                this.mcp.getLibraries().forEach(e -> builder.dependencies().add(e, "compile"));
+            } else if ("joined".equals(NAME)) {
+                builder.dependencies().add(Utils.SIDESTRIPPER.substring(0, Utils.SIDESTRIPPER.lastIndexOf(':')) + ":api", "compile");
+            }
 
             if (mapping != null) {
                 int idx = Utils.getMappingSeparatorIdx(mapping);
@@ -567,7 +605,7 @@ public class MinecraftUserRepo extends BaseRepo {
             File srged = findBinpatched(packages);
 
             File mcinject;
-            if (mcp.wrapper.getConfig().isOfficial()) {
+            if (this.mcp == null || this.mcp.wrapper.getConfig().isOfficial()) {
                 mcinject = srged;
             } else {
                 mcinject = cacheRaw("mci", "jar");
@@ -583,79 +621,38 @@ public class MinecraftUserRepo extends BaseRepo {
                 mci.apply();
             }
 
-            debug("    Creating MCP Inject Sources");
-            //Build and inject MCP injected sources
-            File inject_src = cacheRaw("inject_src", "jar");
+            File inject_src = createMCPInjectSources(packages);
 
-            if (!inject_src.getParentFile().exists() && !inject_src.getParentFile().mkdirs())
-                throw new RuntimeException("Could not create directory: " + inject_src.getParentFile().getAbsolutePath());
+            File injected = mcinject;
+            if (inject_src != null) {
+                debug("    Compiling MCP Inject sources");
+                File compiled = compileJava(inject_src, mcinject);
+                if (compiled == null)
+                    return null;
 
-            try (ZipInputStream zin = new ZipInputStream(new FileInputStream(mcp.getZip()));
-                 ZipOutputStream zos = new ZipOutputStream(new FileOutputStream(inject_src)) ) {
-                String prefix = mcp.wrapper.getConfig().getData("inject");
-                String template = null;
-                ZipEntry entry;
-                while ((entry = zin.getNextEntry()) != null) {
-                    if (!entry.getName().startsWith(prefix) || entry.isDirectory())
-                        continue;
-
-                    // If an entry has a specific side in its name, don't apply
-                    // it when we're on the opposite side. Entries without a specific
-                    // side should always be applied
-                    if ("server".equals(NAME) && entry.getName().contains("/client/")) {
-                        continue;
+                debug("    Injecting MCP Inject binaries");
+                injected = cacheRaw("injected", "jar");
+                //Combine mci, and our recompiled MCP injected classes.
+                try (ZipInputStream zmci = new ZipInputStream(new FileInputStream(mcinject));
+                        ZipOutputStream zout = new ZipOutputStream(new FileOutputStream(injected))) {
+                    ZipEntry entry = null;
+                    while ((entry = zmci.getNextEntry()) != null) {
+                        zout.putNextEntry(Utils.getStableEntry(entry.getName()));
+                        IOUtils.copy(zmci, zout);
+                        zout.closeEntry();
                     }
-
-                    if ("client".equals(NAME) && entry.getName().contains("/server/")) {
-                        continue;
-                    }
-
-                    String name = entry.getName().substring(prefix.length());
-                    if ("package-info-template.java".equals(name)) {
-                        template = new String(IOUtils.toByteArray(zin), StandardCharsets.UTF_8);
-                    } else {
-                        zos.putNextEntry(Utils.getStableEntry(name));
-                        IOUtils.copy(zin, zos);
-                        zos.closeEntry();
-                    }
-                }
-
-                if (template != null) {
-                    for (String pkg : packages) {
-                        zos.putNextEntry(Utils.getStableEntry(pkg + "/package-info.java"));
-                        zos.write(template.replace("{PACKAGE}", pkg.replace("/", ".")).getBytes(StandardCharsets.UTF_8));
-                        zos.closeEntry();
-                    }
-                }
-            }
-
-            debug("    Compiling MCP Inject sources");
-            File compiled = compileJava(inject_src, mcinject);
-            if (compiled == null)
-                return null;
-
-            debug("    Injecting MCP Inject binairies");
-            File injected = cacheRaw("injected", "jar");
-            //Combine mci, and our recompiled MCP injected classes.
-            try (ZipInputStream zmci = new ZipInputStream(new FileInputStream(mcinject));
-                 ZipOutputStream zout = new ZipOutputStream(new FileOutputStream(injected))) {
-                ZipEntry entry = null;
-                while ((entry = zmci.getNextEntry()) != null) {
-                    zout.putNextEntry(Utils.getStableEntry(entry.getName()));
-                    IOUtils.copy(zmci, zout);
-                    zout.closeEntry();
-                }
-                Files.walkFileTree(compiled.toPath(), new SimpleFileVisitor<Path>() {
-                    @Override
-                    public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
-                        try (InputStream fin = Files.newInputStream(file)) {
-                            zout.putNextEntry(Utils.getStableEntry(compiled.toPath().relativize(file).toString().replace('\\', '/')));
-                            IOUtils.copy(fin, zout);
-                            zout.closeEntry();
+                    Files.walkFileTree(compiled.toPath(), new SimpleFileVisitor<Path>() {
+                        @Override
+                        public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
+                            try (InputStream fin = Files.newInputStream(file)) {
+                                zout.putNextEntry(Utils.getStableEntry(compiled.toPath().relativize(file).toString().replace('\\', '/')));
+                                IOUtils.copy(fin, zout);
+                                zout.closeEntry();
+                            }
+                            return FileVisitResult.CONTINUE;
                         }
-                        return FileVisitResult.CONTINUE;
-                    }
-                });
+                    });
+                }
             }
 
             if (hasAts) {
@@ -687,21 +684,77 @@ public class MinecraftUserRepo extends BaseRepo {
                 rename.getArgs().addAll("--output", bin.getAbsolutePath());
             if (mapping != null)
                 rename.getArgs().addAll("--map", findSrgToMcp(mapping, names).getAbsolutePath());
-            rename.getArgs().add("--src-fix"); // Set SourceFile attribute so IDEs will link decomped code on first pass, Line numbers will be screwy, but that's a todo.
+            if (this.mcp == null)
+                rename.getArgs().add("--strip-sigs");
+            rename.getArgs().add("--src-fix");
             rename.apply();
 
             debug("    Finished: " + bin);
             Utils.updateHash(bin, HashFunction.SHA1);
             cache.save();
         }
+
         return bin;
+    }
+
+    @Nullable
+    private File createMCPInjectSources(Set<String> packages) throws IOException {
+        if (this.mcp == null)
+            return null;
+
+        debug("    Creating MCP Inject Sources");
+        // Build and inject MCP injected sources
+        File inject_src = cacheRaw("inject_src", "jar");
+
+        if (!inject_src.getParentFile().exists() && !inject_src.getParentFile().mkdirs())
+            throw new RuntimeException("Could not create directory: " + inject_src.getParentFile().getAbsolutePath());
+
+        try (ZipInputStream zin = new ZipInputStream(new FileInputStream(mcp.getZip()));
+             ZipOutputStream zos = new ZipOutputStream(new FileOutputStream(inject_src)) ) {
+            String prefix = mcp.wrapper.getConfig().getData("inject");
+            String template = null;
+            ZipEntry entry;
+            while ((entry = zin.getNextEntry()) != null) {
+                if (!entry.getName().startsWith(prefix) || entry.isDirectory())
+                    continue;
+
+                // If an entry has a specific side in its name, don't apply it when we're on the opposite side.
+                // Entries without a specific side should always be applied.
+                if ("server".equals(NAME) && entry.getName().contains("/client/")) {
+                    continue;
+                }
+
+                if ("client".equals(NAME) && entry.getName().contains("/server/")) {
+                    continue;
+                }
+
+                String name = entry.getName().substring(prefix.length());
+                if ("package-info-template.java".equals(name)) {
+                    template = new String(IOUtils.toByteArray(zin), StandardCharsets.UTF_8);
+                } else {
+                    zos.putNextEntry(Utils.getStableEntry(name));
+                    IOUtils.copy(zin, zos);
+                    zos.closeEntry();
+                }
+            }
+
+            if (template != null) {
+                for (String pkg : packages) {
+                    zos.putNextEntry(Utils.getStableEntry(pkg + "/package-info.java"));
+                    zos.write(template.replace("{PACKAGE}", pkg.replace("/", ".")).getBytes(StandardCharsets.UTF_8));
+                    zos.closeEntry();
+                }
+            }
+        }
+
+        return inject_src;
     }
 
     @Nullable
     private File findBinpatched(final Set<String> packages) throws IOException {
         boolean notch = parent != null && parent.getConfigV2() != null && parent.getConfigV2().getNotchObf();
 
-        String desc = "net.minecraft:" + (isPatcher ? "joined" : NAME) + ":" + (notch ? mcp.getMCVersion() : mcp.getVersion() + ":srg");
+        String desc = "net.minecraft:" + (isPatcher ? "joined" : NAME) + ":" + (notch ? this.getMCVersion() : this.getMCPVersion() + ":srg");
         File clean = MavenArtifactDownloader.generate(project, desc, true);
 
         if (clean == null || !clean.exists()) {
@@ -711,13 +764,16 @@ public class MinecraftUserRepo extends BaseRepo {
         }
         debug("    Vanilla Base: " + clean);
 
+        if (this.mcp == null)
+            return clean;
+
         File obf2Srg = null;
         try (ZipFile tmp = new ZipFile(clean)) {
             if (notch) {
                 obf2Srg = findObfToSrg(IMappingFile.Format.TSRG);
                 if (obf2Srg == null) {
-                    debug("  Failed to find obf to mcp mapping file. " + mcp.getVersion());
-                    project.getLogger().error("MinecraftUserRepo: Failed to find obf to mcp mapping file. Should not be possible. " + mcp.getVersion());
+                    debug("  Failed to find obf to mcp mapping file. " + this.getMCPVersion());
+                    project.getLogger().error("MinecraftUserRepo: Failed to find obf to mcp mapping file. Should not be possible. " + this.getMCPVersion());
                     return null;
                 }
 
@@ -892,18 +948,31 @@ public class MinecraftUserRepo extends BaseRepo {
 
     private File findObfToSrg(IMappingFile.Format format) throws IOException {
         String ext = format.name().toLowerCase();
-        File root = cache(mcp.getArtifact().getGroup().replace('.', '/'), mcp.getArtifact().getName(), mcp.getArtifact().getVersion());
-        File file = new File(root, "obf_to_srg." + ext);
+        File file = cacheMCP("obf_to_srg", ext);
 
-        HashStore cache = new HashStore()
-            .add("mcp", mcp.getZip())
-            .load(new File(root, "obf_to_srg." + ext + ".input"));
+        if (this.mcp != null) {
+            HashStore cache = new HashStore()
+                    .add("mcp", this.mcp.getZip())
+                    .load(new File(file.getAbsolutePath() + ".input"));
 
-        if (!cache.isSame() || !file.exists()) {
-            byte[] data = mcp.getData("mappings");
-            IMappingFile obf_to_srg = loadObfToSrg(data);
-            obf_to_srg.write(file.toPath(), format, false);
-            cache.save();
+            if (!cache.isSame() || !file.exists()) {
+                byte[] data = this.mcp.getData("mappings");
+                IMappingFile obf_to_srg = loadObfToSrg(data);
+                obf_to_srg.write(file.toPath(), format, false);
+                cache.save();
+            }
+        } else if (!file.exists()) {
+            String type = NAME.equals("joined") ? "client" : NAME; // Dirty hack, but server should always be a subset of client mappings
+            File mappingsFile = MavenArtifactDownloader.generate(this.project, Utils.getOfficialMappingsArtifact(type, VERSION), true);
+            if (mappingsFile == null) {
+                String message = "Could not find " + VERSION + " official " + type + " mappings.";
+                project.getLogger().error(message);
+                throw new IllegalStateException(message);
+            }
+
+            // Official is our "SRG" for MCPConfig-free environments
+            IMappingFile officialToObf = IMappingFile.load(mappingsFile);
+            officialToObf.write(file.toPath(), format, true);
         }
 
         return file;
@@ -914,20 +983,18 @@ public class MinecraftUserRepo extends BaseRepo {
             debug("Attempted to create SRG to MCP with null MCP mappings: " + mapping);
             throw new IllegalArgumentException("Attempted to create SRG to MCP with null MCP mappings: " + mapping);
         }
-        File root = cache(mcp.getArtifact().getGroup().replace('.', '/'), mcp.getArtifact().getName(), mcp.getArtifact().getVersion());
-        String srg_name = "srg_to_" + mapping + ".tsrg";
-        File srg = new File(root, srg_name);
+        File srg = cacheMCP("srg_to_" + mapping, "tsrg");
 
         HashStore cache = new HashStore()
-            .add("mcp", mcp.getZip())
-            .add("mapping", names)
-            .load(new File(root, srg_name + ".input"));
+            .add("mapping", names);
+        if (this.mcp != null)
+            cache.add("mcp", this.mcp.getZip());
+        cache.load(new File(srg.getAbsolutePath() + ".input"));
 
         if (!cache.isSame() || !srg.exists()) {
             info("Creating SRG -> MCP TSRG");
-            byte[] data = mcp.getData("mappings");
             McpNames mcp_names = loadMCPNames(mapping, names);
-            IMappingFile obf_to_srg = loadObfToSrg(data);
+            IMappingFile obf_to_srg = this.mcp == null ? IMappingFile.load(findObfToSrg(IMappingFile.Format.TSRG2)) : loadObfToSrg(this.mcp.getData("mappings"));
             IMappingFile srg_to_named = obf_to_srg.reverse().chain(obf_to_srg).rename(new IRenamer() {
                 @Override
                 public String rename(IField value) {
@@ -967,10 +1034,23 @@ public class MinecraftUserRepo extends BaseRepo {
         File decomp = cacheRaw("decomp", "jar");
         debug("  Finding Decomp: " + decomp);
         cache.load(cacheRaw("decomp", "jar.input"));
+        HashStore remappedLinesCache = commonHash(null)
+                .add("codever", "1")
+                .load(cacheRaw("decomp-remapped-lines", "input"));
+        boolean decompExists = decomp.exists();
 
-        if (cache.isSame() && decomp.exists()) {
+        if (cache.isSame() && decompExists && (this.mcp != null || remappedLinesCache.isSame())) {
             debug("  Cache Hit");
-        } else if (decomp.exists() || generate) {
+            return decomp;
+        }
+
+        if (!decompExists && !generate)
+            return null;
+
+        boolean shouldGenerateDecomp = !decompExists || !cache.isSame();
+        boolean shouldRemapLines = this.mcp == null && (shouldGenerateDecomp || !remappedLinesCache.isSame());
+        File raw = null;
+        if (shouldGenerateDecomp && this.mcp != null) {
             debug("  Decompiling");
             File output = mcp.getStepOutput(isPatcher ? "joined" : NAME, null);
             if (parent != null && parent.getConfigV2() != null && parent.getConfigV2().processor != null) {
@@ -1001,8 +1081,62 @@ public class MinecraftUserRepo extends BaseRepo {
             }
             cache.save();
             Utils.updateHash(decomp, HashFunction.SHA1);
+        } else if (shouldGenerateDecomp) {
+            JarExec decompileJar = createTask("decompileJar", JarExec.class);
+            decompileJar.setHasLog(false);
+            decompileJar.getTool().set(Utils.FORGEFLOWER);
+            decompileJar.setMinimumRuntimeJavaVersion(17);
+            decompileJar.getJvmArgs().addAll("-Xmx4G");
+            decompileJar.getArgs().empty();
+            decompileJar.getArgs().addAll("-din=1", "-rbr=1", "-dgs=1", "-asc=1", "-rsy=1", "-iec=1", "-jvn=1", "-jpr=1", "-isl=0", "-iib=1", "-bsm=1", "-dcl=1");
+            raw = findRaw(MAPPING);
+            if (raw == null)
+                return null;
+            Set<String> libraryStrings;
+            if ("server".equals(NAME)) {
+                File bundled = MavenArtifactDownloader.generate(this.project, "net.minecraft:server:" + VERSION + ":bundled@jar", CHANGING_USERDEV);
+                if (bundled == null)
+                    return null;
+
+                libraryStrings = BundlerUtils.listBundleLibraries(bundled.toPath());
+            } else {
+                File downloadJson = MavenArtifactDownloader.generate(this.project, Artifact.from(GROUP, "client", VERSION, null, "json").getDescriptor(), CHANGING_USERDEV);
+                if (downloadJson == null)
+                    return null;
+                libraryStrings = Utils.listDownloadJsonLibraries(new Gson().fromJson(new FileReader(downloadJson), JsonObject.class));
+            }
+
+            File libraries = cacheRaw("libraries", "txt");
+            Files.write(libraries.toPath(), libraryStrings.stream().map(lib -> "-e=" + lib).collect(Collectors.toList()));
+
+            decompileJar.getArgs().addAll("-cfg", libraries.getAbsolutePath(), /* input */ raw.getAbsolutePath(), /* output */ decomp.getAbsolutePath());
+            decompileJar.apply();
+
+            cache.save();
+            Utils.updateHash(decomp, HashFunction.SHA1);
         }
-        return decomp.exists() ? decomp : null;
+
+        if (shouldRemapLines && decomp.exists()) {
+            if (raw == null)
+                raw = findRaw(MAPPING);
+
+            if (raw != null) {
+                JarExec remapLineNumbers = createTask("remapLineNumbers", JarExec.class);
+                remapLineNumbers.setHasLog(false);
+                remapLineNumbers.getTool().set(Utils.FART);
+                remapLineNumbers.getArgs().empty();
+                remapLineNumbers.getArgs().addAll("--input", raw.getAbsolutePath(), "--ff-line-numbers", decomp.getAbsolutePath());
+                remapLineNumbers.apply();
+
+                remappedLinesCache.save();
+                // Update SHA1 of raw
+                Utils.updateHash(raw, HashFunction.SHA1);
+            }
+
+            return decomp;
+        }
+
+        return null;
     }
 
     @Nullable
@@ -1168,6 +1302,9 @@ public class MinecraftUserRepo extends BaseRepo {
 
     @Nullable
     private File findRecomp(@Nullable String mapping, boolean generate) throws IOException {
+        if (this.mcp == null)
+            return null;
+
         File source = findSource(mapping, generate);
         if (source == null || !source.exists()) {
             debug("  Finding Recomp: Sources not found");
@@ -1260,7 +1397,7 @@ public class MinecraftUserRepo extends BaseRepo {
         File target = cacheMapped(mapping, classifier, extension);
         debug("  Finding Classified: " + target);
 
-        File original = MavenArtifactDownloader.manual(project, Artifact.from(GROUP, NAME, VERSION, classifier, extension).getDescriptor(), CHANGING_USERDEV);
+        File original = MavenArtifactDownloader.generate(project, Artifact.from(GROUP, NAME, VERSION, classifier, extension).getDescriptor(), CHANGING_USERDEV);
         HashStore cache = commonHash(null); //TODO: Remap from SRG?
         if (original != null)
             cache.add("original", original);
@@ -1324,6 +1461,14 @@ public class MinecraftUserRepo extends BaseRepo {
         } finally {
             compile.setEnabled(false);
         }
+    }
+
+    private String getMCVersion() {
+        return this.mcp == null ? VERSION : this.mcp.getMCVersion();
+    }
+
+    private String getMCPVersion() {
+        return this.mcp == null ? VERSION : this.mcp.getVersion();
     }
 
     private static class Patcher {

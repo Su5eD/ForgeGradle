@@ -8,16 +8,19 @@ package net.minecraftforge.gradle.common.tasks;
 import net.minecraftforge.gradle.common.config.MCPConfigV2;
 import net.minecraftforge.gradle.common.util.MavenArtifactDownloader;
 import net.minecraftforge.gradle.common.util.MinecraftRepo;
+import net.minecraftforge.gradle.common.util.Utils;
 import net.minecraftforge.srgutils.IMappingFile;
 import net.minecraftforge.srgutils.IRenamer;
 
 import org.apache.commons.io.IOUtils;
 import org.gradle.api.DefaultTask;
+import org.gradle.api.file.RegularFile;
 import org.gradle.api.file.RegularFileProperty;
 import org.gradle.api.provider.Property;
 import org.gradle.api.Project;
 import org.gradle.api.tasks.Input;
 import org.gradle.api.tasks.InputFile;
+import org.gradle.api.tasks.Optional;
 import org.gradle.api.tasks.OutputFile;
 import org.gradle.api.tasks.TaskAction;
 
@@ -38,10 +41,28 @@ public abstract class ExtractMCPData extends DefaultTask {
 
     @TaskAction
     public void run() throws IOException {
-        MCPConfigV2 cfg = MCPConfigV2.getFromArchive(getConfig().get().getAsFile());
-
+        RegularFile configRegularFile = getConfig().getOrNull();
         String key = getKey().get();
         File output = getOutput().get().getAsFile();
+
+        if (configRegularFile == null) {
+            if (!"mappings".equals(key))
+                throw new IllegalArgumentException("MCPConfig zip archive missing but key was not \"mappings\"");
+
+            // Dirty hack, but server should always be a subset of client mappings
+            String version = getVersion().get();
+            // Official -> obf
+            File mappings = MavenArtifactDownloader.generate(this.getProject(), Utils.getOfficialMappingsArtifact("client", version), true);
+            if (mappings == null)
+                throw new IllegalStateException("Could not find official mappings for version " + version);
+
+            // Writes obf -> official to output file
+            IMappingFile.load(mappings).write(output.toPath(), IMappingFile.Format.TSRG2, true);
+            return;
+        }
+
+        MCPConfigV2 cfg = MCPConfigV2.getFromArchive(configRegularFile.getAsFile());
+
         try (ZipFile zip = new ZipFile(getConfig().get().getAsFile())) {
             String path = cfg.getData(key.split("/"));
             if (path == null && "statics".equals(key))
@@ -71,7 +92,7 @@ public abstract class ExtractMCPData extends DefaultTask {
 
     public static IMappingFile remapSrgClasses(Project project, MCPConfigV2 config, IMappingFile obfToSrg) throws IOException {
         String minecraftVersion = MinecraftRepo.getMCVersion(config.getVersion());
-        File client = MavenArtifactDownloader.generate(project, "net.minecraft:client:" + minecraftVersion + ":mappings@txt", true);
+        File client = MavenArtifactDownloader.generate(project, Utils.getOfficialMappingsArtifact("client", minecraftVersion), true);
 
         IMappingFile obfToOfficial = IMappingFile.load(client).reverse();
 
@@ -98,7 +119,12 @@ public abstract class ExtractMCPData extends DefaultTask {
     public abstract Property<String> getKey();
 
     @InputFile
+    @Optional
     public abstract RegularFileProperty getConfig();
+
+    @Input
+    @Optional
+    public abstract Property<String> getVersion();
 
     @Input
     public boolean isAllowEmpty() {

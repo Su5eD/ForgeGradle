@@ -5,6 +5,7 @@
 
 package net.minecraftforge.gradle.common.util;
 
+import com.google.gson.JsonObject;
 import net.minecraftforge.artifactural.gradle.GradleRepositoryAdapter;
 import net.minecraftforge.gradle.common.config.MCPConfigV1;
 import net.minecraftforge.gradle.common.legacy.LegacyExtension;
@@ -95,6 +96,7 @@ public class Utils {
     public static final String SIDESTRIPPER = "net.minecraftforge:mergetool:1.1.6:fatjar";
     public static final String INSTALLERTOOLS = "net.minecraftforge:installertools:1.3.2:fatjar";
     public static final String JARCOMPATIBILITYCHECKER = "net.minecraftforge:JarCompatibilityChecker:0.1.+:all";
+    public static final String FORGEFLOWER = "net.minecraftforge:forgeflower:2.0.629.0";
     public static final long ZIPTIME = 628041600000L;
     public static final TimeZone GMT = TimeZone.getTimeZone("GMT");
 
@@ -264,6 +266,26 @@ public class Utils {
             consumer.accept(entries.nextElement());
         }
     }
+
+    public static Set<String> listDownloadJsonLibraries(JsonObject json) {
+        // Gather all the libraries
+        Set<String> artifacts = new HashSet<>();
+        for (JsonElement libElement : json.getAsJsonArray("libraries")) {
+            JsonObject library = libElement.getAsJsonObject();
+            String name = library.get("name").getAsString();
+
+            if (library.has("downloads")) {
+                JsonObject downloads = library.get("downloads").getAsJsonObject();
+                if (downloads.has("artifact"))
+                    artifacts.add(name);
+                if (downloads.has("classifiers"))
+                    downloads.get("classifiers").getAsJsonObject().keySet().forEach(cls -> artifacts.add(name + ':' + cls));
+            }
+        }
+
+        return artifacts;
+    }
+
     @FunctionalInterface
     public interface IOConsumer<T> {
         void accept(T value) throws IOException;
@@ -514,5 +536,13 @@ public class Utils {
 
     public static String getIntellijOutName(@Nonnull final SourceSet sourceSet) {
         return sourceSet.getName().equals(SourceSet.MAIN_SOURCE_SET_NAME) ? "production" : sourceSet.getName();
+    }
+
+    public static String getMCPConfigArtifact(String mcpVersion) {
+        return "de.oceanlabs.mcp:mcp_config:" + mcpVersion + "@zip";
+    }
+
+    public static String getOfficialMappingsArtifact(String type, String version) {
+        return "net.minecraft:" + type + ':' + version + ":mappings@txt";
     }
 }

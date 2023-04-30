@@ -42,26 +42,24 @@ class OfficialChannelProvider implements ChannelProvider {
             //mcpversion = version.substring(idx);
             version = version.substring(0, idx);
         }
-        File client = MavenArtifactDownloader.generate(project, "net.minecraft:client:" + version + ":mappings@txt", true);
-        File server = MavenArtifactDownloader.generate(project, "net.minecraft:server:" + version + ":mappings@txt", true);
+        File client = MavenArtifactDownloader.generate(project, Utils.getOfficialMappingsArtifact("client", version), true);
+        File server = MavenArtifactDownloader.generate(project, Utils.getOfficialMappingsArtifact("server", version), true);
         if (client == null || server == null)
             throw new IllegalStateException("Could not create " + mcpversion + " official mappings due to missing ProGuard mappings.");
 
-        File tsrg = mcpRepo.findRenames("obf_to_srg", IMappingFile.Format.TSRG, mcpversion, false);
-        if (tsrg == null)
-            throw new IllegalStateException("Could not create " + mcpversion + " official mappings due to missing MCP's tsrg");
-
         File mcp = mcpRepo.getMCP(mcpversion);
-        if (mcp == null)
-            return null;
+        File tsrg = mcpRepo.findRenames("obf_to_srg", IMappingFile.Format.TSRG, mcpversion, false);
+        if (mcp != null && tsrg == null)
+            throw new IllegalStateException("Could not create " + mcpversion + " official mappings due to missing MCP's tsrg");
 
         File mappings = mcpRepo.cacheMC("mapping", mcpversion, "mapping", "zip");
         HashStore cache = mcpRepo.commonHash(mcp)
                 .load(mcpRepo.cacheMC("mapping", mcpversion, "mapping", "zip.input"))
                 .add("pg_client", client)
                 .add("pg_server", server)
-                .add("tsrg", tsrg)
                 .add("codever", "2");
+        if (tsrg != null)
+            cache.add("tsrg", tsrg);
 
         if (!cache.isSame() || !mappings.exists()) {
             IMappingFile pg_client = IMappingFile.load(client);
@@ -70,7 +68,7 @@ class OfficialChannelProvider implements ChannelProvider {
             //Verify that the PG files merge, merge in MCPConfig, but doesn't hurt to double check here.
             //And if we don't we need to write a handler to spit out correctly sided info.
 
-            IMappingFile srg = IMappingFile.load(tsrg);
+            IMappingFile srg = tsrg == null ? pg_client.reverse() : IMappingFile.load(tsrg);
 
             Map<String, String> cfields = new TreeMap<>();
             Map<String, String> sfields = new TreeMap<>();
@@ -83,27 +81,29 @@ class OfficialChannelProvider implements ChannelProvider {
                     continue;
                 for (IMappingFile.IField fld : cls.getFields()) {
                     String name = obf.remapField(fld.getMapped());
-                    if (name.startsWith("field_") || name.startsWith("f_"))
+                    if (tsrg == null || name.startsWith("field_") || name.startsWith("f_"))
                         cfields.put(name, fld.getOriginal());
                 }
                 for (IMappingFile.IMethod mtd : cls.getMethods()) {
                     String name = obf.remapMethod(mtd.getMapped(), mtd.getMappedDescriptor());
-                    if (name.startsWith("func_") || name.startsWith("m_"))
+                    if (tsrg == null || name.startsWith("func_") || name.startsWith("m_"))
                         cmethods.put(name, mtd.getOriginal());
                 }
             }
+            if (tsrg == null)
+                srg = pg_server.reverse();
             for (IMappingFile.IClass cls : pg_server.getClasses()) {
                 IMappingFile.IClass obf = srg.getClass(cls.getMapped());
                 if (obf == null) // Class exists in official source, but doesn't make it past obfusication so it's not in our mappings.
                     continue;
                 for (IMappingFile.IField fld : cls.getFields()) {
                     String name = obf.remapField(fld.getMapped());
-                    if (name.startsWith("field_") || name.startsWith("f_"))
+                    if (tsrg == null || name.startsWith("field_") || name.startsWith("f_"))
                         sfields.put(name, fld.getOriginal());
                 }
                 for (IMappingFile.IMethod mtd : cls.getMethods()) {
                     String name = obf.remapMethod(mtd.getMapped(), mtd.getMappedDescriptor());
-                    if (name.startsWith("func_") || name.startsWith("m_"))
+                    if (tsrg == null || name.startsWith("func_") || name.startsWith("m_"))
                         smethods.put(name, mtd.getOriginal());
                 }
             }
