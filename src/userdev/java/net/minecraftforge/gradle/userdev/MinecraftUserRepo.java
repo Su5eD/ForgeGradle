@@ -40,7 +40,6 @@ import net.minecraftforge.gradle.userdev.tasks.AccessTransformJar;
 import net.minecraftforge.gradle.userdev.tasks.ApplyMCPFunction;
 import net.minecraftforge.gradle.userdev.tasks.HackyJavaCompile;
 import net.minecraftforge.gradle.userdev.tasks.RenameJar;
-import net.minecraftforge.gradle.userdev.tasks.RenameJarInPlace;
 import net.minecraftforge.srgutils.IMappingFile;
 import net.minecraftforge.srgutils.IMappingFile.IField;
 import net.minecraftforge.srgutils.IMappingFile.IMethod;
@@ -113,9 +112,6 @@ public class MinecraftUserRepo extends BaseRepo {
     private final String GROUP;
     private final String NAME;
     private final String VERSION;
-    private final List<File> ATS;
-    @Nullable
-    private final String AT_HASH;
     private final String MAPPING;
     private final boolean isPatcher;
     private final Map<String, McpNames> mapCache = new HashMap<>();
@@ -154,12 +150,6 @@ public class MinecraftUserRepo extends BaseRepo {
         this.GROUP = group;
         this.NAME = name;
         this.VERSION = version;
-        this.ATS = ats.stream().filter(File::exists).collect(Collectors.toList());
-        try {
-            this.AT_HASH = ATS.isEmpty() ? null : HashFunction.SHA1.hash(ATS);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
         this.MAPPING = mapping;
         this.isPatcher = !"net.minecraft".equals(GROUP);
 
@@ -168,13 +158,6 @@ public class MinecraftUserRepo extends BaseRepo {
             .filter(ArtifactIdentifier.nameEquals(NAME))
             .provide(this)
         );
-    }
-
-    @Override
-    protected File getCacheRoot() {
-        if (this.AT_HASH == null)
-            return super.getCacheRoot();
-        return project.file("build/fg_cache/");
     }
 
     public void validate(Configuration cfg, Map<String, RunConfig> runs, ExtractNatives extractNatives, DownloadAssets downloadAssets, GenerateSRG createSrgToMcp) {
@@ -318,16 +301,11 @@ public class MinecraftUserRepo extends BaseRepo {
     private File cacheMapped(@Nullable String mapping, String classifier, String ext) {
         return cache(GROUP.replace('.', File.separatorChar), NAME, getVersion(mapping), NAME + '-' + getVersion(mapping) + '-' + classifier + '.' + ext);
     }
-    private File cacheAT(String classifier, String ext) {
-        return cache(GROUP.replace('.', File.separatorChar), NAME, getVersionAT(), NAME + '-' + getVersionAT() + '-' + classifier + '.' + ext);
-    }
 
     public String getDependencyString() {
         String ret = GROUP + ':' + NAME + ':' + VERSION;
         if (MAPPING != null)
             ret += "_mapped_" + MAPPING;
-        if (AT_HASH != null)
-            ret += "_at_" + AT_HASH;
         //ret = "rnd." + (new Random().nextInt()) + "." + ret; //Stupid hack to make gradle always try and ask for this file. This should be removed once we figure out why the hell gradle just randomly decides to not try to resolve us!
         return ret;
     }
@@ -347,14 +325,6 @@ public class MinecraftUserRepo extends BaseRepo {
 
     private String getVersion(@Nullable String mappings) {
         return mappings == null ? VERSION : VERSION + "_mapped_" + mappings;
-    }
-    private String getVersionWithAT(@Nullable String mappings) {
-        if (AT_HASH == null) return getVersion(mappings);
-        return getVersion(mappings) + "_at_" + AT_HASH;
-    }
-    private String getVersionAT() {
-        if (AT_HASH == null) return VERSION;
-        return VERSION + "_at_" + AT_HASH;
     }
 
     private Patcher getParents() {
@@ -410,18 +380,12 @@ public class MinecraftUserRepo extends BaseRepo {
             group = group.substring(group.indexOf('.', 4) + 1);
         }
         String version = artifact.getVersion();
-        String athash = getATHash(version); //There is no way to reverse the ATs from the hash, so this is just to make Gradle request a new file if they change.
-        if (athash != null)
-            version = version.substring(0, version.length() - (athash.length() + "_at_".length()));
 
         String mappings = getMappings(version);
         if (mappings != null)
             version = version.substring(0, version.length() - (mappings.length() + "_mapped_".length()));
 
         if (!group.equals(GROUP) || !artifact.getName().equals(NAME) || !version.equals(VERSION))
-            return null;
-
-        if ((AT_HASH == null && athash != null) || (AT_HASH != null && !AT_HASH.equals(athash)))
             return null;
 
         if (!isPatcher && mappings == null) //net.minecraft in obf names. We don't do that.
@@ -454,8 +418,6 @@ public class MinecraftUserRepo extends BaseRepo {
         }
         if (mapping != null)
             ret.add("mapping", mapping);
-        if (AT_HASH != null)
-            ret.add("ats", AT_HASH);
 
         return ret;
     }
@@ -503,9 +465,9 @@ public class MinecraftUserRepo extends BaseRepo {
             debug("  Finding Pom: Cache Hit");
         } else {
             debug("  Finding Pom: " + pom);
-            POMBuilder builder = new POMBuilder(rand + GROUP, NAME, getVersionWithAT(mapping) );
+            POMBuilder builder = new POMBuilder(rand + GROUP, NAME, getVersion(mapping));
 
-            //builder.dependencies().add(rand + GROUP + ':' + NAME + ':' + getVersionWithAT(mapping), "compile"); //Normal poms dont reference themselves...
+            //builder.dependencies().add(rand + GROUP + ':' + NAME + ':' + getVersion(mapping), "compile"); //Normal poms dont reference themselves...
             builder.dependencies().add("net.minecraft:client:" + mcp.getMCVersion() + ":extra", "compile"); //Client as that has all deps as external list
             mcp.getLibraries().forEach(e -> builder.dependencies().add(e, "compile"));
 
@@ -520,10 +482,10 @@ public class MinecraftUserRepo extends BaseRepo {
             while (patcher != null) {
                 for (String lib : patcher.getLibraries()) {
                     Artifact af = Artifact.from(lib);
-                    //Gradle only allows one dependency with the same group:name. So if we depend on any claissified deps, repackage it ourselves.
-                    // Gradle also seems to not be able to reference itself. So we add it elseware.
+                    // Gradle only allows one dependency with the same group:name. So if we depend on any classified deps, repackage it ourselves.
+                    // Gradle also seems to not be able to reference itself. So we add it elsewhere.
                     if (GROUP.equals(af.getGroup()) && NAME.equals(af.getName()) && VERSION.equals(af.getVersion())) {
-                        builder.dependencies().add(rand + GROUP, NAME, getVersionWithAT(mapping), af.getClassifier(), af.getExtension(), "compile");
+                        builder.dependencies().add(rand + GROUP, NAME, getVersion(mapping), af.getClassifier(), af.getExtension(), "compile");
                     } else {
                         builder.dependencies().add(lib, "compile");
                     }
@@ -598,7 +560,7 @@ public class MinecraftUserRepo extends BaseRepo {
                     baseAT.append(patcher.getATData());
                 }
             }
-            boolean hasAts = baseAT.length() != 0 || !ATS.isEmpty();
+            boolean hasAts = baseAT.length() != 0;
             debug("    HasAts: " + hasAts);
 
             Set<String> packages = new HashSet<>();
@@ -703,7 +665,6 @@ public class MinecraftUserRepo extends BaseRepo {
                 AccessTransformJar at = createTask("atJar", AccessTransformJar.class);
                 at.getInput().set(injected);
                 at.getOutput().set(bin);
-                at.getAccessTransformers().from(ATS);
 
                 if (baseAT.length() != 0) {
                     File parentAT = project.file("build/" + at.getName() + "/parent_at.cfg");
@@ -1003,9 +964,9 @@ public class MinecraftUserRepo extends BaseRepo {
     private File findDecomp(boolean generate) throws IOException {
         HashStore cache = commonHash(null);
 
-        File decomp = cacheAT("decomp", "jar");
+        File decomp = cacheRaw("decomp", "jar");
         debug("  Finding Decomp: " + decomp);
-        cache.load(cacheAT("decomp", "jar.input"));
+        cache.load(cacheRaw("decomp", "jar.input"));
 
         if (cache.isSame() && decomp.exists()) {
             debug("  Cache Hit");
@@ -1058,9 +1019,9 @@ public class MinecraftUserRepo extends BaseRepo {
 
         HashStore cache = commonHash(null).add("decomp", decomp);
 
-        File patched = cacheAT("patched", "jar");
+        File patched = cacheRaw("patched", "jar");
         debug("  Finding patched: " + decomp);
-        cache.load(cacheAT("patched", "jar.input"));
+        cache.load(cacheRaw("patched", "jar.input"));
 
         if (cache.isSame() && patched.exists()) {
             debug("    Cache Hit");
@@ -1548,9 +1509,6 @@ public class MinecraftUserRepo extends BaseRepo {
                             List<String> ats = new ArrayList<>();
                             List<String> sas = new ArrayList<>();
 
-                            if (AT_HASH != null)
-                                dir = new File(dir, AT_HASH);
-
                             Patcher patcher = MinecraftUserRepo.this.parent;
                             while (patcher != null) {
                                 String data = patcher.getATData();
@@ -1565,9 +1523,9 @@ public class MinecraftUserRepo extends BaseRepo {
                             }
 
                             Map<String, MCPFunction> preDecomps = Maps.newLinkedHashMap();
-                            if (!ats.isEmpty() || AT_HASH != null) {
+                            if (!ats.isEmpty()) {
                                 @SuppressWarnings("deprecation")
-                                MCPFunction function = MCPFunctionFactory.createAT(project, MinecraftUserRepo.this.ATS, ats);
+                                MCPFunction function = MCPFunctionFactory.createAT(project, Collections.emptyList(), ats);
                                 preDecomps.put("AccessTransformer", function);
                             }
 

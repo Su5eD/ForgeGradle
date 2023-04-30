@@ -17,6 +17,7 @@ import net.minecraftforge.gradle.common.tasks.ExtractNatives;
 import net.minecraftforge.gradle.common.tasks.ExtractRangeMap;
 import net.minecraftforge.gradle.common.tasks.ExtractZip;
 import net.minecraftforge.gradle.common.tasks.JarExec;
+import net.minecraftforge.gradle.common.util.AccessTransformerUtils;
 import net.minecraftforge.gradle.common.util.Artifact;
 import net.minecraftforge.gradle.common.util.BaseRepo;
 import net.minecraftforge.gradle.common.util.EnvironmentChecks;
@@ -129,6 +130,8 @@ public class PatcherPlugin implements Plugin<Project> {
         final TaskProvider<DefaultTask> release = tasks.register("release", DefaultTask.class);
         final TaskProvider<DefaultTask> hideLicense = tasks.register(MojangLicenseHelper.HIDE_LICENSE, DefaultTask.class);
         final TaskProvider<DefaultTask> showLicense = tasks.register(MojangLicenseHelper.SHOW_LICENSE, DefaultTask.class);
+
+        AccessTransformerUtils.configureProcessResources(extension, tasks, createMcp2Srg.flatMap(task -> task.getOutput().getAsFile()));
 
         //Add Known repos
         project.getRepositories().maven(e -> {
