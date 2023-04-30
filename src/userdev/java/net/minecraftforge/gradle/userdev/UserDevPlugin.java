@@ -134,7 +134,7 @@ public class UserDevPlugin implements Plugin<Project> {
         final TaskProvider<DefaultTask> hideLicense = tasks.register(MojangLicenseHelper.HIDE_LICENSE, DefaultTask.class);
         final TaskProvider<DefaultTask> showLicense = tasks.register(MojangLicenseHelper.SHOW_LICENSE, DefaultTask.class);
 
-        AccessTransformerUtils.configureProcessResources(extension, tasks, createMcpToSrg.flatMap(task -> task.getOutput().getAsFile()));
+        AccessTransformerUtils.configureProcessResources(extension, tasks, createMcpToSrg, createMcpToSrg.flatMap(task -> task.getOutput().getAsFile()));
         registerAccessTransform(project, extension, createSrgToMcp);
 
         hideLicense.configure(task -> task.doLast(_task ->

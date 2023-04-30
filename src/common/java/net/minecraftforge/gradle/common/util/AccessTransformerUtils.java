@@ -10,7 +10,9 @@ import net.minecraftforge.srgutils.IMappingFile;
 import org.gradle.api.Transformer;
 import org.gradle.api.provider.Provider;
 import org.gradle.api.tasks.TaskContainer;
+import org.gradle.api.tasks.TaskProvider;
 import org.gradle.language.jvm.tasks.ProcessResources;
+import org.jetbrains.annotations.ApiStatus;
 
 import java.io.File;
 import java.io.IOException;
@@ -18,11 +20,15 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.function.Supplier;
 
+@ApiStatus.Internal
 public class AccessTransformerUtils {
     @SuppressWarnings("UnstableApiUsage")
-    public static void configureProcessResources(MinecraftExtension extension, TaskContainer tasks, Provider<File> mcpToSrgFileProvider) {
+    public static void configureProcessResources(MinecraftExtension extension, TaskContainer tasks, TaskProvider<?> taskDependency, Provider<File> mcpToSrgFileProvider) {
         AccessLineTransformer accessLineTransformer = new AccessLineTransformer(mcpToSrgFileProvider);
+
         tasks.withType(ProcessResources.class).configureEach(task -> {
+            task.dependsOn(taskDependency);
+
             Supplier<Set<String>> atFilesSupplier = Suppliers.memoize(() -> {
                 Set<String> atFiles = new HashSet<>();
                 for (File atFile : extension.getAccessTransformers().getFiles()) {

@@ -131,7 +131,7 @@ public class PatcherPlugin implements Plugin<Project> {
         final TaskProvider<DefaultTask> hideLicense = tasks.register(MojangLicenseHelper.HIDE_LICENSE, DefaultTask.class);
         final TaskProvider<DefaultTask> showLicense = tasks.register(MojangLicenseHelper.SHOW_LICENSE, DefaultTask.class);
 
-        AccessTransformerUtils.configureProcessResources(extension, tasks, createMcp2Srg.flatMap(task -> task.getOutput().getAsFile()));
+        AccessTransformerUtils.configureProcessResources(extension, tasks, createMcp2Srg, createMcp2Srg.flatMap(task -> task.getOutput().getAsFile()));
 
         //Add Known repos
         project.getRepositories().maven(e -> {
