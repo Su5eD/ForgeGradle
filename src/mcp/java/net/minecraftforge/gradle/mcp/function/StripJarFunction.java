@@ -23,14 +23,14 @@ package net.minecraftforge.gradle.mcp.function;
 import net.minecraftforge.gradle.common.util.HashStore;
 import net.minecraftforge.gradle.common.util.Utils;
 import net.minecraftforge.gradle.mcp.util.MCPEnvironment;
+import net.minecraftforge.srgutils.IMappingFile;
 import org.apache.commons.io.IOUtils;
 
-import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStreamReader;
+import java.io.InputStream;
 import java.util.Map;
 import java.util.Set;
 import java.util.jar.JarEntry;
@@ -52,9 +52,12 @@ class StripJarFunction implements MCPFunction {
     @Override
     public void initialize(MCPEnvironment environment, ZipFile zip) throws IOException {
         // Read valid file names from mapping
-        BufferedReader br = new BufferedReader(new InputStreamReader(zip.getInputStream(zip.getEntry(mappings))));
-        filter = br.lines().filter(l -> !l.startsWith("\t")).map(s -> s.split(" ")[0] + ".class").collect(Collectors.toSet());
-        br.close();
+        try(InputStream is = zip.getInputStream(zip.getEntry(mappings))) {
+            IMappingFile parsed = IMappingFile.load(is);
+            filter = parsed.getClasses().stream()
+                .map(c -> c.getOriginal() + ".class")
+                .collect(Collectors.toSet());
+        }
     }
 
     @Override
