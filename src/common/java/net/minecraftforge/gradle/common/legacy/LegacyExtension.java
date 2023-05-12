@@ -112,20 +112,19 @@ public abstract class LegacyExtension extends GroovyObjectSupport {
             // Get the existing extractSrg task
             final TaskProvider<ExtractMCPData> extractSrg = project.getTasks().named("extractSrg", ExtractMCPData.class);
             // Convert the mappings file to the desired format
-            final TaskProvider<FormatSRG> attachMappingsTask = project.getTasks().register("attachMappings", FormatSRG.class, t -> {
-                t.dependsOn(extractSrg);
+            final TaskProvider<FormatSRG> createLegacyObf2Srg = project.getTasks().register("createLegacyObf2Srg", FormatSRG.class, t -> {
                 // Set the input SRG to the extract task's output
                 t.getSrg().set(extractSrg.flatMap(ExtractMCPData::getOutput));
                 // Mods expect the classic SRG format
                 t.getFormat().set(IMappingFile.Format.SRG);
             });
             // Get the task's output file as a provider
-            final Provider<File> mappingsFile = attachMappingsTask.flatMap(t -> t.getOutput().getAsFile());
+            final Provider<File> mappingsFile = createLegacyObf2Srg.flatMap(t -> t.getOutput().getAsFile());
             // Attach the property along with the file path to each run configuration 
             minecraft.getRuns().configureEach(run -> run.property("net.minecraftforge.gradle.GradleStart.srg.notch-srg", mappingsFile.get()));
 
             // execute attachMappings before each run task
-            project.getTasks().named("prepareRuns").configure(t -> t.dependsOn(attachMappingsTask));
+            project.getTasks().named("prepareRuns").configure(t -> t.dependsOn(createLegacyObf2Srg));
         }
     }
 
